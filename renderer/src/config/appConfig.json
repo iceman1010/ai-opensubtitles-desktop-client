@@ -1,0 +1,7 @@
+{
+  "name": "AI.OS Client",
+  "version": "1.0.0",
+  "description": "Desktop client for OpenSubtitles AI API",
+  "author": "OpenSubtitles Team",
+  "userAgent": "API_Test_AI.OS"
+}

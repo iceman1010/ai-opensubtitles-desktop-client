@@ -1,0 +1,18 @@
+{
+  "video": [
+    "mp4", "mkv", "avi", "mov", "wmv", "flv", "webm", "m4v",
+    "mpg", "mpeg", "mp2", "mpe", "mpv", "m2v",
+    "3gp", "3g2", "f4v", "f4p", "f4a", "f4b",
+    "mxf", "roq", "nsv", "vob", "dv",
+    "ts", "mts", "m2ts", "asf"
+  ],
+  "audio": [
+    "mp3", "wav", "flac", "aac", "ogg", "wma", "m4a",
+    "aiff", "au", "raw", "pcm",
+    "opus", "vorbis", "ac3", "dts", "ape", "wv",
+    "amr", "awb", "gsm", "spx"
+  ],
+  "subtitle": [
+    "srt", "vtt"
+  ]
+}
