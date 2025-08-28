@@ -48,3 +48,9 @@ coverage/
 # Temporary folders
 tmp/
 temp/
+
+# API testing and development files
+API_Tests/
+api_tests/
+*_tests/
+test_scripts/
