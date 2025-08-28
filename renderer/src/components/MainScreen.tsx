@@ -4,6 +4,8 @@ import { getProcessingType } from '../config/fileFormats';
 import { OpenSubtitlesAPI, LanguageInfo, TranscriptionInfo, TranslationInfo } from '../services/api';
 import { logger } from '../utils/errorLogger';
 import { parseSubtitleFile, formatDuration, formatCharacterCount, ParsedSubtitle } from '../utils/subtitleParser';
+import ImprovedTranscriptionOptions from './ImprovedTranscriptionOptions';
+import ImprovedTranslationOptions from './ImprovedTranslationOptions';
 import appConfig from '../config/appConfig.json';
 import * as fileFormatsConfig from '../../../shared/fileFormats.json';
 
@@ -825,21 +827,19 @@ function MainScreen({ config }: MainScreenProps) {
               <p>Loading options...</p>
             </div>
           ) : fileType === 'transcription' ? (
-            <TranscriptionOptions 
+            <ImprovedTranscriptionOptions 
               options={transcriptionOptions}
               setOptions={setTranscriptionOptions}
               transcriptionInfo={transcriptionInfo}
               disabled={isProcessing}
             />
           ) : (
-            <TranslationOptions 
+            <ImprovedTranslationOptions 
               options={translationOptions}
+              translationInfo={translationInfo}
               onModelChange={handleTranslationModelChange}
               onLanguageChange={handleTranslationLanguageChange}
               onFormatChange={(format) => setTranslationOptions(prev => ({ ...prev, format }))}
-              availableLanguages={availableTranslationLanguages}
-              availableApis={availableTranslationApis}
-              isLoadingDynamicOptions={isLoadingDynamicOptions}
               disabled={isProcessing}
             />
           )}
@@ -881,226 +881,6 @@ function MainScreen({ config }: MainScreenProps) {
   );
 }
 
-interface TranscriptionOptionsProps {
-  options: {
-    language: string;
-    model: string;
-    format: string;
-  };
-  setOptions: React.Dispatch<React.SetStateAction<{
-    language: string;
-    model: string;
-    format: string;
-  }>>;
-  transcriptionInfo: TranscriptionInfo | null;
-  disabled?: boolean;
-}
-
-function TranscriptionOptions({ options, setOptions, transcriptionInfo, disabled = false }: TranscriptionOptionsProps) {
-  // Ensure arrays are valid before rendering
-  const safeApis = Array.isArray(transcriptionInfo?.apis) ? transcriptionInfo.apis : [];
-  
-  // Handle both possible language structures
-  let safeLanguages: LanguageInfo[] = [];
-  if (transcriptionInfo?.languages) {
-    if (Array.isArray(transcriptionInfo.languages)) {
-      // Direct array of languages
-      safeLanguages = transcriptionInfo.languages.filter(lang => lang && lang.language_code && lang.language_name);
-    } else if (typeof transcriptionInfo.languages === 'object') {
-      // Grouped by API - get languages from the selected model or first available API
-      const selectedApiLanguages = transcriptionInfo.languages[options.model];
-      if (selectedApiLanguages && Array.isArray(selectedApiLanguages)) {
-        safeLanguages = selectedApiLanguages.filter(lang => lang && lang.language_code && lang.language_name);
-      } else {
-        // Fallback to first available API's languages
-        const apiKeys = Object.keys(transcriptionInfo.languages);
-        if (apiKeys.length > 0) {
-          const firstApiLanguages = transcriptionInfo.languages[apiKeys[0]];
-          if (Array.isArray(firstApiLanguages)) {
-            safeLanguages = firstApiLanguages.filter(lang => lang && lang.language_code && lang.language_name);
-          }
-        }
-      }
-    }
-  }
-
-  return (
-    <div className="options-container">
-      <h3>Transcription Options</h3>
-      
-      <div className="form-group">
-        <label htmlFor="transcription-model">Model:</label>
-        <select
-          id="transcription-model"
-          value={options.model}
-          disabled={disabled}
-          onChange={(e) => {
-            const newModel = e.target.value;
-            setOptions(prev => ({ ...prev, model: newModel }));
-            
-            // If languages are grouped by API, update the language when model changes
-            if (transcriptionInfo?.languages && typeof transcriptionInfo.languages === 'object' && !Array.isArray(transcriptionInfo.languages)) {
-              const newModelLanguages = transcriptionInfo.languages[newModel];
-              if (newModelLanguages && Array.isArray(newModelLanguages) && newModelLanguages.length > 0) {
-                // Reset to auto if current language not available, or keep if available
-                const currentLang = options.language;
-                const isCurrentLangAvailable = newModelLanguages.some(lang => lang.language_code === currentLang);
-                if (!isCurrentLangAvailable && currentLang !== 'auto') {
-                  setOptions(prev => ({ ...prev, language: 'auto' }));
-                }
-              }
-            }
-          }}
-        >
-          {safeApis.map(api => (
-            <option key={api} value={api}>
-              {api.toUpperCase()}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="transcription-language">Source Language:</label>
-        <select
-          id="transcription-language"
-          value={options.language}
-          disabled={disabled}
-          onChange={(e) => setOptions(prev => ({ ...prev, language: e.target.value }))}
-        >
-          <option value="auto">Auto-detect</option>
-          {safeLanguages.map(lang => (
-            <option key={lang.language_code} value={lang.language_code}>
-              {lang.language_name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="transcription-format">Export Format:</label>
-        <select
-          id="transcription-format"
-          value={options.format}
-          disabled={disabled}
-          onChange={(e) => setOptions(prev => ({ ...prev, format: e.target.value }))}
-        >
-          {fileFormatsConfig.subtitle.map(format => (
-            <option key={format} value={format}>
-              {format.toUpperCase()}
-            </option>
-          ))}
-        </select>
-      </div>
-    </div>
-  );
-}
-
-interface TranslationOptionsProps {
-  options: {
-    sourceLanguage: string;
-    destinationLanguage: string;
-    model: string;
-    format: string;
-  };
-  onModelChange: (model: string) => void;
-  onLanguageChange: (field: 'sourceLanguage' | 'destinationLanguage', language: string) => void;
-  onFormatChange: (format: string) => void;
-  availableLanguages: LanguageInfo[];
-  availableApis: string[];
-  isLoadingDynamicOptions: boolean;
-  disabled?: boolean;
-}
-
-function TranslationOptions({ 
-  options, 
-  onModelChange, 
-  onLanguageChange, 
-  onFormatChange,
-  availableLanguages, 
-  availableApis,
-  isLoadingDynamicOptions,
-  disabled = false
-}: TranslationOptionsProps) {
-  // Ensure arrays are valid before rendering and filter out invalid language entries
-  const safeLanguages = Array.isArray(availableLanguages) 
-    ? availableLanguages.filter(lang => lang && lang.language_code && lang.language_name)
-    : [];
-  const safeApis = Array.isArray(availableApis) ? availableApis : [];
-
-  return (
-    <div className="options-container">
-      <h3>Translation Options</h3>
-      
-      <div className="form-group">
-        <label htmlFor="translation-model">Model:</label>
-        <select
-          id="translation-model"
-          value={options.model}
-          onChange={(e) => onModelChange(e.target.value)}
-          disabled={isLoadingDynamicOptions || disabled}
-        >
-          {safeApis.map(api => (
-            <option key={api} value={api}>
-              {api.toUpperCase()}
-            </option>
-          ))}
-        </select>
-        {isLoadingDynamicOptions && <small>Loading...</small>}
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="source-language">Source Language:</label>
-        <select
-          id="source-language"
-          value={options.sourceLanguage}
-          onChange={(e) => onLanguageChange('sourceLanguage', e.target.value)}
-          disabled={isLoadingDynamicOptions || disabled}
-        >
-          <option value="auto">Auto-detect</option>
-          {safeLanguages.map(lang => (
-            <option key={`src-${lang.language_code}`} value={lang.language_code}>
-              {lang.language_name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="destination-language">Destination Language:</label>
-        <select
-          id="destination-language"
-          value={options.destinationLanguage}
-          onChange={(e) => onLanguageChange('destinationLanguage', e.target.value)}
-          disabled={isLoadingDynamicOptions || disabled}
-        >
-          {safeLanguages.map(lang => (
-            <option key={`dest-${lang.language_code}`} value={lang.language_code}>
-              {lang.language_name}
-            </option>
-          ))}
-        </select>
-        {isLoadingDynamicOptions && <small>Loading...</small>}
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="translation-format">Export Format:</label>
-        <select
-          id="translation-format"
-          value={options.format}
-          disabled={disabled}
-          onChange={(e) => onFormatChange(e.target.value)}
-        >
-          {fileFormatsConfig.subtitle.map(format => (
-            <option key={format} value={format}>
-              {format.toUpperCase()}
-            </option>
-          ))}
-        </select>
-      </div>
-    </div>
-  );
-}
 
 interface PreviewDialogProps {
   content: string;
