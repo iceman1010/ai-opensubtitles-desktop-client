@@ -1,0 +1,2012 @@
+{
+    "data": {
+        "Translation": [
+            {
+                "name": "aws",
+                "display_name": "Amazon Translate",
+                "description": "Neural machine translation by Amazon Web Service with support for many languages.",
+                "pricing": "Pay-per-character",
+                "reliability": "high",
+                "price": 0.0054,
+                "languages_supported": [
+                    {
+                        "language_code": "en-IE",
+                        "language_name": "english (Ireland)"
+                    },
+                    {
+                        "language_code": "ar-AE",
+                        "language_name": "arabic (United Arab Emirates)"
+                    },
+                    {
+                        "language_code": "pa-IN",
+                        "language_name": "punjabi (India)"
+                    },
+                    {
+                        "language_code": "be-BY",
+                        "language_name": "belarusian (Belarus)"
+                    },
+                    {
+                        "language_code": "te-IN",
+                        "language_name": "telugu (India)"
+                    },
+                    {
+                        "language_code": "zh-HK",
+                        "language_name": "chinese (Hong Kong SAR China)"
+                    },
+                    {
+                        "language_code": "zh-TW",
+                        "language_name": "chinese (Taiwan)"
+                    },
+                    {
+                        "language_code": "en-US",
+                        "language_name": "english (United States)"
+                    },
+                    {
+                        "language_code": "uk-UA",
+                        "language_name": "ukrainian (Ukraine)"
+                    },
+                    {
+                        "language_code": "sw-KE",
+                        "language_name": "swahili (Kenya)"
+                    },
+                    {
+                        "language_code": "gu-IN",
+                        "language_name": "gujarati (India)"
+                    },
+                    {
+                        "language_code": "ta-IN",
+                        "language_name": "tamil (India)"
+                    },
+                    {
+                        "language_code": "en-AB",
+                        "language_name": "english"
+                    },
+                    {
+                        "language_code": "ug-CN",
+                        "language_name": "uyghur, uighur"
+                    },
+                    {
+                        "language_code": "su-ID",
+                        "language_name": "sundanese"
+                    },
+                    {
+                        "language_code": "bn-IN",
+                        "language_name": "bengali (India)"
+                    },
+                    {
+                        "language_code": "hy-AM",
+                        "language_name": "armenian (Armenia)"
+                    },
+                    {
+                        "language_code": "en-IN",
+                        "language_name": "english (India)"
+                    },
+                    {
+                        "language_code": "sl-SI",
+                        "language_name": "slovenian (Slovenia)"
+                    },
+                    {
+                        "language_code": "ab-GE",
+                        "language_name": "abkhaz"
+                    },
+                    {
+                        "language_code": "zh-CN",
+                        "language_name": "chinese (China)"
+                    },
+                    {
+                        "language_code": "ar-SA",
+                        "language_name": "arabic (Saudi Arabia)"
+                    },
+                    {
+                        "language_code": "eu-ES",
+                        "language_name": "basque (Spain)"
+                    },
+                    {
+                        "language_code": "en-ZA",
+                        "language_name": "english (South Africa)"
+                    },
+                    {
+                        "language_code": "gd-GB",
+                        "language_name": "scottish gaelic, gaelic"
+                    },
+                    {
+                        "language_code": "cy-WL",
+                        "language_name": "welsh"
+                    },
+                    {
+                        "language_code": "uz-UZ",
+                        "language_name": "uzbek (Uzbekistan)"
+                    },
+                    {
+                        "language_code": "tl-PH",
+                        "language_name": "tagalog"
+                    },
+                    {
+                        "language_code": "so-SO",
+                        "language_name": "somali (Somalia)"
+                    },
+                    {
+                        "language_code": "sk-SK",
+                        "language_name": "slovak (Slovakia)"
+                    },
+                    {
+                        "language_code": "rw-RW",
+                        "language_name": "kinyarwanda (Rwanda)"
+                    },
+                    {
+                        "language_code": "ro-RO",
+                        "language_name": "romanian (Romania)"
+                    },
+                    {
+                        "language_code": "pl-PL",
+                        "language_name": "polish (Poland)"
+                    },
+                    {
+                        "language_code": "no-NO",
+                        "language_name": "norwegian"
+                    },
+                    {
+                        "language_code": "mt-MT",
+                        "language_name": "maltese (Malta)"
+                    },
+                    {
+                        "language_code": "mr-IN",
+                        "language_name": "marathi (India)"
+                    },
+                    {
+                        "language_code": "mn-MN",
+                        "language_name": "mongolian"
+                    },
+                    {
+                        "language_code": "mk-MK",
+                        "language_name": "macedonian (Macedonia)"
+                    },
+                    {
+                        "language_code": "lv-LV",
+                        "language_name": "latvian (Latvia)"
+                    },
+                    {
+                        "language_code": "lt-LT",
+                        "language_name": "lithuanian (Lithuania)"
+                    },
+                    {
+                        "language_code": "is-IS",
+                        "language_name": "icelandic (Iceland)"
+                    },
+                    {
+                        "language_code": "hu-HU",
+                        "language_name": "hungarian (Hungary)"
+                    },
+                    {
+                        "language_code": "hr-HR",
+                        "language_name": "croatian (Croatia)"
+                    },
+                    {
+                        "language_code": "ha-NG",
+                        "language_name": "hausa (Nigeria)"
+                    },
+                    {
+                        "language_code": "fi-FI",
+                        "language_name": "finnish (Finland)"
+                    },
+                    {
+                        "language_code": "et-ET",
+                        "language_name": "estonian"
+                    },
+                    {
+                        "language_code": "bg-BG",
+                        "language_name": "bulgarian (Bulgaria)"
+                    },
+                    {
+                        "language_code": "az-AZ",
+                        "language_name": "azerbaijani (Azerbaijan)"
+                    },
+                    {
+                        "language_code": "th-TH",
+                        "language_name": "thai (Thailand)"
+                    },
+                    {
+                        "language_code": "tr-TR",
+                        "language_name": "turkish (Turkey)"
+                    },
+                    {
+                        "language_code": "ru-RU",
+                        "language_name": "russian (Russia)"
+                    },
+                    {
+                        "language_code": "pt-PT",
+                        "language_name": "portuguese (Portugal)"
+                    },
+                    {
+                        "language_code": "nl-NL",
+                        "language_name": "dutch (Netherlands)"
+                    },
+                    {
+                        "language_code": "it-IT",
+                        "language_name": "italian (Italy)"
+                    },
+                    {
+                        "language_code": "id-ID",
+                        "language_name": "indonesian (Indonesia)"
+                    },
+                    {
+                        "language_code": "fr-FR",
+                        "language_name": "french (France)"
+                    },
+                    {
+                        "language_code": "es-ES",
+                        "language_name": "spanish (Spain)"
+                    },
+                    {
+                        "language_code": "de-DE",
+                        "language_name": "german (Germany)"
+                    },
+                    {
+                        "language_code": "sw-RW",
+                        "language_name": "swahili"
+                    },
+                    {
+                        "language_code": "sw-TZ",
+                        "language_name": "swahili (Tanzania)"
+                    },
+                    {
+                        "language_code": "sr-RS",
+                        "language_name": "serbian (Serbia)"
+                    },
+                    {
+                        "language_code": "ps-AF",
+                        "language_name": "pashto (Afghanistan)"
+                    },
+                    {
+                        "language_code": "or-IN",
+                        "language_name": "oriya (India)"
+                    },
+                    {
+                        "language_code": "kn-IN",
+                        "language_name": "kannada (India)"
+                    },
+                    {
+                        "language_code": "ga-IE",
+                        "language_name": "irish (Ireland)"
+                    },
+                    {
+                        "language_code": "af-ZA",
+                        "language_name": "afrikaans (South Africa)"
+                    },
+                    {
+                        "language_code": "wo-SN",
+                        "language_name": "wolof"
+                    },
+                    {
+                        "language_code": "tt-RU",
+                        "language_name": "tatar"
+                    },
+                    {
+                        "language_code": "sw-BI",
+                        "language_name": "swahili"
+                    },
+                    {
+                        "language_code": "en-NZ",
+                        "language_name": "english (New Zealand)"
+                    },
+                    {
+                        "language_code": "ko-KR",
+                        "language_name": "korean (South Korea)"
+                    },
+                    {
+                        "language_code": "el-GR",
+                        "language_name": "greek (Greece)"
+                    },
+                    {
+                        "language_code": "ba-RU",
+                        "language_name": "bashkir"
+                    },
+                    {
+                        "language_code": "hi-IN",
+                        "language_name": "hindi (India)"
+                    },
+                    {
+                        "language_code": "de-CH",
+                        "language_name": "german (Switzerland)"
+                    },
+                    {
+                        "language_code": "vi-VN",
+                        "language_name": "vietnamese (Vietnam)"
+                    },
+                    {
+                        "language_code": "cy-GB",
+                        "language_name": "welsh (United Kingdom)"
+                    },
+                    {
+                        "language_code": "ml-IN",
+                        "language_name": "malayalam (India)"
+                    },
+                    {
+                        "language_code": "ms-MY",
+                        "language_name": "malay (Malaysia)"
+                    },
+                    {
+                        "language_code": "he-IL",
+                        "language_name": "hebrew (Israel)"
+                    },
+                    {
+                        "language_code": "cs-CZ",
+                        "language_name": "czech (Czech Republic)"
+                    },
+                    {
+                        "language_code": "ka-GE",
+                        "language_name": "georgian (Georgia)"
+                    },
+                    {
+                        "language_code": "si-LK",
+                        "language_name": "sinhala (Sri Lanka)"
+                    },
+                    {
+                        "language_code": "gl-ES",
+                        "language_name": "galician (Spain)"
+                    },
+                    {
+                        "language_code": "lg-IN",
+                        "language_name": "ganda"
+                    },
+                    {
+                        "language_code": "kab-DZ",
+                        "language_name": "kabyle (Algeria)"
+                    },
+                    {
+                        "language_code": "da-DK",
+                        "language_name": "danish (Denmark)"
+                    },
+                    {
+                        "language_code": "en-AU",
+                        "language_name": "english (Australia)"
+                    },
+                    {
+                        "language_code": "zu-ZA",
+                        "language_name": "zulu (South Africa)"
+                    },
+                    {
+                        "language_code": "mhr-RU",
+                        "language_name": "mhr-RU"
+                    },
+                    {
+                        "language_code": "ast-ES",
+                        "language_name": "ast-ES"
+                    },
+                    {
+                        "language_code": "pt-BR",
+                        "language_name": "portuguese (Brazil)"
+                    },
+                    {
+                        "language_code": "en-WL",
+                        "language_name": "english"
+                    },
+                    {
+                        "language_code": "sw-UG",
+                        "language_name": "swahili"
+                    },
+                    {
+                        "language_code": "ky-KG",
+                        "language_name": "kyrgyz"
+                    },
+                    {
+                        "language_code": "ckb-IQ",
+                        "language_name": "ckb-IQ"
+                    },
+                    {
+                        "language_code": "bs-BA",
+                        "language_name": "bosnian (Bosnia and Herzegovina)"
+                    },
+                    {
+                        "language_code": "fa-IR",
+                        "language_name": "persian (Iran)"
+                    },
+                    {
+                        "language_code": "kk-KZ",
+                        "language_name": "kazakh (Kazakhstan)"
+                    },
+                    {
+                        "language_code": "ckb-IR",
+                        "language_name": "ckb-IR"
+                    },
+                    {
+                        "language_code": "sv-SE",
+                        "language_name": "swedish (Sweden)"
+                    },
+                    {
+                        "language_code": "ja-JP",
+                        "language_name": "japanese (Japan)"
+                    },
+                    {
+                        "language_code": "mi-NZ",
+                        "language_name": "māori"
+                    },
+                    {
+                        "language_code": "ca-ES",
+                        "language_name": "catalan (Spain)"
+                    },
+                    {
+                        "language_code": "es-US",
+                        "language_name": "spanish (United States)"
+                    },
+                    {
+                        "language_code": "et-EE",
+                        "language_name": "estonian (Estonia)"
+                    },
+                    {
+                        "language_code": "fr-CA",
+                        "language_name": "french (Canada)"
+                    },
+                    {
+                        "language_code": "en-GB",
+                        "language_name": "english (United Kingdom)"
+                    }
+                ]
+            },
+            {
+                "name": "deepl",
+                "display_name": "DeepL",
+                "description": "DeepL provides machine translation using neural networks, known for its high accuracy and fluency compared to other translation services.",
+                "pricing": "Pay-per-character",
+                "reliability": "high",
+                "price": 0.00162,
+                "languages_supported": [
+                    {
+                        "language_code": "bg",
+                        "language_name": "bulgarian"
+                    },
+                    {
+                        "language_code": "zh",
+                        "language_name": "chinese"
+                    },
+                    {
+                        "language_code": "cs",
+                        "language_name": "czech"
+                    },
+                    {
+                        "language_code": "da",
+                        "language_name": "danish"
+                    },
+                    {
+                        "language_code": "nl",
+                        "language_name": "dutch"
+                    },
+                    {
+                        "language_code": "en",
+                        "language_name": "english"
+                    },
+                    {
+                        "language_code": "et",
+                        "language_name": "estonian"
+                    },
+                    {
+                        "language_code": "fi",
+                        "language_name": "finnish"
+                    },
+                    {
+                        "language_code": "fr",
+                        "language_name": "french"
+                    },
+                    {
+                        "language_code": "de",
+                        "language_name": "german"
+                    },
+                    {
+                        "language_code": "el",
+                        "language_name": "greek"
+                    },
+                    {
+                        "language_code": "hu",
+                        "language_name": "hungarian"
+                    },
+                    {
+                        "language_code": "id",
+                        "language_name": "indonesian"
+                    },
+                    {
+                        "language_code": "it",
+                        "language_name": "italian"
+                    },
+                    {
+                        "language_code": "ja",
+                        "language_name": "japanese"
+                    },
+                    {
+                        "language_code": "ko",
+                        "language_name": "korean"
+                    },
+                    {
+                        "language_code": "lv",
+                        "language_name": "latvian"
+                    },
+                    {
+                        "language_code": "lt",
+                        "language_name": "lithuanian"
+                    },
+                    {
+                        "language_code": "no",
+                        "language_name": "norwegian"
+                    },
+                    {
+                        "language_code": "pl",
+                        "language_name": "polish"
+                    },
+                    {
+                        "language_code": "pt",
+                        "language_name": "portuguese"
+                    },
+                    {
+                        "language_code": "ro",
+                        "language_name": "romanian"
+                    },
+                    {
+                        "language_code": "ru",
+                        "language_name": "russian"
+                    },
+                    {
+                        "language_code": "sk",
+                        "language_name": "slovak"
+                    },
+                    {
+                        "language_code": "sl",
+                        "language_name": "slovenian"
+                    },
+                    {
+                        "language_code": "es",
+                        "language_name": "spanish"
+                    },
+                    {
+                        "language_code": "sv",
+                        "language_name": "swedish"
+                    },
+                    {
+                        "language_code": "tr",
+                        "language_name": "turkish"
+                    },
+                    {
+                        "language_code": "uk",
+                        "language_name": "ukrainian"
+                    },
+                    {
+                        "language_code": "ja",
+                        "language_name": "japanese"
+                    }
+                ]
+            },
+            {
+                "name": "deepl2",
+                "display_name": "DeepL2",
+                "description": "Like the original DeepL, but the parsing of subtitles is done by DeepL themself.",
+                "pricing": "Pay-per-character",
+                "reliability": "high",
+                "price": 0.00162,
+                "languages_supported": [
+                    {
+                        "language_code": "bg",
+                        "language_name": "bulgarian"
+                    },
+                    {
+                        "language_code": "zh",
+                        "language_name": "chinese"
+                    },
+                    {
+                        "language_code": "cs",
+                        "language_name": "czech"
+                    },
+                    {
+                        "language_code": "da",
+                        "language_name": "danish"
+                    },
+                    {
+                        "language_code": "nl",
+                        "language_name": "dutch"
+                    },
+                    {
+                        "language_code": "en",
+                        "language_name": "english"
+                    },
+                    {
+                        "language_code": "et",
+                        "language_name": "estonian"
+                    },
+                    {
+                        "language_code": "fi",
+                        "language_name": "finnish"
+                    },
+                    {
+                        "language_code": "fr",
+                        "language_name": "french"
+                    },
+                    {
+                        "language_code": "de",
+                        "language_name": "german"
+                    },
+                    {
+                        "language_code": "el",
+                        "language_name": "greek"
+                    },
+                    {
+                        "language_code": "hu",
+                        "language_name": "hungarian"
+                    },
+                    {
+                        "language_code": "id",
+                        "language_name": "indonesian"
+                    },
+                    {
+                        "language_code": "it",
+                        "language_name": "italian"
+                    },
+                    {
+                        "language_code": "ja",
+                        "language_name": "japanese"
+                    },
+                    {
+                        "language_code": "ko",
+                        "language_name": "korean"
+                    },
+                    {
+                        "language_code": "lv",
+                        "language_name": "latvian"
+                    },
+                    {
+                        "language_code": "lt",
+                        "language_name": "lithuanian"
+                    },
+                    {
+                        "language_code": "no",
+                        "language_name": "norwegian"
+                    },
+                    {
+                        "language_code": "pl",
+                        "language_name": "polish"
+                    },
+                    {
+                        "language_code": "pt",
+                        "language_name": "portuguese"
+                    },
+                    {
+                        "language_code": "ro",
+                        "language_name": "romanian"
+                    },
+                    {
+                        "language_code": "ru",
+                        "language_name": "russian"
+                    },
+                    {
+                        "language_code": "sk",
+                        "language_name": "slovak"
+                    },
+                    {
+                        "language_code": "sl",
+                        "language_name": "slovenian"
+                    },
+                    {
+                        "language_code": "es",
+                        "language_name": "spanish"
+                    },
+                    {
+                        "language_code": "sv",
+                        "language_name": "swedish"
+                    },
+                    {
+                        "language_code": "tr",
+                        "language_name": "turkish"
+                    },
+                    {
+                        "language_code": "uk",
+                        "language_name": "ukrainian"
+                    },
+                    {
+                        "language_code": "ja",
+                        "language_name": "japanese"
+                    }
+                ]
+            }
+        ],
+        "Transcription": [
+            {
+                "name": "aws",
+                "display_name": "Amazon Transcribe",
+                "description": "Neural machine transcription by Amazon Web Service with suport for many languages for a premium price/",
+                "pricing": "Pay-per-second",
+                "reliability": "high",
+                "price": 0.132,
+                "languages_supported": [
+                    {
+                        "language_code": "auto",
+                        "language_name": "automatic selection"
+                    },
+                    {
+                        "language_code": "en",
+                        "language_name": "english"
+                    },
+                    {
+                        "language_code": "ab-GE",
+                        "language_name": "abkhaz"
+                    },
+                    {
+                        "language_code": "af-ZA",
+                        "language_name": "afrikaans (South Africa)"
+                    },
+                    {
+                        "language_code": "ar-AE",
+                        "language_name": "arabic (United Arab Emirates)"
+                    },
+                    {
+                        "language_code": "ar-SA",
+                        "language_name": "arabic (Saudi Arabia)"
+                    },
+                    {
+                        "language_code": "hy-AM",
+                        "language_name": "armenian (Armenia)"
+                    },
+                    {
+                        "language_code": "ast-ES",
+                        "language_name": "ast-ES"
+                    },
+                    {
+                        "language_code": "az-AZ",
+                        "language_name": "azerbaijani (Azerbaijan)"
+                    },
+                    {
+                        "language_code": "ba-RU",
+                        "language_name": "bashkir"
+                    },
+                    {
+                        "language_code": "eu-ES",
+                        "language_name": "basque (Spain)"
+                    },
+                    {
+                        "language_code": "be-BY",
+                        "language_name": "belarusian (Belarus)"
+                    },
+                    {
+                        "language_code": "bn-IN",
+                        "language_name": "bengali (India)"
+                    },
+                    {
+                        "language_code": "bs-BA",
+                        "language_name": "bosnian (Bosnia and Herzegovina)"
+                    },
+                    {
+                        "language_code": "bg-BG",
+                        "language_name": "bulgarian (Bulgaria)"
+                    },
+                    {
+                        "language_code": "ca-ES",
+                        "language_name": "catalan (Spain)"
+                    },
+                    {
+                        "language_code": "ckb-IR",
+                        "language_name": "ckb-IR"
+                    },
+                    {
+                        "language_code": "ckb-IQ",
+                        "language_name": "ckb-IQ"
+                    },
+                    {
+                        "language_code": "zh-CN",
+                        "language_name": "chinese (China)"
+                    },
+                    {
+                        "language_code": "zh-TW",
+                        "language_name": "chinese (Taiwan)"
+                    },
+                    {
+                        "language_code": "hr-HR",
+                        "language_name": "croatian (Croatia)"
+                    },
+                    {
+                        "language_code": "cs-CZ",
+                        "language_name": "czech (Czech Republic)"
+                    },
+                    {
+                        "language_code": "da-DK",
+                        "language_name": "danish (Denmark)"
+                    },
+                    {
+                        "language_code": "nl-NL",
+                        "language_name": "dutch (Netherlands)"
+                    },
+                    {
+                        "language_code": "en-AU",
+                        "language_name": "english (Australia)"
+                    },
+                    {
+                        "language_code": "en-GB",
+                        "language_name": "english (United Kingdom)"
+                    },
+                    {
+                        "language_code": "en-IN",
+                        "language_name": "english (India)"
+                    },
+                    {
+                        "language_code": "en-IE",
+                        "language_name": "english (Ireland)"
+                    },
+                    {
+                        "language_code": "en-NZ",
+                        "language_name": "english (New Zealand)"
+                    },
+                    {
+                        "language_code": "en-AB",
+                        "language_name": "english"
+                    },
+                    {
+                        "language_code": "en-ZA",
+                        "language_name": "english (South Africa)"
+                    },
+                    {
+                        "language_code": "en-US",
+                        "language_name": "english (United States)"
+                    },
+                    {
+                        "language_code": "en-WL",
+                        "language_name": "english"
+                    },
+                    {
+                        "language_code": "et-ET",
+                        "language_name": "estonian"
+                    },
+                    {
+                        "language_code": "fa-IR",
+                        "language_name": "persian (Iran)"
+                    },
+                    {
+                        "language_code": "fi-FI",
+                        "language_name": "finnish (Finland)"
+                    },
+                    {
+                        "language_code": "fr-FR",
+                        "language_name": "french (France)"
+                    },
+                    {
+                        "language_code": "fr-CA",
+                        "language_name": "french (Canada)"
+                    },
+                    {
+                        "language_code": "gl-ES",
+                        "language_name": "galician (Spain)"
+                    },
+                    {
+                        "language_code": "ka-GE",
+                        "language_name": "georgian (Georgia)"
+                    },
+                    {
+                        "language_code": "de-DE",
+                        "language_name": "german (Germany)"
+                    },
+                    {
+                        "language_code": "de-CH",
+                        "language_name": "german (Switzerland)"
+                    },
+                    {
+                        "language_code": "el-GR",
+                        "language_name": "greek (Greece)"
+                    },
+                    {
+                        "language_code": "gu-IN",
+                        "language_name": "gujarati (India)"
+                    },
+                    {
+                        "language_code": "ha-NG",
+                        "language_name": "hausa (Nigeria)"
+                    },
+                    {
+                        "language_code": "he-IL",
+                        "language_name": "hebrew (Israel)"
+                    },
+                    {
+                        "language_code": "hi-IN",
+                        "language_name": "hindi (India)"
+                    },
+                    {
+                        "language_code": "hu-HU",
+                        "language_name": "hungarian (Hungary)"
+                    },
+                    {
+                        "language_code": "is-IS",
+                        "language_name": "icelandic (Iceland)"
+                    },
+                    {
+                        "language_code": "id-ID",
+                        "language_name": "indonesian (Indonesia)"
+                    },
+                    {
+                        "language_code": "it-IT",
+                        "language_name": "italian (Italy)"
+                    },
+                    {
+                        "language_code": "ja-JP",
+                        "language_name": "japanese (Japan)"
+                    },
+                    {
+                        "language_code": "kab-DZ",
+                        "language_name": "kabyle (Algeria)"
+                    },
+                    {
+                        "language_code": "kn-IN",
+                        "language_name": "kannada (India)"
+                    },
+                    {
+                        "language_code": "kk-KZ",
+                        "language_name": "kazakh (Kazakhstan)"
+                    },
+                    {
+                        "language_code": "rw-RW",
+                        "language_name": "kinyarwanda (Rwanda)"
+                    },
+                    {
+                        "language_code": "ko-KR",
+                        "language_name": "korean (South Korea)"
+                    },
+                    {
+                        "language_code": "ky-KG",
+                        "language_name": "kyrgyz"
+                    },
+                    {
+                        "language_code": "lv-LV",
+                        "language_name": "latvian (Latvia)"
+                    },
+                    {
+                        "language_code": "lt-LT",
+                        "language_name": "lithuanian (Lithuania)"
+                    },
+                    {
+                        "language_code": "lg-IN",
+                        "language_name": "ganda"
+                    },
+                    {
+                        "language_code": "mk-MK",
+                        "language_name": "macedonian (Macedonia)"
+                    },
+                    {
+                        "language_code": "ms-MY",
+                        "language_name": "malay (Malaysia)"
+                    },
+                    {
+                        "language_code": "ml-IN",
+                        "language_name": "malayalam (India)"
+                    },
+                    {
+                        "language_code": "mt-MT",
+                        "language_name": "maltese (Malta)"
+                    },
+                    {
+                        "language_code": "mr-IN",
+                        "language_name": "marathi (India)"
+                    },
+                    {
+                        "language_code": "mhr-RU",
+                        "language_name": "mhr-RU"
+                    },
+                    {
+                        "language_code": "mn-MN",
+                        "language_name": "mongolian"
+                    },
+                    {
+                        "language_code": "no-NO",
+                        "language_name": "norwegian"
+                    },
+                    {
+                        "language_code": "or-IN",
+                        "language_name": "oriya (India)"
+                    },
+                    {
+                        "language_code": "ps-AF",
+                        "language_name": "pashto (Afghanistan)"
+                    },
+                    {
+                        "language_code": "pl-PL",
+                        "language_name": "polish (Poland)"
+                    },
+                    {
+                        "language_code": "pt-PT",
+                        "language_name": "portuguese (Portugal)"
+                    },
+                    {
+                        "language_code": "pt-BR",
+                        "language_name": "portuguese (Brazil)"
+                    },
+                    {
+                        "language_code": "pa-IN",
+                        "language_name": "punjabi (India)"
+                    },
+                    {
+                        "language_code": "ro-RO",
+                        "language_name": "romanian (Romania)"
+                    },
+                    {
+                        "language_code": "ru-RU",
+                        "language_name": "russian (Russia)"
+                    },
+                    {
+                        "language_code": "sr-RS",
+                        "language_name": "serbian (Serbia)"
+                    },
+                    {
+                        "language_code": "si-LK",
+                        "language_name": "sinhala (Sri Lanka)"
+                    },
+                    {
+                        "language_code": "sk-SK",
+                        "language_name": "slovak (Slovakia)"
+                    },
+                    {
+                        "language_code": "sl-SI",
+                        "language_name": "slovenian (Slovenia)"
+                    },
+                    {
+                        "language_code": "so-SO",
+                        "language_name": "somali (Somalia)"
+                    },
+                    {
+                        "language_code": "es-ES",
+                        "language_name": "spanish (Spain)"
+                    },
+                    {
+                        "language_code": "es-US",
+                        "language_name": "spanish (United States)"
+                    },
+                    {
+                        "language_code": "su-ID",
+                        "language_name": "sundanese"
+                    },
+                    {
+                        "language_code": "sw-KE",
+                        "language_name": "swahili (Kenya)"
+                    },
+                    {
+                        "language_code": "sw-BI",
+                        "language_name": "swahili"
+                    },
+                    {
+                        "language_code": "sw-RW",
+                        "language_name": "swahili"
+                    },
+                    {
+                        "language_code": "sw-TZ",
+                        "language_name": "swahili (Tanzania)"
+                    },
+                    {
+                        "language_code": "sw-UG",
+                        "language_name": "swahili"
+                    },
+                    {
+                        "language_code": "sv-SE",
+                        "language_name": "swedish (Sweden)"
+                    },
+                    {
+                        "language_code": "tl-PH",
+                        "language_name": "tagalog"
+                    },
+                    {
+                        "language_code": "ta-IN",
+                        "language_name": "tamil (India)"
+                    },
+                    {
+                        "language_code": "tt-RU",
+                        "language_name": "tatar"
+                    },
+                    {
+                        "language_code": "te-IN",
+                        "language_name": "telugu (India)"
+                    },
+                    {
+                        "language_code": "th-TH",
+                        "language_name": "thai (Thailand)"
+                    },
+                    {
+                        "language_code": "tr-TR",
+                        "language_name": "turkish (Turkey)"
+                    },
+                    {
+                        "language_code": "uk-UA",
+                        "language_name": "ukrainian (Ukraine)"
+                    },
+                    {
+                        "language_code": "ug-CN",
+                        "language_name": "uyghur, uighur"
+                    },
+                    {
+                        "language_code": "uz-UZ",
+                        "language_name": "uzbek (Uzbekistan)"
+                    },
+                    {
+                        "language_code": "vi-VN",
+                        "language_name": "vietnamese (Vietnam)"
+                    },
+                    {
+                        "language_code": "cy-WL",
+                        "language_name": "welsh"
+                    },
+                    {
+                        "language_code": "wo-SN",
+                        "language_name": "wolof"
+                    },
+                    {
+                        "language_code": "zu-ZA",
+                        "language_name": "zulu (South Africa)"
+                    }
+                ]
+            },
+            {
+                "name": "salad",
+                "display_name": "Salad Transcribe",
+                "description": "Salad’s Transcription API is based on OpenAI's Whiper model, offering low cost transcription",
+                "pricing": "Pay-per-second",
+                "reliability": "low",
+                "price": 0.0054,
+                "languages_supported": [
+                    {
+                        "language_code": "en",
+                        "language_name": "english"
+                    },
+                    {
+                        "language_code": "fr",
+                        "language_name": "french"
+                    },
+                    {
+                        "language_code": "de",
+                        "language_name": "german"
+                    },
+                    {
+                        "language_code": "es",
+                        "language_name": "spanish"
+                    },
+                    {
+                        "language_code": "it",
+                        "language_name": "italian"
+                    },
+                    {
+                        "language_code": "ja",
+                        "language_name": "japanese"
+                    },
+                    {
+                        "language_code": "zh",
+                        "language_name": "chinese"
+                    },
+                    {
+                        "language_code": "nl",
+                        "language_name": "dutch"
+                    },
+                    {
+                        "language_code": "uk",
+                        "language_name": "ukrainian"
+                    },
+                    {
+                        "language_code": "pt",
+                        "language_name": "portuguese"
+                    },
+                    {
+                        "language_code": "ar",
+                        "language_name": "arabic"
+                    },
+                    {
+                        "language_code": "cs",
+                        "language_name": "czech"
+                    },
+                    {
+                        "language_code": "ru",
+                        "language_name": "russian"
+                    },
+                    {
+                        "language_code": "pl",
+                        "language_name": "polish"
+                    },
+                    {
+                        "language_code": "hu",
+                        "language_name": "hungarian"
+                    },
+                    {
+                        "language_code": "fi",
+                        "language_name": "finnish"
+                    },
+                    {
+                        "language_code": "fa",
+                        "language_name": "persian"
+                    },
+                    {
+                        "language_code": "el",
+                        "language_name": "greek"
+                    },
+                    {
+                        "language_code": "tr",
+                        "language_name": "turkish"
+                    },
+                    {
+                        "language_code": "da",
+                        "language_name": "danish"
+                    },
+                    {
+                        "language_code": "he",
+                        "language_name": "hebrew"
+                    },
+                    {
+                        "language_code": "vi",
+                        "language_name": "vietnamese"
+                    },
+                    {
+                        "language_code": "ko",
+                        "language_name": "korean"
+                    },
+                    {
+                        "language_code": "ur",
+                        "language_name": "urdu"
+                    },
+                    {
+                        "language_code": "te",
+                        "language_name": "telugu"
+                    },
+                    {
+                        "language_code": "hi",
+                        "language_name": "hindi"
+                    },
+                    {
+                        "language_code": "ca",
+                        "language_name": "catalan"
+                    },
+                    {
+                        "language_code": "ml",
+                        "language_name": "malayalam"
+                    }
+                ]
+            },
+            {
+                "name": "openai",
+                "display_name": "OpenAI Whisper",
+                "description": "OpenAI's Whiper model, run by OpenAI",
+                "pricing": "Pay-per-second",
+                "reliability": "medium",
+                "price": 0.033,
+                "languages_supported": [
+                    {
+                        "language_code": "af-ZA",
+                        "language_name": "afrikaans (South Africa)"
+                    },
+                    {
+                        "language_code": "ar-SA",
+                        "language_name": "arabic (Saudi Arabia)"
+                    },
+                    {
+                        "language_code": "hy-AM",
+                        "language_name": "armenian (Armenia)"
+                    },
+                    {
+                        "language_code": "az-AZ",
+                        "language_name": "azerbaijani (Azerbaijan)"
+                    },
+                    {
+                        "language_code": "be-BY",
+                        "language_name": "belarusian (Belarus)"
+                    },
+                    {
+                        "language_code": "bs-BA",
+                        "language_name": "bosnian (Bosnia and Herzegovina)"
+                    },
+                    {
+                        "language_code": "bg-BG",
+                        "language_name": "bulgarian (Bulgaria)"
+                    },
+                    {
+                        "language_code": "ca-ES",
+                        "language_name": "catalan (Spain)"
+                    },
+                    {
+                        "language_code": "zh-CN",
+                        "language_name": "chinese (China)"
+                    },
+                    {
+                        "language_code": "hr-HR",
+                        "language_name": "croatian (Croatia)"
+                    },
+                    {
+                        "language_code": "cs-CZ",
+                        "language_name": "czech (Czech Republic)"
+                    },
+                    {
+                        "language_code": "da-DK",
+                        "language_name": "danish (Denmark)"
+                    },
+                    {
+                        "language_code": "nl-NL",
+                        "language_name": "dutch (Netherlands)"
+                    },
+                    {
+                        "language_code": "en",
+                        "language_name": "english"
+                    },
+                    {
+                        "language_code": "en-US",
+                        "language_name": "english (United States)"
+                    },
+                    {
+                        "language_code": "et-EE",
+                        "language_name": "estonian (Estonia)"
+                    },
+                    {
+                        "language_code": "fi-FI",
+                        "language_name": "finnish (Finland)"
+                    },
+                    {
+                        "language_code": "fr-FR",
+                        "language_name": "french (France)"
+                    },
+                    {
+                        "language_code": "gl-ES",
+                        "language_name": "galician (Spain)"
+                    },
+                    {
+                        "language_code": "de-DE",
+                        "language_name": "german (Germany)"
+                    },
+                    {
+                        "language_code": "el-GR",
+                        "language_name": "greek (Greece)"
+                    },
+                    {
+                        "language_code": "he-IL",
+                        "language_name": "hebrew (Israel)"
+                    },
+                    {
+                        "language_code": "hi-IN",
+                        "language_name": "hindi (India)"
+                    },
+                    {
+                        "language_code": "hu-HU",
+                        "language_name": "hungarian (Hungary)"
+                    },
+                    {
+                        "language_code": "is-IS",
+                        "language_name": "icelandic (Iceland)"
+                    },
+                    {
+                        "language_code": "id-ID",
+                        "language_name": "indonesian (Indonesia)"
+                    },
+                    {
+                        "language_code": "it-IT",
+                        "language_name": "italian (Italy)"
+                    },
+                    {
+                        "language_code": "ja-JP",
+                        "language_name": "japanese (Japan)"
+                    },
+                    {
+                        "language_code": "kn-IN",
+                        "language_name": "kannada (India)"
+                    },
+                    {
+                        "language_code": "kk-KZ",
+                        "language_name": "kazakh (Kazakhstan)"
+                    },
+                    {
+                        "language_code": "ko-KR",
+                        "language_name": "korean (South Korea)"
+                    },
+                    {
+                        "language_code": "lv-LV",
+                        "language_name": "latvian (Latvia)"
+                    },
+                    {
+                        "language_code": "lt-LT",
+                        "language_name": "lithuanian (Lithuania)"
+                    },
+                    {
+                        "language_code": "mk-MK",
+                        "language_name": "macedonian (Macedonia)"
+                    },
+                    {
+                        "language_code": "ms-MY",
+                        "language_name": "malay (Malaysia)"
+                    },
+                    {
+                        "language_code": "mr-IN",
+                        "language_name": "marathi (India)"
+                    },
+                    {
+                        "language_code": "mi-NZ",
+                        "language_name": "māori"
+                    },
+                    {
+                        "language_code": "ne-NP",
+                        "language_name": "nepali (Nepal)"
+                    },
+                    {
+                        "language_code": "nb-NO",
+                        "language_name": "norwegian bokmål (Norway)"
+                    },
+                    {
+                        "language_code": "fa-IR",
+                        "language_name": "persian (Iran)"
+                    },
+                    {
+                        "language_code": "pl-PL",
+                        "language_name": "polish (Poland)"
+                    },
+                    {
+                        "language_code": "pt-PT",
+                        "language_name": "portuguese (Portugal)"
+                    },
+                    {
+                        "language_code": "ro-RO",
+                        "language_name": "romanian (Romania)"
+                    },
+                    {
+                        "language_code": "ru-RU",
+                        "language_name": "russian (Russia)"
+                    },
+                    {
+                        "language_code": "sr-RS",
+                        "language_name": "serbian (Serbia)"
+                    },
+                    {
+                        "language_code": "sk-SK",
+                        "language_name": "slovak (Slovakia)"
+                    },
+                    {
+                        "language_code": "sl-SI",
+                        "language_name": "slovenian (Slovenia)"
+                    },
+                    {
+                        "language_code": "es-ES",
+                        "language_name": "spanish (Spain)"
+                    },
+                    {
+                        "language_code": "sw-KE",
+                        "language_name": "swahili (Kenya)"
+                    },
+                    {
+                        "language_code": "sv-SE",
+                        "language_name": "swedish (Sweden)"
+                    },
+                    {
+                        "language_code": "tl-PH",
+                        "language_name": "tagalog"
+                    },
+                    {
+                        "language_code": "ta-IN",
+                        "language_name": "tamil (India)"
+                    },
+                    {
+                        "language_code": "th-TH",
+                        "language_name": "thai (Thailand)"
+                    },
+                    {
+                        "language_code": "tr-TR",
+                        "language_name": "turkish (Turkey)"
+                    },
+                    {
+                        "language_code": "uk-UA",
+                        "language_name": "ukrainian (Ukraine)"
+                    },
+                    {
+                        "language_code": "ur-PK",
+                        "language_name": "urdu (Pakistan)"
+                    },
+                    {
+                        "language_code": "vi-VN",
+                        "language_name": "vietnamese (Vietnam)"
+                    },
+                    {
+                        "language_code": "cy-GB",
+                        "language_name": "welsh (United Kingdom)"
+                    }
+                ]
+            },
+            {
+                "name": "assemblyAI",
+                "display_name": "AssemblyAI",
+                "description": "Highest quality Speech AI model made by AssemblyAI",
+                "pricing": "Pay-per-second",
+                "reliability": "high",
+                "price": 0.045,
+                "languages_supported": [
+                    {
+                        "language_code": "auto",
+                        "language_name": "automatic selection"
+                    },
+                    {
+                        "language_code": "en",
+                        "language_name": "english"
+                    },
+                    {
+                        "language_code": "en_au",
+                        "language_name": "english (Australia)"
+                    },
+                    {
+                        "language_code": "en_uk",
+                        "language_name": "english"
+                    },
+                    {
+                        "language_code": "en_us",
+                        "language_name": "english (United States)"
+                    },
+                    {
+                        "language_code": "es",
+                        "language_name": "spanish"
+                    },
+                    {
+                        "language_code": "fr",
+                        "language_name": "french"
+                    },
+                    {
+                        "language_code": "de",
+                        "language_name": "german"
+                    },
+                    {
+                        "language_code": "it",
+                        "language_name": "italian"
+                    },
+                    {
+                        "language_code": "pt",
+                        "language_name": "portuguese"
+                    },
+                    {
+                        "language_code": "nl",
+                        "language_name": "dutch"
+                    },
+                    {
+                        "language_code": "hi",
+                        "language_name": "hindi"
+                    },
+                    {
+                        "language_code": "ja",
+                        "language_name": "japanese"
+                    },
+                    {
+                        "language_code": "zh",
+                        "language_name": "chinese"
+                    },
+                    {
+                        "language_code": "fi",
+                        "language_name": "finnish"
+                    },
+                    {
+                        "language_code": "ko",
+                        "language_name": "korean"
+                    },
+                    {
+                        "language_code": "pl",
+                        "language_name": "polish"
+                    },
+                    {
+                        "language_code": "ru",
+                        "language_name": "russian"
+                    },
+                    {
+                        "language_code": "tr",
+                        "language_name": "turkish"
+                    },
+                    {
+                        "language_code": "uk",
+                        "language_name": "ukrainian"
+                    },
+                    {
+                        "language_code": "vi",
+                        "language_name": "vietnamese"
+                    }
+                ]
+            },
+            {
+                "name": "nano",
+                "display_name": "Nano",
+                "description": "Low cost Speech AI model made by AssemblyAI",
+                "pricing": "Pay-per-second",
+                "reliability": "high",
+                "price": 0.015,
+                "languages_supported": [
+                    {
+                        "language_code": "auto",
+                        "language_name": "automatic selection"
+                    },
+                    {
+                        "language_code": "en",
+                        "language_name": "english"
+                    },
+                    {
+                        "language_code": "en_au",
+                        "language_name": "english (Australia)"
+                    },
+                    {
+                        "language_code": "en_uk",
+                        "language_name": "english"
+                    },
+                    {
+                        "language_code": "en_us",
+                        "language_name": "english (United States)"
+                    },
+                    {
+                        "language_code": "es",
+                        "language_name": "spanish"
+                    },
+                    {
+                        "language_code": "fr",
+                        "language_name": "french"
+                    },
+                    {
+                        "language_code": "de",
+                        "language_name": "german"
+                    },
+                    {
+                        "language_code": "it",
+                        "language_name": "italian"
+                    },
+                    {
+                        "language_code": "pt",
+                        "language_name": "portuguese"
+                    },
+                    {
+                        "language_code": "nl",
+                        "language_name": "dutch"
+                    },
+                    {
+                        "language_code": "af",
+                        "language_name": "afrikaans"
+                    },
+                    {
+                        "language_code": "sq",
+                        "language_name": "albanian"
+                    },
+                    {
+                        "language_code": "am",
+                        "language_name": "amharic"
+                    },
+                    {
+                        "language_code": "ar",
+                        "language_name": "arabic"
+                    },
+                    {
+                        "language_code": "hy",
+                        "language_name": "armenian"
+                    },
+                    {
+                        "language_code": "as",
+                        "language_name": "assamese"
+                    },
+                    {
+                        "language_code": "az",
+                        "language_name": "azerbaijani"
+                    },
+                    {
+                        "language_code": "ba",
+                        "language_name": "bashkir"
+                    },
+                    {
+                        "language_code": "eu",
+                        "language_name": "basque"
+                    },
+                    {
+                        "language_code": "be",
+                        "language_name": "belarusian"
+                    },
+                    {
+                        "language_code": "bn",
+                        "language_name": "bengali"
+                    },
+                    {
+                        "language_code": "bs",
+                        "language_name": "bosnian"
+                    },
+                    {
+                        "language_code": "br",
+                        "language_name": "breton"
+                    },
+                    {
+                        "language_code": "bg",
+                        "language_name": "bulgarian"
+                    },
+                    {
+                        "language_code": "my",
+                        "language_name": "burmese"
+                    },
+                    {
+                        "language_code": "ca",
+                        "language_name": "catalan"
+                    },
+                    {
+                        "language_code": "zh",
+                        "language_name": "chinese"
+                    },
+                    {
+                        "language_code": "hr",
+                        "language_name": "croatian"
+                    },
+                    {
+                        "language_code": "cs",
+                        "language_name": "czech"
+                    },
+                    {
+                        "language_code": "da",
+                        "language_name": "danish"
+                    },
+                    {
+                        "language_code": "et",
+                        "language_name": "estonian"
+                    },
+                    {
+                        "language_code": "fo",
+                        "language_name": "faroese"
+                    },
+                    {
+                        "language_code": "fi",
+                        "language_name": "finnish"
+                    },
+                    {
+                        "language_code": "gl",
+                        "language_name": "galician"
+                    },
+                    {
+                        "language_code": "ka",
+                        "language_name": "georgian"
+                    },
+                    {
+                        "language_code": "el",
+                        "language_name": "greek"
+                    },
+                    {
+                        "language_code": "gu",
+                        "language_name": "gujarati"
+                    },
+                    {
+                        "language_code": "ht",
+                        "language_name": "haitian, haitian creole"
+                    },
+                    {
+                        "language_code": "ha",
+                        "language_name": "hausa"
+                    },
+                    {
+                        "language_code": "haw",
+                        "language_name": "hawaiian"
+                    },
+                    {
+                        "language_code": "he",
+                        "language_name": "hebrew"
+                    },
+                    {
+                        "language_code": "hi",
+                        "language_name": "hindi"
+                    },
+                    {
+                        "language_code": "hu",
+                        "language_name": "hungarian"
+                    },
+                    {
+                        "language_code": "is",
+                        "language_name": "icelandic"
+                    },
+                    {
+                        "language_code": "id",
+                        "language_name": "indonesian"
+                    },
+                    {
+                        "language_code": "ja",
+                        "language_name": "japanese"
+                    },
+                    {
+                        "language_code": "jw",
+                        "language_name": "jw"
+                    },
+                    {
+                        "language_code": "kn",
+                        "language_name": "kannada"
+                    },
+                    {
+                        "language_code": "kk",
+                        "language_name": "kazakh"
+                    },
+                    {
+                        "language_code": "km",
+                        "language_name": "khmer"
+                    },
+                    {
+                        "language_code": "ko",
+                        "language_name": "korean"
+                    },
+                    {
+                        "language_code": "lo",
+                        "language_name": "lao"
+                    },
+                    {
+                        "language_code": "la",
+                        "language_name": "latin"
+                    },
+                    {
+                        "language_code": "lv",
+                        "language_name": "latvian"
+                    },
+                    {
+                        "language_code": "ln",
+                        "language_name": "lingala"
+                    },
+                    {
+                        "language_code": "lt",
+                        "language_name": "lithuanian"
+                    },
+                    {
+                        "language_code": "lb",
+                        "language_name": "luxembourgish, letzeburgesch"
+                    },
+                    {
+                        "language_code": "mk",
+                        "language_name": "macedonian"
+                    },
+                    {
+                        "language_code": "mg",
+                        "language_name": "malagasy"
+                    },
+                    {
+                        "language_code": "ms",
+                        "language_name": "malay"
+                    },
+                    {
+                        "language_code": "ml",
+                        "language_name": "malayalam"
+                    },
+                    {
+                        "language_code": "mt",
+                        "language_name": "maltese"
+                    },
+                    {
+                        "language_code": "mi",
+                        "language_name": "māori"
+                    },
+                    {
+                        "language_code": "mr",
+                        "language_name": "marathi"
+                    },
+                    {
+                        "language_code": "mn",
+                        "language_name": "mongolian"
+                    },
+                    {
+                        "language_code": "ne",
+                        "language_name": "nepali"
+                    },
+                    {
+                        "language_code": "no",
+                        "language_name": "norwegian"
+                    },
+                    {
+                        "language_code": "nn",
+                        "language_name": "norwegian nynorsk"
+                    },
+                    {
+                        "language_code": "oc",
+                        "language_name": "occitan"
+                    },
+                    {
+                        "language_code": "ps",
+                        "language_name": "pashto"
+                    },
+                    {
+                        "language_code": "fa",
+                        "language_name": "persian"
+                    },
+                    {
+                        "language_code": "pl",
+                        "language_name": "polish"
+                    },
+                    {
+                        "language_code": "ro",
+                        "language_name": "romanian"
+                    },
+                    {
+                        "language_code": "ru",
+                        "language_name": "russian"
+                    },
+                    {
+                        "language_code": "sa",
+                        "language_name": "sanskrit (saṁskṛta)"
+                    },
+                    {
+                        "language_code": "sr",
+                        "language_name": "serbian"
+                    },
+                    {
+                        "language_code": "sn",
+                        "language_name": "shona"
+                    },
+                    {
+                        "language_code": "sd",
+                        "language_name": "sindhi"
+                    },
+                    {
+                        "language_code": "si",
+                        "language_name": "sinhala"
+                    },
+                    {
+                        "language_code": "sk",
+                        "language_name": "slovak"
+                    },
+                    {
+                        "language_code": "sl",
+                        "language_name": "slovenian"
+                    },
+                    {
+                        "language_code": "so",
+                        "language_name": "somali"
+                    },
+                    {
+                        "language_code": "su",
+                        "language_name": "sundanese"
+                    },
+                    {
+                        "language_code": "sw",
+                        "language_name": "swahili"
+                    },
+                    {
+                        "language_code": "sv",
+                        "language_name": "swedish"
+                    },
+                    {
+                        "language_code": "tl",
+                        "language_name": "tagalog"
+                    },
+                    {
+                        "language_code": "tg",
+                        "language_name": "tajik"
+                    },
+                    {
+                        "language_code": "ta",
+                        "language_name": "tamil"
+                    },
+                    {
+                        "language_code": "tt",
+                        "language_name": "tatar"
+                    },
+                    {
+                        "language_code": "te",
+                        "language_name": "telugu"
+                    },
+                    {
+                        "language_code": "th",
+                        "language_name": "thai"
+                    },
+                    {
+                        "language_code": "bo",
+                        "language_name": "tibetan"
+                    },
+                    {
+                        "language_code": "tr",
+                        "language_name": "turkish"
+                    },
+                    {
+                        "language_code": "tk",
+                        "language_name": "turkmen"
+                    },
+                    {
+                        "language_code": "uk",
+                        "language_name": "ukrainian"
+                    },
+                    {
+                        "language_code": "ur",
+                        "language_name": "urdu"
+                    },
+                    {
+                        "language_code": "uz",
+                        "language_name": "uzbek"
+                    },
+                    {
+                        "language_code": "vi",
+                        "language_name": "vietnamese"
+                    },
+                    {
+                        "language_code": "cy",
+                        "language_name": "welsh"
+                    },
+                    {
+                        "language_code": "yi",
+                        "language_name": "yiddish"
+                    },
+                    {
+                        "language_code": "yo",
+                        "language_name": "yoruba"
+                    }
+                ]
+            }
+        ]
+    }
+}
