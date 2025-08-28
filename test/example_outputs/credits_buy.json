@@ -1,0 +1,34 @@
+{
+  "data": [
+    {
+      "name": "500 credits",
+      "value": "5 USD",
+      "discount_percent": 0,
+      "checkout_url": "https://ai.opensubtitles.com/assets/buy_credits.php?tag=7cyCRDqEEAEeNdEzibjjqw%3D%3D%3AqGQMydX9hTHAaM6Qamufd%2Fmag5N%2FEARuoyrbI4I7U2t7c8sy05MOrgLHU5oJf0%2FMFTb74ht4JWrQPfrfcO8iRyAtRWGBKMg9lmTEcZ4u%2BSY%3D"
+    },
+    {
+      "name": "1100 credits",
+      "value": "10 USD",
+      "discount_percent": 10,
+      "checkout_url": "https://ai.opensubtitles.com/assets/buy_credits.php?tag=GVKd933yaKdK%2Bjw9n0%2F4Ww%3D%3D%3Ao5Lue5CQnBjafqU8k3Xg3MyRjQi2nmmuR80KHyAeQeJMMQHZjCIMcdOaPjPuKY1KMuShNtIojgmswGSpu670%2BrI0qZYnNullSUHg5sy085E%3D"
+    },
+    {
+      "name": "5750 credits",
+      "value": "50 USD",
+      "discount_percent": 15,
+      "checkout_url": "https://ai.opensubtitles.com/assets/buy_credits.php?tag=ulZg9h7U3YK1ZjbKbFRbrg%3D%3D%3A3cuKpIPErdBjMwwhFQLDH%2Bf6c9vSN1wO1FmOvA97751KNCT20M6psQiohx4PDXVumYCKp%2BdxikpnW6T3ucuyWFkTv5H1rMZaQDEE1YoH%2F%2FU%3D"
+    },
+    {
+      "name": "18000 credits",
+      "value": "150 USD",
+      "discount_percent": 20,
+      "checkout_url": "https://ai.opensubtitles.com/assets/buy_credits.php?tag=oFT7qsGbqFsh0BD0sdrdtA%3D%3D%3AfxZT4JJG9VBf9WBy8dy%2BmiQ0BTfp9bvs9EaOT38fb3gKO13aC9X9JFk8m9bfBuTpBDI8lEhhVeKVMX6%2Bom%2F5YrfeCPJUtIH27gv3t%2FYvM8g%3D"
+    },
+    {
+      "name": "39000 credits",
+      "value": "300 USD",
+      "discount_percent": 30,
+      "checkout_url": "https://ai.opensubtitles.com/assets/buy_credits.php?tag=IK7dQLwuTNN9Bm6p3JN%2Fow%3D%3D%3AS9mjm0cO6D08X1YrahWWtEwdcD%2BqOUgF816NwidEorW8kVZhXpHwSczTtg%2BfVNKkhJYCFEcKDCq%2B4pss9i2k6FGBm7x%2B4%2FY26aQfWBz0vH8%3D"
+    }
+  ]
+}

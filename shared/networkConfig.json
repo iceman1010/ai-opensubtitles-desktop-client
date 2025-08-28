@@ -1,0 +1,193 @@
+{
+  "retry": {
+    "enabled": true,
+    "maxAttempts": 3,
+    "defaultBaseDelay": 1000,
+    "timeouts": {
+      "request": 30000,
+      "connection": 10000
+    }
+  },
+  "errorTypes": {
+    "rateLimitErrors": {
+      "enabled": true,
+      "statusCodes": [429],
+      "keywords": ["rate limit", "too many requests"],
+      "maxRetries": 3,
+      "delays": [30000, 60000, 120000],
+      "maxDelay": 120000
+    },
+    "cloudflareErrors": {
+      "enabled": true,
+      "statusCodes": [520, 521, 522, 523, 524, 525, 526, 527, 530],
+      "keywords": ["cloudflare", "cf-ray", "attention required", "checking your browser", "ddos protection", "security check"],
+      "maxRetries": 3,
+      "delays": [5000, 10000, 20000],
+      "maxDelay": 20000
+    },
+    "proxyErrors": {
+      "enabled": true,
+      "statusCodes": [502, 503, 504, 507],
+      "keywords": ["varnish", "kong", "nginx", "haproxy", "proxy", "gateway", "upstream", "backend", "load balancer"],
+      "maxRetries": 3,
+      "delays": [2000, 4000, 8000],
+      "maxDelay": 8000
+    },
+    "serverErrors": {
+      "enabled": true,
+      "statusCodes": [500, 501, 505, 506, 508, 510, 511],
+      "keywords": ["internal server error", "server error"],
+      "maxRetries": 3,
+      "delays": [3000, 6000, 12000],
+      "maxDelay": 12000
+    },
+    "timeoutErrors": {
+      "enabled": true,
+      "statusCodes": [],
+      "keywords": ["timeout", "timed_out", "connection timeout"],
+      "maxRetries": 3,
+      "delays": [2000, 5000, 10000],
+      "maxDelay": 10000
+    },
+    "offlineErrors": {
+      "enabled": true,
+      "statusCodes": [],
+      "keywords": ["failed to fetch", "network error", "err_internet_disconnected", "err_network_changed", "err_connection_refused", "err_name_not_resolved", "err_connection_timed_out", "err_connection_reset"],
+      "maxRetries": 3,
+      "delays": [1000, 2000, 4000],
+      "maxDelay": 4000
+    },
+    "authErrors": {
+      "enabled": false,
+      "statusCodes": [401, 403],
+      "keywords": ["unauthorized", "forbidden", "authentication failed"],
+      "maxRetries": 0,
+      "delays": [],
+      "maxDelay": 0
+    }
+  },
+  "backoffStrategy": {
+    "type": "exponential",
+    "multiplier": 2,
+    "jitter": true,
+    "jitterPercent": 10
+  },
+  "logging": {
+    "enabled": true,
+    "logRetries": true,
+    "logErrors": true,
+    "logSuccess": false,
+    "logSimulation": true
+  },
+  "userMessages": {
+    "offline": "No internet connection. Please check your network and try again.",
+    "rateLimited": "Rate limit exceeded. Please wait a moment and try again.",
+    "cloudflare": "CloudFlare protection error. Retrying automatically...",
+    "proxy": "Proxy server error. Retrying automatically...",
+    "server": "Server temporarily unavailable. Please try again later.",
+    "timeout": "Request timed out. Please check your connection and try again.",
+    "auth": "Authentication failed. Please check your credentials.",
+    "unknown": "An unexpected error occurred"
+  },
+  "statusBar": {
+    "enabled": true,
+    "showNetworkStatus": true,
+    "showProcessingStatus": true,
+    "showVersion": false,
+    "height": 26,
+    "connectionRestoreDisplayTime": 5000,
+    "animations": {
+      "enabled": true,
+      "pulseOnRestore": true,
+      "spinOnProcessing": true
+    }
+  },
+  "development": {
+    "simulateErrors": false,
+    "simulationMode": "random",
+    "simulationSettings": {
+      "globalProbability": 0.3,
+      "consecutiveErrorLimit": 2,
+      "resetAfterSuccess": true
+    },
+    "errorSimulation": {
+      "cloudflare": {
+        "enabled": true,
+        "probability": 0.1,
+        "statusCodes": [520, 521, 522, 524],
+        "messages": [
+          "Cloudflare: Web server is returning an unknown error",
+          "Cloudflare: Connection timed out",
+          "Cloudflare: A timeout occurred"
+        ],
+        "responseTexts": [
+          "CloudFlare Ray ID: 12345-TEST",
+          "Attention Required! | Cloudflare",
+          "Checking your browser before accessing..."
+        ]
+      },
+      "proxy": {
+        "enabled": true,
+        "probability": 0.08,
+        "statusCodes": [502, 503, 504],
+        "messages": [
+          "Bad Gateway",
+          "Service Temporarily Unavailable", 
+          "Gateway Timeout"
+        ],
+        "responseTexts": [
+          "Varnish cache server",
+          "Kong Gateway Error",
+          "nginx/1.18.0 (Ubuntu)"
+        ]
+      },
+      "rateLimit": {
+        "enabled": true,
+        "probability": 0.05,
+        "statusCodes": [429],
+        "messages": [
+          "Too Many Requests",
+          "Rate limit exceeded"
+        ],
+        "responseTexts": [
+          "{\"error\":\"Rate limit exceeded. Try again in 30 seconds.\"}",
+          "API rate limit exceeded"
+        ]
+      },
+      "server": {
+        "enabled": true,
+        "probability": 0.03,
+        "statusCodes": [500, 503],
+        "messages": [
+          "Internal Server Error",
+          "Service Unavailable"
+        ],
+        "responseTexts": [
+          "The server encountered an internal error",
+          "Service temporarily unavailable"
+        ]
+      },
+      "timeout": {
+        "enabled": true,
+        "probability": 0.02,
+        "statusCodes": [],
+        "messages": [
+          "Request timeout",
+          "Connection timed out"
+        ],
+        "responseTexts": []
+      },
+      "network": {
+        "enabled": true,
+        "probability": 0.01,
+        "statusCodes": [],
+        "messages": [
+          "Failed to fetch",
+          "Network request failed",
+          "ERR_INTERNET_DISCONNECTED"
+        ],
+        "responseTexts": []
+      }
+    }
+  }
+}

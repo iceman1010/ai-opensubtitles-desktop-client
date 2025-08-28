@@ -1,5 +1,6 @@
 import CacheManager from './cache';
 import { logger } from '../utils/errorLogger';
+import { apiRequestWithRetry, getUserFriendlyErrorMessage } from '../utils/networkUtils';
 import appConfig from '../config/appConfig.json';
 
 // Fallback in case import fails
@@ -142,65 +143,70 @@ export class OpenSubtitlesAPI {
     }
 
     try {
-      const userAgent = getUserAgent();
-      logger.info('API', `Attempting login with username: ${username}`);
-      logger.info('API', `Using User-Agent: ${userAgent}`);
-      logger.info('API', `Using API Key: ${this.apiKey ? 'SET' : 'NOT SET'}`);
-      logger.info('API', `App config object:`, appConfig);
-      
-      const headers = {
-        'Accept': 'application/json',
-        'Api-Key': this.apiKey || '',
-        'Content-Type': 'application/json',
-        'User-Agent': userAgent,
-      };
-      
-      logger.info('API', `Request headers:`, headers);
-      
-      // Use the main API login endpoint, not the /ai one
-      const response = await fetch('https://api.opensubtitles.com/api/v1/login', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          username,
-          password,
-        }),
-      });
-      
-      logger.info('API', `Login response status: ${response.status} ${response.statusText}`);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        logger.error('API', 'Login failed with status', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText
-        });
-        return {
-          success: false,
-          error: `HTTP ${response.status}: ${response.statusText} - ${errorText}`,
+      const result = await apiRequestWithRetry(async () => {
+        const userAgent = getUserAgent();
+        logger.info('API', `Attempting login with username: ${username}`);
+        logger.info('API', `Using User-Agent: ${userAgent}`);
+        logger.info('API', `Using API Key: ${this.apiKey ? 'SET' : 'NOT SET'}`);
+        
+        const headers = {
+          'Accept': 'application/json',
+          'Api-Key': this.apiKey || '',
+          'Content-Type': 'application/json',
+          'User-Agent': userAgent,
         };
-      }
+        
+        logger.info('API', `Request headers:`, headers);
+        
+        // Use the main API login endpoint, not the /ai one
+        const response = await fetch('https://api.opensubtitles.com/api/v1/login', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            username,
+            password,
+          }),
+        });
+        
+        logger.info('API', `Login response status: ${response.status} ${response.statusText}`);
 
-      const responseData = await response.json();
-      logger.info('API', 'Login response received', responseData);
+        if (!response.ok) {
+          const errorText = await response.text();
+          logger.error('API', 'Login failed with status', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorText
+          });
+          
+          // Create error with status for better categorization
+          const error = new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+          (error as any).status = response.status;
+          (error as any).responseText = errorText;
+          throw error;
+        }
 
-      if (responseData.token) {
-        this.token = responseData.token;
-        await this.saveToken(this.token); // Cache the token
-        logger.info('API', 'Login successful, token set and cached');
-        return { success: true, token: this.token };
-      }
+        const responseData = await response.json();
+        logger.info('API', 'Login response received', responseData);
 
-      logger.error('API', 'Login failed: No token received');
-      return { success: false, error: 'No token received' };
+        if (responseData.token) {
+          this.token = responseData.token;
+          await this.saveToken(this.token); // Cache the token
+          logger.info('API', 'Login successful, token set and cached');
+          return { success: true, token: this.token };
+        }
+
+        logger.error('API', 'Login failed: No token received');
+        throw new Error('No token received from server');
+      }, 'Login', 3);
+      
+      return result;
     } catch (error: any) {
-      logger.error('API', 'Login error', {
+      logger.error('API', 'Login error after retries', {
         error: error.message,
       });
       return {
         success: false,
-        error: error.message || 'Login failed',
+        error: getUserFriendlyErrorMessage(error),
       };
     }
   }
@@ -768,41 +774,50 @@ export class OpenSubtitlesAPI {
 
   async getCredits(): Promise<{ success: boolean; credits?: number; error?: string }> {
     try {
-      const headers = {
-        'Accept': 'application/json',
-        'Api-Key': this.apiKey || '',
-        'Content-Type': 'application/json',
-        'User-Agent': getUserAgent(),
-      };
-      
-      if (this.token) {
-        headers['Authorization'] = `Bearer ${this.token}`;
-      }
-      
-      const response = await fetch(`${this.baseURL}/credits`, {
-        method: 'POST',
-        headers,
-      });
-      
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          await this.handleAuthError();
+      const result = await apiRequestWithRetry(async () => {
+        const headers = {
+          'Accept': 'application/json',
+          'Api-Key': this.apiKey || '',
+          'Content-Type': 'application/json',
+          'User-Agent': getUserAgent(),
+        };
+        
+        if (this.token) {
+          headers['Authorization'] = `Bearer ${this.token}`;
         }
-        throw new Error(`Request failed: ${response.status} ${response.statusText}`);
-      }
+        
+        const response = await fetch(`${this.baseURL}/credits`, {
+          method: 'POST',
+          headers,
+        });
+        
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            await this.handleAuthError();
+          }
+          
+          // Create error with status for better categorization
+          const error = new Error(`Request failed: ${response.status} ${response.statusText}`);
+          (error as any).status = response.status;
+          (error as any).responseText = await response.text().catch(() => '');
+          throw error;
+        }
+        
+        const responseData = await response.json();
+        logger.info('API', 'Credits response:', responseData);
+        
+        return {
+          success: true,
+          credits: responseData.data?.credits || responseData.credits || 0,
+        };
+      }, 'Get Credits', 3);
       
-      const responseData = await response.json();
-      logger.info('API', 'Credits response:', responseData);
-      
-      return {
-        success: true,
-        credits: responseData.data?.credits || responseData.credits || 0,
-      };
+      return result;
     } catch (error: any) {
-      logger.error('API', 'Error fetching credits:', error);
+      logger.error('API', 'Error fetching credits after retries:', error);
       return {
         success: false,
-        error: error.message || 'Failed to get credits',
+        error: getUserFriendlyErrorMessage(error),
       };
     }
   }

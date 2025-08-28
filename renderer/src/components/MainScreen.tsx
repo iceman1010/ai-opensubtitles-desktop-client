@@ -6,6 +6,9 @@ import { logger } from '../utils/errorLogger';
 import { parseSubtitleFile, formatDuration, formatCharacterCount, ParsedSubtitle } from '../utils/subtitleParser';
 import ImprovedTranscriptionOptions from './ImprovedTranscriptionOptions';
 import ImprovedTranslationOptions from './ImprovedTranslationOptions';
+import StatusBar from './StatusBar';
+import NetworkSimulationPanel from './NetworkSimulationPanel';
+import { isOnline } from '../utils/networkUtils';
 import appConfig from '../config/appConfig.json';
 import * as fileFormatsConfig from '../../../shared/fileFormats.json';
 
@@ -63,7 +66,10 @@ function MainScreen({ config }: MainScreenProps) {
     subtitleInfo?: ParsedSubtitle;
   } | null>(null);
   const [isLoadingFileInfo, setIsLoadingFileInfo] = useState(false);
+  const [isNetworkOnline, setIsNetworkOnline] = useState(isOnline());
+  const [showSimulationPanel, setShowSimulationPanel] = useState(false);
   const hasAttemptedLogin = useRef(false);
+  const isDevelopment = process.env.NODE_ENV === 'development';
 
   useEffect(() => {
     if (config.apiKey) {
@@ -209,6 +215,12 @@ function MainScreen({ config }: MainScreenProps) {
   };
 
   const loadCredits = async () => {
+    // Skip loading credits if we're offline
+    if (!isNetworkOnline) {
+      logger.info('MainScreen', 'Skipping credits loading - device is offline');
+      return;
+    }
+
     setIsLoadingCredits(true);
     try {
       const result = await api.getCredits();
@@ -216,11 +228,30 @@ function MainScreen({ config }: MainScreenProps) {
         setCredits(result.credits);
       } else {
         logger.error('MainScreen', 'Failed to load credits:', result.error);
+        // Don't show error message for network issues when offline
+        if (isNetworkOnline) {
+          setStatusMessage({ type: 'error', message: `Failed to load credits: ${result.error}` });
+        }
       }
     } catch (error) {
       logger.error('MainScreen', 'Credits loading exception:', error);
+      if (isNetworkOnline) {
+        setStatusMessage({ type: 'error', message: 'Failed to load credits due to network error' });
+      }
     } finally {
       setIsLoadingCredits(false);
+    }
+  };
+
+  const handleNetworkChange = (online: boolean) => {
+    setIsNetworkOnline(online);
+    
+    if (online) {
+      // When back online, refresh credits and API info if needed
+      logger.info('MainScreen', 'Network restored, refreshing data');
+      if (config.apiKey && config.username && config.password) {
+        loadApiInfo();
+      }
     }
   };
 
@@ -865,6 +896,20 @@ function MainScreen({ config }: MainScreenProps) {
       )}
 
       <ErrorLogControls />
+      
+      <StatusBar 
+        onNetworkChange={handleNetworkChange}
+        isProcessing={isProcessing}
+        currentTask={isProcessing ? (fileType === 'transcription' ? 'Transcribing...' : 'Translating...') : undefined}
+        hasSidebar={true}
+      />
+      
+      {isDevelopment && (
+        <NetworkSimulationPanel 
+          isVisible={showSimulationPanel}
+          onToggle={() => setShowSimulationPanel(!showSimulationPanel)}
+        />
+      )}
       
       {showPreview && (
         <PreviewDialog 
