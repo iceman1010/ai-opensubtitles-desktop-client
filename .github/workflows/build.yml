@@ -71,6 +71,12 @@ jobs:
       with:
         path: artifacts/
         
+    - name: Delete existing release if exists
+      run: |
+        gh release delete ${{ github.ref_name }} --yes || true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
