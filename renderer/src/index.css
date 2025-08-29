@@ -352,10 +352,10 @@ body {
   }
 }
 
-/* Sidebar version display */
+/* Sidebar version display - moved up to avoid status bar overlap */
 .sidebar-version {
   position: absolute;
-  bottom: 15px;
+  bottom: 45px; /* Increased from 15px to account for 26px status bar height + margin */
   left: 50%;
   transform: translateX(-50%);
   font-size: 11px;

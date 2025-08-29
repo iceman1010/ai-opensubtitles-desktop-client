@@ -48,6 +48,21 @@ export interface TranslationInfo {
   languages: { [apiName: string]: LanguageInfo[] };
 }
 
+export interface ServiceModel {
+  name: string;
+  display_name: string;
+  description: string;
+  pricing: string;
+  reliability: string;
+  price: number;
+  languages_supported: LanguageInfo[];
+}
+
+export interface ServicesInfo {
+  Translation: ServiceModel[];
+  Transcription: ServiceModel[];
+}
+
 export interface CompletedTaskData {
   file_name: string;
   url: string;
@@ -815,6 +830,76 @@ export class OpenSubtitlesAPI {
       return result;
     } catch (error: any) {
       logger.error('API', 'Error fetching credits after retries:', error);
+      return {
+        success: false,
+        error: getUserFriendlyErrorMessage(error),
+      };
+    }
+  }
+
+  async getServicesInfo(): Promise<{ success: boolean; data?: ServicesInfo; error?: string }> {
+    const cacheKey = 'services_info';
+    const cached = CacheManager.get<ServicesInfo>(cacheKey);
+    
+    if (cached) {
+      logger.info('API', 'Using cached services info');
+      return { success: true, data: cached };
+    }
+
+    if (!this.apiKey) {
+      const error = 'API Key is required to fetch services info';
+      logger.error('API', error);
+      return { success: false, error };
+    }
+
+    try {
+      const result = await apiRequestWithRetry(async () => {
+        logger.info('API', 'Fetching services info from API...');
+        
+        const headers = {
+          'Accept': 'application/json',
+          'Api-Key': this.apiKey || '',
+          'Content-Type': 'application/json',
+          'User-Agent': getUserAgent(),
+        };
+        
+        if (this.token) {
+          headers['Authorization'] = `Bearer ${this.token}`;
+        }
+        
+        const response = await fetch(`${this.baseURL}/info/services`, {
+          method: 'GET',
+          headers,
+        });
+        
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            await this.handleAuthError();
+          }
+          
+          const error = new Error(`Request failed: ${response.status} ${response.statusText}`);
+          (error as any).status = response.status;
+          (error as any).responseText = await response.text().catch(() => '');
+          throw error;
+        }
+        
+        const responseData = await response.json();
+        logger.info('API', 'Services info response:', responseData);
+        
+        const data: ServicesInfo = responseData.data || responseData;
+        
+        CacheManager.set(cacheKey, data);
+        logger.info('API', 'Services info cached successfully');
+
+        return {
+          success: true,
+          data,
+        };
+      }, 'Get Services Info', 3);
+      
+      return result;
+    } catch (error: any) {
+      logger.error('API', 'Error fetching services info after retries:', error);
       return {
         success: false,
         error: getUserFriendlyErrorMessage(error),

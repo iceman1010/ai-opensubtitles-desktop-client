@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import StatusBar from './StatusBar';
+import { isOnline } from '../utils/networkUtils';
 
 interface AppConfig {
   username: string;
@@ -24,6 +26,7 @@ function Preferences({ config, onSave, onCancel }: PreferencesProps) {
   const [apiKey, setApiKey] = useState(config.apiKey || '');
   const [debugMode, setDebugMode] = useState(config.debugMode || false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isNetworkOnline, setIsNetworkOnline] = useState(isOnline());
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,8 +42,13 @@ function Preferences({ config, onSave, onCancel }: PreferencesProps) {
     }
   };
 
+  const handleNetworkChange = (online: boolean) => {
+    setIsNetworkOnline(online);
+  };
+
   return (
-    <div className="preferences-container">
+    <>
+      <div className="preferences-container">
       <h1>Preferences</h1>
       
       <form onSubmit={handleSubmit} className="preferences-form">
@@ -153,7 +161,15 @@ function Preferences({ config, onSave, onCancel }: PreferencesProps) {
           </button>
         </div>
       </form>
-    </div>
+      </div>
+      
+      <StatusBar 
+        onNetworkChange={handleNetworkChange}
+        isProcessing={isLoading}
+        currentTask={isLoading ? 'Saving preferences...' : undefined}
+        hasSidebar={true}
+      />
+    </>
   );
 }
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { setupNetworkListeners, isOnline } from '../utils/networkUtils';
+import { activityTracker } from '../utils/activityTracker';
 
 interface StatusBarProps {
   onNetworkChange?: (isOnline: boolean) => void;
@@ -16,6 +17,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
 }) => {
   const [online, setOnline] = useState(isOnline());
   const [showConnectionChange, setShowConnectionChange] = useState(false);
+  const [isApiActive, setIsApiActive] = useState(false);
 
   useEffect(() => {
     const cleanup = setupNetworkListeners(
@@ -40,6 +42,20 @@ const StatusBar: React.FC<StatusBarProps> = ({
 
     return cleanup;
   }, [onNetworkChange]);
+
+  useEffect(() => {
+    // Set up activity tracking
+    const cleanupActivity = activityTracker.addListener({
+      onActivityStart: () => {
+        setIsApiActive(true);
+      },
+      onActivityEnd: () => {
+        setIsApiActive(false);
+      }
+    });
+
+    return cleanupActivity;
+  }, []);
 
   const getNetworkStatusDisplay = () => {
     if (!online) {
@@ -70,6 +86,17 @@ const StatusBar: React.FC<StatusBarProps> = ({
     <div className={`status-bar ${hasSidebar ? 'with-sidebar' : ''}`}>
       {/* Network Status */}
       {getNetworkStatusDisplay()}
+      
+      {/* API Activity Indicator */}
+      {isApiActive && (
+        <>
+          <span className="status-separator">|</span>
+          <span className="status-item api-activity">
+            <span className="status-icon pulsing">◐</span>
+            API
+          </span>
+        </>
+      )}
       
       {/* Processing Status */}
       {isProcessing && currentTask && (
@@ -107,6 +134,12 @@ const StatusBar: React.FC<StatusBarProps> = ({
           padding-left: 16px;
         }
         
+        /* Ensure status bar without sidebar takes full width */
+        .status-bar:not(.with-sidebar) {
+          left: 0;
+          right: 0;
+        }
+        
         .status-item {
           display: flex;
           align-items: center;
@@ -134,6 +167,12 @@ const StatusBar: React.FC<StatusBarProps> = ({
           font-weight: 600;
         }
         
+        .status-item.api-activity {
+          color: #6f42c1;
+          font-weight: 500;
+          font-size: 11px;
+        }
+        
         .status-separator {
           margin: 0 8px;
           color: #adb5bd;
@@ -150,6 +189,10 @@ const StatusBar: React.FC<StatusBarProps> = ({
           animation: spin 1s linear infinite;
         }
         
+        .status-icon.pulsing {
+          animation: pulse-rotate 1.5s ease-in-out infinite;
+        }
+        
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
@@ -160,9 +203,24 @@ const StatusBar: React.FC<StatusBarProps> = ({
           50% { opacity: 0.7; }
         }
         
+        @keyframes pulse-rotate {
+          0% { 
+            opacity: 0.6;
+            transform: rotate(0deg) scale(0.9);
+          }
+          50% { 
+            opacity: 1;
+            transform: rotate(180deg) scale(1.1);
+          }
+          100% { 
+            opacity: 0.6;
+            transform: rotate(360deg) scale(0.9);
+          }
+        }
+        
         /* Responsive adjustments */
         @media (max-width: 768px) {
-          .status-bar {
+          .status-bar, .status-bar.with-sidebar {
             left: 0 !important; /* Full width on mobile */
             font-size: 11px;
             padding: 0 8px;
@@ -174,11 +232,26 @@ const StatusBar: React.FC<StatusBarProps> = ({
           }
         }
         
-        /* When sidebar is collapsed/hidden */
+        /* When sidebar is collapsed/hidden on medium screens */
         @media (max-width: 900px) {
           .status-bar.with-sidebar {
             left: 0;
             padding-left: 12px;
+          }
+        }
+        
+        /* Ensure proper scaling on larger screens */
+        @media (min-width: 1200px) {
+          .status-bar:not(.with-sidebar) {
+            left: 0;
+            right: 0;
+            width: 100%;
+          }
+          
+          .status-bar.with-sidebar {
+            left: 200px;
+            right: 0;
+            width: calc(100% - 200px);
           }
         }
       `}</style>

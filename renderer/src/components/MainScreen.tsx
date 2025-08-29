@@ -7,7 +7,6 @@ import { parseSubtitleFile, formatDuration, formatCharacterCount, ParsedSubtitle
 import ImprovedTranscriptionOptions from './ImprovedTranscriptionOptions';
 import ImprovedTranslationOptions from './ImprovedTranslationOptions';
 import StatusBar from './StatusBar';
-import NetworkSimulationPanel from './NetworkSimulationPanel';
 import { isOnline } from '../utils/networkUtils';
 import appConfig from '../config/appConfig.json';
 import * as fileFormatsConfig from '../../../shared/fileFormats.json';
@@ -67,9 +66,7 @@ function MainScreen({ config }: MainScreenProps) {
   } | null>(null);
   const [isLoadingFileInfo, setIsLoadingFileInfo] = useState(false);
   const [isNetworkOnline, setIsNetworkOnline] = useState(isOnline());
-  const [showSimulationPanel, setShowSimulationPanel] = useState(false);
   const hasAttemptedLogin = useRef(false);
-  const isDevelopment = process.env.NODE_ENV === 'development';
 
   useEffect(() => {
     if (config.apiKey) {
@@ -904,12 +901,6 @@ function MainScreen({ config }: MainScreenProps) {
         hasSidebar={true}
       />
       
-      {isDevelopment && (
-        <NetworkSimulationPanel 
-          isVisible={showSimulationPanel}
-          onToggle={() => setShowSimulationPanel(!showSimulationPanel)}
-        />
-      )}
       
       {showPreview && (
         <PreviewDialog 
