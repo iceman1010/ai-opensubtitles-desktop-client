@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { OpenSubtitlesAPI, LanguageInfo, TranscriptionInfo, TranslationInfo, ServicesInfo, ServiceModel } from '../services/api';
 import { logger } from '../utils/errorLogger';
-import StatusBar from './StatusBar';
-import { isOnline } from '../utils/networkUtils';
 
 interface AppConfig {
   username: string;
@@ -18,15 +16,15 @@ interface AppConfig {
 
 interface InfoProps {
   config: AppConfig;
+  setAppProcessing: (processing: boolean, task?: string) => void;
 }
 
-function Info({ config }: InfoProps) {
+function Info({ config, setAppProcessing }: InfoProps) {
   const [transcriptionInfo, setTranscriptionInfo] = useState<TranscriptionInfo | null>(null);
   const [translationInfo, setTranslationInfo] = useState<TranslationInfo | null>(null);
   const [servicesInfo, setServicesInfo] = useState<ServicesInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [api] = useState(() => new OpenSubtitlesAPI());
-  const [isNetworkOnline, setIsNetworkOnline] = useState(isOnline());
 
   useEffect(() => {
     loadModelInfo();
@@ -36,6 +34,7 @@ function Info({ config }: InfoProps) {
     if (!config.apiKey) return;
     
     setIsLoading(true);
+    setAppProcessing(true, 'Loading model info...');
     api.setApiKey(config.apiKey);
 
     try {
@@ -63,6 +62,7 @@ function Info({ config }: InfoProps) {
       logger.error('Info', 'Failed to load model info:', error);
     } finally {
       setIsLoading(false);
+      setAppProcessing(false);
     }
   };
 
@@ -155,17 +155,6 @@ function Info({ config }: InfoProps) {
     );
   }
 
-  const handleNetworkChange = (online: boolean) => {
-    setIsNetworkOnline(online);
-    
-    if (online) {
-      // When back online, refresh model info
-      logger.info('Info', 'Network restored, refreshing model info');
-      if (config.apiKey && config.username && config.password) {
-        loadModelInfo();
-      }
-    }
-  };
 
   return (
     <>
@@ -353,13 +342,6 @@ function Info({ config }: InfoProps) {
         </ul>
       </section>
       </div>
-      
-      <StatusBar 
-        onNetworkChange={handleNetworkChange}
-        isProcessing={isLoading}
-        currentTask={isLoading ? 'Loading model info...' : undefined}
-        hasSidebar={false}
-      />
     </>
   );
 }

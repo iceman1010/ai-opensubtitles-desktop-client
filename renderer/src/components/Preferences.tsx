@@ -1,6 +1,4 @@
 import React, { useState } from 'react';
-import StatusBar from './StatusBar';
-import { isOnline } from '../utils/networkUtils';
 
 interface AppConfig {
   username: string;
@@ -18,15 +16,15 @@ interface PreferencesProps {
   config: AppConfig;
   onSave: (config: Partial<AppConfig>) => void;
   onCancel: () => void;
+  setAppProcessing: (processing: boolean, task?: string) => void;
 }
 
-function Preferences({ config, onSave, onCancel }: PreferencesProps) {
+function Preferences({ config, onSave, onCancel, setAppProcessing }: PreferencesProps) {
   const [username, setUsername] = useState(config.username || '');
   const [password, setPassword] = useState(config.password || '');
   const [apiKey, setApiKey] = useState(config.apiKey || '');
   const [debugMode, setDebugMode] = useState(config.debugMode || false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isNetworkOnline, setIsNetworkOnline] = useState(isOnline());
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,16 +33,15 @@ function Preferences({ config, onSave, onCancel }: PreferencesProps) {
     }
 
     setIsLoading(true);
+    setAppProcessing(true, 'Saving preferences...');
     try {
       await onSave({ username, password, apiKey, debugMode });
     } finally {
       setIsLoading(false);
+      setAppProcessing(false);
     }
   };
 
-  const handleNetworkChange = (online: boolean) => {
-    setIsNetworkOnline(online);
-  };
 
   return (
     <>
@@ -162,13 +159,6 @@ function Preferences({ config, onSave, onCancel }: PreferencesProps) {
         </div>
       </form>
       </div>
-      
-      <StatusBar 
-        onNetworkChange={handleNetworkChange}
-        isProcessing={isLoading}
-        currentTask={isLoading ? 'Saving preferences...' : undefined}
-        hasSidebar={true}
-      />
     </>
   );
 }

@@ -3,6 +3,7 @@ import Login from './components/Login';
 import MainScreen from './components/MainScreen';
 import Preferences from './components/Preferences';
 import Info from './components/Info';
+import StatusBar from './components/StatusBar';
 import './utils/errorLogger'; // Initialize global error handlers
 import appConfig from './config/appConfig.json';
 import packageInfo from '../../package.json';
@@ -23,6 +24,11 @@ function App() {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [currentScreen, setCurrentScreen] = useState<'login' | 'main' | 'preferences' | 'info'>('main');
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Centralized status state
+  const [isNetworkOnline, setIsNetworkOnline] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [currentTask, setCurrentTask] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     loadConfig();
@@ -70,6 +76,16 @@ function App() {
     } catch (error) {
       console.error('Failed to save preferences:', error);
     }
+  };
+
+  // Centralized status handlers
+  const handleNetworkChange = (isOnline: boolean) => {
+    setIsNetworkOnline(isOnline);
+  };
+
+  const setAppProcessing = (processing: boolean, task?: string) => {
+    setIsProcessing(processing);
+    setCurrentTask(processing ? task : undefined);
   };
 
   if (isLoading) {
@@ -133,19 +149,36 @@ function App() {
           <Login onLogin={handleLogin} />
         )}
         {currentScreen === 'main' && config && (
-          <MainScreen config={config} />
+          <MainScreen 
+            config={config} 
+            setAppProcessing={setAppProcessing}
+          />
         )}
         {currentScreen === 'info' && config && (
-          <Info config={config} />
+          <Info 
+            config={config} 
+            setAppProcessing={setAppProcessing}
+          />
         )}
         {currentScreen === 'preferences' && config && (
           <Preferences
             config={config}
             onSave={handlePreferencesSave}
             onCancel={() => setCurrentScreen('main')}
+            setAppProcessing={setAppProcessing}
           />
         )}
       </div>
+
+      {/* Centralized StatusBar - only show when not on login */}
+      {currentScreen !== 'login' && (
+        <StatusBar 
+          onNetworkChange={handleNetworkChange}
+          isProcessing={isProcessing}
+          currentTask={currentTask}
+          hasSidebar={false}
+        />
+      )}
     </div>
   );
 }
