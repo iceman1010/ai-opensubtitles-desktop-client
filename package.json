@@ -16,10 +16,10 @@
     "build:main": "tsc -p main/tsconfig.json",
     "build:renderer": "vite build",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder",
-    "dist:all": "electron-builder --mac --win --linux",
-    "dist:win": "electron-builder --win",
-    "dist:mac": "electron-builder --mac",
+    "dist": "electron-builder --publish never",
+    "dist:all": "electron-builder --mac --win --linux --publish never",
+    "dist:win": "electron-builder --win --publish never",
+    "dist:mac": "electron-builder --mac --publish never",
     "postinstall": "electron-builder install-app-deps"
   },
   "build": {
