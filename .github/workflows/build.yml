@@ -71,6 +71,17 @@ jobs:
       with:
         path: artifacts/
         
+    - name: Prepare release files
+      run: |
+        echo "=== Preparing release files ==="
+        mkdir -p release-files
+        
+        # Find and copy installer files to release-files directory
+        find artifacts -type f \( -name "*.dmg" -o -name "*.exe" -o -name "*.deb" -o -name "*.AppImage" \) -exec cp {} release-files/ \;
+        
+        echo "=== Release files to upload ==="
+        ls -la release-files/
+        
     - name: Delete existing release if exists (for re-releases)
       run: |
         if gh release view ${{ github.ref_name }} >/dev/null 2>&1; then
@@ -87,8 +98,7 @@ jobs:
       with:
         draft: false
         prerelease: contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha')
-        files: |
-          artifacts/**/*
+        files: release-files/*
         generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
