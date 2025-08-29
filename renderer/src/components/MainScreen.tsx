@@ -6,7 +6,6 @@ import { logger } from '../utils/errorLogger';
 import { parseSubtitleFile, formatDuration, formatCharacterCount, ParsedSubtitle } from '../utils/subtitleParser';
 import ImprovedTranscriptionOptions from './ImprovedTranscriptionOptions';
 import ImprovedTranslationOptions from './ImprovedTranslationOptions';
-import StatusBar from './StatusBar';
 import { isOnline } from '../utils/networkUtils';
 import appConfig from '../config/appConfig.json';
 import * as fileFormatsConfig from '../../../shared/fileFormats.json';
@@ -25,9 +24,10 @@ interface AppConfig {
 
 interface MainScreenProps {
   config: AppConfig;
+  setAppProcessing: (processing: boolean, task?: string) => void;
 }
 
-function MainScreen({ config }: MainScreenProps) {
+function MainScreen({ config, setAppProcessing }: MainScreenProps) {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileType, setFileType] = useState<'transcription' | 'translation' | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -240,17 +240,6 @@ function MainScreen({ config }: MainScreenProps) {
     }
   };
 
-  const handleNetworkChange = (online: boolean) => {
-    setIsNetworkOnline(online);
-    
-    if (online) {
-      // When back online, refresh credits and API info if needed
-      logger.info('MainScreen', 'Network restored, refreshing data');
-      if (config.apiKey && config.username && config.password) {
-        loadApiInfo();
-      }
-    }
-  };
 
   const triggerCreditsAnimation = () => {
     setCreditsAnimating(true);
@@ -465,6 +454,7 @@ function MainScreen({ config }: MainScreenProps) {
     if (!selectedFile || !fileType) return;
 
     setIsProcessing(true);
+    setAppProcessing(true, fileType === 'transcription' ? 'Transcribing...' : 'Translating...');
     setStatusMessage({ type: 'info', message: 'Processing file...' });
 
     let tempAudioFile: string | null = null;
@@ -609,6 +599,7 @@ function MainScreen({ config }: MainScreenProps) {
         }
       }
       setIsProcessing(false);
+      setAppProcessing(false);
     }
   };
 
@@ -893,13 +884,6 @@ function MainScreen({ config }: MainScreenProps) {
       )}
 
       <ErrorLogControls />
-      
-      <StatusBar 
-        onNetworkChange={handleNetworkChange}
-        isProcessing={isProcessing}
-        currentTask={isProcessing ? (fileType === 'transcription' ? 'Transcribing...' : 'Translating...') : undefined}
-        hasSidebar={true}
-      />
       
       
       {showPreview && (
