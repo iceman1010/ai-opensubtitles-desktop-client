@@ -71,9 +71,14 @@ jobs:
       with:
         path: artifacts/
         
-    - name: Delete existing release if exists
+    - name: Delete existing release if exists (for re-releases)
       run: |
-        gh release delete ${{ github.ref_name }} --yes || true
+        if gh release view ${{ github.ref_name }} >/dev/null 2>&1; then
+          echo "Release ${{ github.ref_name }} already exists, deleting..."
+          gh release delete ${{ github.ref_name }} --yes
+        else
+          echo "Release ${{ github.ref_name }} does not exist, proceeding with creation"
+        fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
