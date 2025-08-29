@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { OpenSubtitlesAPI, LanguageInfo, TranscriptionInfo, TranslationInfo } from '../services/api';
+import { OpenSubtitlesAPI, LanguageInfo, TranscriptionInfo, TranslationInfo, ServicesInfo, ServiceModel } from '../services/api';
 import { logger } from '../utils/errorLogger';
+import StatusBar from './StatusBar';
+import { isOnline } from '../utils/networkUtils';
 
 interface AppConfig {
   username: string;
@@ -21,8 +23,10 @@ interface InfoProps {
 function Info({ config }: InfoProps) {
   const [transcriptionInfo, setTranscriptionInfo] = useState<TranscriptionInfo | null>(null);
   const [translationInfo, setTranslationInfo] = useState<TranslationInfo | null>(null);
+  const [servicesInfo, setServicesInfo] = useState<ServicesInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [api] = useState(() => new OpenSubtitlesAPI());
+  const [isNetworkOnline, setIsNetworkOnline] = useState(isOnline());
 
   useEffect(() => {
     loadModelInfo();
@@ -46,22 +50,13 @@ function Info({ config }: InfoProps) {
         }
       }
 
-      // Load both transcription and translation info
-      const [transcriptionResult, translationResult] = await Promise.all([
-        api.getTranscriptionInfo(),
-        api.getTranslationInfo()
-      ]);
+      // Load services info
+      const servicesResult = await api.getServicesInfo();
 
-      if (transcriptionResult.success) {
-        setTranscriptionInfo(transcriptionResult.data || null);
+      if (servicesResult.success) {
+        setServicesInfo(servicesResult.data || null);
       } else {
-        logger.error('Info', 'Failed to load transcription info:', transcriptionResult.error);
-      }
-
-      if (translationResult.success) {
-        setTranslationInfo(translationResult.data || null);
-      } else {
-        logger.error('Info', 'Failed to load translation info:', translationResult.error);
+        logger.error('Info', 'Failed to load services info:', servicesResult.error);
       }
 
     } catch (error: any) {
@@ -71,22 +66,85 @@ function Info({ config }: InfoProps) {
     }
   };
 
-  // Mock pricing data - you'll provide actual data later
-  const modelPricing = {
-    transcription: {
-      'whisper-1': { price: 0.006, unit: 'per minute', description: 'OpenAI Whisper v1 - Fast and accurate speech recognition for most audio files' },
-      'whisper-large': { price: 0.012, unit: 'per minute', description: 'OpenAI Whisper Large - Higher accuracy for complex audio, accents, and noisy environments' },
-      'speech-to-text': { price: 0.004, unit: 'per minute', description: 'Basic speech recognition - Good for clear audio and simple transcription tasks' }
-    },
-    translation: {
-      'deepl': { price: 0.02, unit: 'per 500 chars', description: 'DeepL - Premium neural machine translation with superior quality and nuance' },
-      'google': { price: 0.015, unit: 'per 500 chars', description: 'Google Translate - Fast and reliable translation supporting 100+ languages' },
-      'azure': { price: 0.018, unit: 'per 500 chars', description: 'Microsoft Azure Translator - Enterprise-grade translation with custom models' }
+  // Helper function to format price with proper units
+  const formatPrice = (price: number, pricing: string) => {
+    const unit = pricing.includes('character') ? 'per character' : 'per second';
+    return `${price.toFixed(6)} credits ${unit}`;
+  };
+
+  // Helper function to get reliability color
+  const getReliabilityColor = (reliability: string) => {
+    switch (reliability.toLowerCase()) {
+      case 'high': return '#28a745';
+      case 'medium': return '#ffc107';
+      case 'low': return '#dc3545';
+      default: return '#6c757d';
     }
   };
 
-  const transcriptionApis = Array.isArray(transcriptionInfo?.apis) ? transcriptionInfo.apis : [];
-  const translationApis = Array.isArray(translationInfo?.apis) ? translationInfo.apis : [];
+  // Component for rendering collapsible language list
+  const LanguageList: React.FC<{ languages: LanguageInfo[]; modelName: string }> = ({ languages, modelName }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const showCollapsible = languages.length > 20;
+    const displayLanguages = showCollapsible && !isExpanded ? languages.slice(0, 20) : languages;
+
+    return (
+      <div style={{ marginTop: '12px' }}>
+        <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
+          Languages Supported ({languages.length})
+        </div>
+        <div style={{ 
+          display: 'flex', 
+          flexWrap: 'wrap', 
+          gap: '6px',
+          maxHeight: isExpanded ? 'none' : '120px',
+          overflow: 'hidden'
+        }}>
+          {displayLanguages.map((lang, index) => (
+            <span
+              key={`${modelName}-${lang.language_code}-${index}`}
+              style={{
+                fontSize: '12px',
+                padding: '4px 8px',
+                backgroundColor: '#e9ecef',
+                borderRadius: '12px',
+                color: '#495057',
+                border: '1px solid #dee2e6'
+              }}
+            >
+              {lang.language_name}
+            </span>
+          ))}
+        </div>
+        {showCollapsible && (
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            style={{
+              marginTop: '8px',
+              padding: '6px 12px',
+              fontSize: '12px',
+              color: '#007bff',
+              backgroundColor: 'transparent',
+              border: '1px solid #007bff',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.backgroundColor = '#007bff';
+              e.currentTarget.style.color = 'white';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = '#007bff';
+            }}
+          >
+            {isExpanded ? 'Show Less' : `Show All ${languages.length} Languages`}
+          </button>
+        )}
+      </div>
+    );
+  };
 
   if (isLoading) {
     return (
@@ -97,8 +155,21 @@ function Info({ config }: InfoProps) {
     );
   }
 
+  const handleNetworkChange = (online: boolean) => {
+    setIsNetworkOnline(online);
+    
+    if (online) {
+      // When back online, refresh model info
+      logger.info('Info', 'Network restored, refreshing model info');
+      if (config.apiKey && config.username && config.password) {
+        loadModelInfo();
+      }
+    }
+  };
+
   return (
-    <div className="info-screen" style={{ padding: '20px', maxWidth: '800px' }}>
+    <>
+      <div className="info-screen" style={{ padding: '20px', maxWidth: '800px' }}>
       <h1>AI Model Information & Pricing</h1>
       <p style={{ marginBottom: '30px', color: '#666' }}>
         Learn about the available AI models and their pricing structure. All prices are in credits.
@@ -109,52 +180,64 @@ function Info({ config }: InfoProps) {
         <h2 style={{ marginBottom: '20px', color: '#333', borderBottom: '2px solid #3498db', paddingBottom: '8px' }}>
           Transcription Models
         </h2>
-        {transcriptionApis.length > 0 ? (
+        {servicesInfo?.Transcription && servicesInfo.Transcription.length > 0 ? (
           <div style={{ display: 'grid', gap: '16px' }}>
-            {transcriptionApis.map(api => {
-              const pricing = modelPricing.transcription[api] || { 
-                price: '?', 
-                unit: 'per minute', 
-                description: 'Pricing information will be available soon' 
-              };
-              return (
-                <div key={api} style={{
-                  padding: '20px',
-                  border: '1px solid #e0e0e0',
-                  borderRadius: '8px',
-                  backgroundColor: '#fff',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            {servicesInfo.Transcription.map((model) => (
+              <div key={model.name} style={{
+                padding: '20px',
+                border: '1px solid #e0e0e0',
+                borderRadius: '8px',
+                backgroundColor: '#fff',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              }}>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'flex-start',
+                  marginBottom: '8px'
                 }}>
                   <div style={{ 
                     fontSize: '18px',
                     fontWeight: 'bold', 
-                    marginBottom: '8px',
                     color: '#2c3e50'
                   }}>
-                    {api.toUpperCase()}
+                    {model.display_name}
                   </div>
-                  <div style={{ 
-                    fontSize: '14px', 
-                    color: '#666', 
-                    marginBottom: '12px',
-                    lineHeight: '1.5'
+                  <div style={{
+                    fontSize: '12px',
+                    padding: '4px 8px',
+                    borderRadius: '12px',
+                    backgroundColor: getReliabilityColor(model.reliability),
+                    color: 'white',
+                    fontWeight: '600',
+                    textTransform: 'uppercase'
                   }}>
-                    {pricing.description}
-                  </div>
-                  <div style={{ 
-                    fontSize: '16px', 
-                    color: '#2196F3', 
-                    fontWeight: 'bold',
-                    padding: '8px 12px',
-                    backgroundColor: '#e3f2fd',
-                    borderRadius: '4px',
-                    display: 'inline-block'
-                  }}>
-                    {pricing.price} credits {pricing.unit}
+                    {model.reliability} reliability
                   </div>
                 </div>
-              );
-            })}
+                <div style={{ 
+                  fontSize: '14px', 
+                  color: '#666', 
+                  marginBottom: '12px',
+                  lineHeight: '1.5'
+                }}>
+                  {model.description}
+                </div>
+                <div style={{ 
+                  fontSize: '16px', 
+                  color: '#2196F3', 
+                  fontWeight: 'bold',
+                  padding: '8px 12px',
+                  backgroundColor: '#e3f2fd',
+                  borderRadius: '4px',
+                  display: 'inline-block',
+                  marginBottom: '12px'
+                }}>
+                  {formatPrice(model.price, model.pricing)}
+                </div>
+                <LanguageList languages={model.languages_supported} modelName={model.name} />
+              </div>
+            ))}
           </div>
         ) : (
           <p style={{ color: '#666', fontStyle: 'italic', fontSize: '16px' }}>
@@ -168,52 +251,64 @@ function Info({ config }: InfoProps) {
         <h2 style={{ marginBottom: '20px', color: '#333', borderBottom: '2px solid #e74c3c', paddingBottom: '8px' }}>
           Translation Models
         </h2>
-        {translationApis.length > 0 ? (
+        {servicesInfo?.Translation && servicesInfo.Translation.length > 0 ? (
           <div style={{ display: 'grid', gap: '16px' }}>
-            {translationApis.map(api => {
-              const pricing = modelPricing.translation[api] || { 
-                price: '?', 
-                unit: 'per 500 chars', 
-                description: 'Pricing information will be available soon' 
-              };
-              return (
-                <div key={api} style={{
-                  padding: '20px',
-                  border: '1px solid #e0e0e0',
-                  borderRadius: '8px',
-                  backgroundColor: '#fff',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            {servicesInfo.Translation.map((model) => (
+              <div key={model.name} style={{
+                padding: '20px',
+                border: '1px solid #e0e0e0',
+                borderRadius: '8px',
+                backgroundColor: '#fff',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              }}>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'flex-start',
+                  marginBottom: '8px'
                 }}>
                   <div style={{ 
                     fontSize: '18px',
                     fontWeight: 'bold', 
-                    marginBottom: '8px',
                     color: '#2c3e50'
                   }}>
-                    {api.toUpperCase()}
+                    {model.display_name}
                   </div>
-                  <div style={{ 
-                    fontSize: '14px', 
-                    color: '#666', 
-                    marginBottom: '12px',
-                    lineHeight: '1.5'
+                  <div style={{
+                    fontSize: '12px',
+                    padding: '4px 8px',
+                    borderRadius: '12px',
+                    backgroundColor: getReliabilityColor(model.reliability),
+                    color: 'white',
+                    fontWeight: '600',
+                    textTransform: 'uppercase'
                   }}>
-                    {pricing.description}
-                  </div>
-                  <div style={{ 
-                    fontSize: '16px', 
-                    color: '#e74c3c', 
-                    fontWeight: 'bold',
-                    padding: '8px 12px',
-                    backgroundColor: '#ffebee',
-                    borderRadius: '4px',
-                    display: 'inline-block'
-                  }}>
-                    {pricing.price} credits {pricing.unit}
+                    {model.reliability} reliability
                   </div>
                 </div>
-              );
-            })}
+                <div style={{ 
+                  fontSize: '14px', 
+                  color: '#666', 
+                  marginBottom: '12px',
+                  lineHeight: '1.5'
+                }}>
+                  {model.description}
+                </div>
+                <div style={{ 
+                  fontSize: '16px', 
+                  color: '#e74c3c', 
+                  fontWeight: 'bold',
+                  padding: '8px 12px',
+                  backgroundColor: '#ffebee',
+                  borderRadius: '4px',
+                  display: 'inline-block',
+                  marginBottom: '12px'
+                }}>
+                  {formatPrice(model.price, model.pricing)}
+                </div>
+                <LanguageList languages={model.languages_supported} modelName={model.name} />
+              </div>
+            ))}
           </div>
         ) : (
           <p style={{ color: '#666', fontStyle: 'italic', fontSize: '16px' }}>
@@ -257,7 +352,15 @@ function Info({ config }: InfoProps) {
           <li>Consider batch processing multiple files to optimize credit usage</li>
         </ul>
       </section>
-    </div>
+      </div>
+      
+      <StatusBar 
+        onNetworkChange={handleNetworkChange}
+        isProcessing={isLoading}
+        currentTask={isLoading ? 'Loading model info...' : undefined}
+        hasSidebar={false}
+      />
+    </>
   );
 }
 

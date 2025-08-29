@@ -1,5 +1,9 @@
 import { logger } from './errorLogger';
 import networkConfigManager from './networkConfig';
+import { activityTracker } from './activityTracker';
+
+// Export activity tracker for external access
+export { activityTracker };
 
 export enum NetworkErrorType {
   OFFLINE = 'offline',
@@ -325,16 +329,23 @@ export async function apiRequestWithRetry<T>(
   context: string = 'API Request',
   maxRetries?: number
 ): Promise<T> {
-  // Use configured max retries if not specified
-  const effectiveMaxRetries = maxRetries ?? networkConfigManager.getMaxRetries();
+  // Generate unique request ID for activity tracking
+  const requestId = activityTracker.generateRequestId();
   
-  // Check if retry is enabled
-  if (!networkConfigManager.isRetryEnabled()) {
-    logger.info('NetworkUtils', `${context}: Retry disabled, making single request`);
-    return await executeRequest(requestFn, context);
-  }
+  // Start activity tracking
+  activityTracker.startActivity(requestId);
   
   try {
+    // Use configured max retries if not specified
+    const effectiveMaxRetries = maxRetries ?? networkConfigManager.getMaxRetries();
+  
+  
+    // Check if retry is enabled
+    if (!networkConfigManager.isRetryEnabled()) {
+      logger.info('NetworkUtils', `${context}: Retry disabled, making single request`);
+      return await executeRequest(requestFn, context);
+    }
+    
     return await retryWithBackoff(async () => {
       return await executeRequest(requestFn, context);
     }, effectiveMaxRetries);
@@ -358,6 +369,9 @@ export async function apiRequestWithRetry<T>(
     (enhancedError as any).simulated = (error as any).simulated || false;
     
     throw enhancedError;
+  } finally {
+    // End activity tracking
+    activityTracker.endActivity(requestId);
   }
 }
 

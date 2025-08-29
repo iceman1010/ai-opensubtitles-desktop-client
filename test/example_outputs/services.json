@@ -702,6 +702,482 @@
                         "language_name": "japanese"
                     }
                 ]
+            },
+            {
+                "name": "gemini-flash",
+                "display_name": "Gemini-Flash",
+                "description": "Googles AI as smaller model, a very cost effective transalation solution with many languages supported",
+                "pricing": "Pay-per-character",
+                "reliability": "medium",
+                "price": 0.000405,
+                "languages_supported": [
+                    {
+                        "language_code": "ar",
+                        "language_name": "arabic"
+                    },
+                    {
+                        "language_code": "bn",
+                        "language_name": "bengali"
+                    },
+                    {
+                        "language_code": "bg",
+                        "language_name": "bulgarian"
+                    },
+                    {
+                        "language_code": "ca",
+                        "language_name": "catalan"
+                    },
+                    {
+                        "language_code": "zh-CN",
+                        "language_name": "chinese (China)"
+                    },
+                    {
+                        "language_code": "zh-TW",
+                        "language_name": "chinese (Taiwan)"
+                    },
+                    {
+                        "language_code": "hr",
+                        "language_name": "croatian"
+                    },
+                    {
+                        "language_code": "cs",
+                        "language_name": "czech"
+                    },
+                    {
+                        "language_code": "da",
+                        "language_name": "danish"
+                    },
+                    {
+                        "language_code": "nl",
+                        "language_name": "dutch"
+                    },
+                    {
+                        "language_code": "en",
+                        "language_name": "english"
+                    },
+                    {
+                        "language_code": "en-GB",
+                        "language_name": "english (United Kingdom)"
+                    },
+                    {
+                        "language_code": "en-US",
+                        "language_name": "english (United States)"
+                    },
+                    {
+                        "language_code": "et",
+                        "language_name": "estonian"
+                    },
+                    {
+                        "language_code": "fi",
+                        "language_name": "finnish"
+                    },
+                    {
+                        "language_code": "fr",
+                        "language_name": "french"
+                    },
+                    {
+                        "language_code": "de",
+                        "language_name": "german"
+                    },
+                    {
+                        "language_code": "el",
+                        "language_name": "greek"
+                    },
+                    {
+                        "language_code": "gu",
+                        "language_name": "gujarati"
+                    },
+                    {
+                        "language_code": "he",
+                        "language_name": "hebrew"
+                    },
+                    {
+                        "language_code": "hi",
+                        "language_name": "hindi"
+                    },
+                    {
+                        "language_code": "hu",
+                        "language_name": "hungarian"
+                    },
+                    {
+                        "language_code": "is",
+                        "language_name": "icelandic"
+                    },
+                    {
+                        "language_code": "id",
+                        "language_name": "indonesian"
+                    },
+                    {
+                        "language_code": "it",
+                        "language_name": "italian"
+                    },
+                    {
+                        "language_code": "ja",
+                        "language_name": "japanese"
+                    },
+                    {
+                        "language_code": "kn",
+                        "language_name": "kannada"
+                    },
+                    {
+                        "language_code": "ko",
+                        "language_name": "korean"
+                    },
+                    {
+                        "language_code": "lv",
+                        "language_name": "latvian"
+                    },
+                    {
+                        "language_code": "lt",
+                        "language_name": "lithuanian"
+                    },
+                    {
+                        "language_code": "ml",
+                        "language_name": "malayalam"
+                    },
+                    {
+                        "language_code": "mr",
+                        "language_name": "marathi"
+                    },
+                    {
+                        "language_code": "no",
+                        "language_name": "norwegian"
+                    },
+                    {
+                        "language_code": "fa",
+                        "language_name": "persian"
+                    },
+                    {
+                        "language_code": "pl",
+                        "language_name": "polish"
+                    },
+                    {
+                        "language_code": "pt",
+                        "language_name": "portuguese"
+                    },
+                    {
+                        "language_code": "pt-BR",
+                        "language_name": "portuguese (Brazil)"
+                    },
+                    {
+                        "language_code": "pt-PT",
+                        "language_name": "portuguese (Portugal)"
+                    },
+                    {
+                        "language_code": "pa",
+                        "language_name": "punjabi"
+                    },
+                    {
+                        "language_code": "ro",
+                        "language_name": "romanian"
+                    },
+                    {
+                        "language_code": "ru",
+                        "language_name": "russian"
+                    },
+                    {
+                        "language_code": "sk",
+                        "language_name": "slovak"
+                    },
+                    {
+                        "language_code": "sl",
+                        "language_name": "slovenian"
+                    },
+                    {
+                        "language_code": "es",
+                        "language_name": "spanish"
+                    },
+                    {
+                        "language_code": "es-419",
+                        "language_name": "es-419"
+                    },
+                    {
+                        "language_code": "es-ES",
+                        "language_name": "spanish (Spain)"
+                    },
+                    {
+                        "language_code": "es-MX",
+                        "language_name": "spanish (Mexico)"
+                    },
+                    {
+                        "language_code": "sw",
+                        "language_name": "swahili"
+                    },
+                    {
+                        "language_code": "sv",
+                        "language_name": "swedish"
+                    },
+                    {
+                        "language_code": "ta",
+                        "language_name": "tamil"
+                    },
+                    {
+                        "language_code": "te",
+                        "language_name": "telugu"
+                    },
+                    {
+                        "language_code": "th",
+                        "language_name": "thai"
+                    },
+                    {
+                        "language_code": "tr",
+                        "language_name": "turkish"
+                    },
+                    {
+                        "language_code": "uk",
+                        "language_name": "ukrainian"
+                    },
+                    {
+                        "language_code": "ur",
+                        "language_name": "urdu"
+                    },
+                    {
+                        "language_code": "vi",
+                        "language_name": "vietnamese"
+                    },
+                    {
+                        "language_code": "zu",
+                        "language_name": "zulu"
+                    }
+                ]
+            },
+            {
+                "name": "gemini-pro",
+                "display_name": "Gemini-Pro",
+                "description": "Googles AI offers a high quality translation solution with many languages supported",
+                "pricing": "Pay-per-character",
+                "reliability": "medium",
+                "price": 0.0018,
+                "languages_supported": [
+                    {
+                        "language_code": "ar",
+                        "language_name": "arabic"
+                    },
+                    {
+                        "language_code": "bn",
+                        "language_name": "bengali"
+                    },
+                    {
+                        "language_code": "bg",
+                        "language_name": "bulgarian"
+                    },
+                    {
+                        "language_code": "ca",
+                        "language_name": "catalan"
+                    },
+                    {
+                        "language_code": "zh-CN",
+                        "language_name": "chinese (China)"
+                    },
+                    {
+                        "language_code": "zh-TW",
+                        "language_name": "chinese (Taiwan)"
+                    },
+                    {
+                        "language_code": "hr",
+                        "language_name": "croatian"
+                    },
+                    {
+                        "language_code": "cs",
+                        "language_name": "czech"
+                    },
+                    {
+                        "language_code": "da",
+                        "language_name": "danish"
+                    },
+                    {
+                        "language_code": "nl",
+                        "language_name": "dutch"
+                    },
+                    {
+                        "language_code": "en",
+                        "language_name": "english"
+                    },
+                    {
+                        "language_code": "en-GB",
+                        "language_name": "english (United Kingdom)"
+                    },
+                    {
+                        "language_code": "en-US",
+                        "language_name": "english (United States)"
+                    },
+                    {
+                        "language_code": "et",
+                        "language_name": "estonian"
+                    },
+                    {
+                        "language_code": "fi",
+                        "language_name": "finnish"
+                    },
+                    {
+                        "language_code": "fr",
+                        "language_name": "french"
+                    },
+                    {
+                        "language_code": "de",
+                        "language_name": "german"
+                    },
+                    {
+                        "language_code": "el",
+                        "language_name": "greek"
+                    },
+                    {
+                        "language_code": "gu",
+                        "language_name": "gujarati"
+                    },
+                    {
+                        "language_code": "he",
+                        "language_name": "hebrew"
+                    },
+                    {
+                        "language_code": "hi",
+                        "language_name": "hindi"
+                    },
+                    {
+                        "language_code": "hu",
+                        "language_name": "hungarian"
+                    },
+                    {
+                        "language_code": "is",
+                        "language_name": "icelandic"
+                    },
+                    {
+                        "language_code": "id",
+                        "language_name": "indonesian"
+                    },
+                    {
+                        "language_code": "it",
+                        "language_name": "italian"
+                    },
+                    {
+                        "language_code": "ja",
+                        "language_name": "japanese"
+                    },
+                    {
+                        "language_code": "kn",
+                        "language_name": "kannada"
+                    },
+                    {
+                        "language_code": "ko",
+                        "language_name": "korean"
+                    },
+                    {
+                        "language_code": "lv",
+                        "language_name": "latvian"
+                    },
+                    {
+                        "language_code": "lt",
+                        "language_name": "lithuanian"
+                    },
+                    {
+                        "language_code": "ml",
+                        "language_name": "malayalam"
+                    },
+                    {
+                        "language_code": "mr",
+                        "language_name": "marathi"
+                    },
+                    {
+                        "language_code": "no",
+                        "language_name": "norwegian"
+                    },
+                    {
+                        "language_code": "fa",
+                        "language_name": "persian"
+                    },
+                    {
+                        "language_code": "pl",
+                        "language_name": "polish"
+                    },
+                    {
+                        "language_code": "pt",
+                        "language_name": "portuguese"
+                    },
+                    {
+                        "language_code": "pt-BR",
+                        "language_name": "portuguese (Brazil)"
+                    },
+                    {
+                        "language_code": "pt-PT",
+                        "language_name": "portuguese (Portugal)"
+                    },
+                    {
+                        "language_code": "pa",
+                        "language_name": "punjabi"
+                    },
+                    {
+                        "language_code": "ro",
+                        "language_name": "romanian"
+                    },
+                    {
+                        "language_code": "ru",
+                        "language_name": "russian"
+                    },
+                    {
+                        "language_code": "sk",
+                        "language_name": "slovak"
+                    },
+                    {
+                        "language_code": "sl",
+                        "language_name": "slovenian"
+                    },
+                    {
+                        "language_code": "es",
+                        "language_name": "spanish"
+                    },
+                    {
+                        "language_code": "es-419",
+                        "language_name": "es-419"
+                    },
+                    {
+                        "language_code": "es-ES",
+                        "language_name": "spanish (Spain)"
+                    },
+                    {
+                        "language_code": "es-MX",
+                        "language_name": "spanish (Mexico)"
+                    },
+                    {
+                        "language_code": "sw",
+                        "language_name": "swahili"
+                    },
+                    {
+                        "language_code": "sv",
+                        "language_name": "swedish"
+                    },
+                    {
+                        "language_code": "ta",
+                        "language_name": "tamil"
+                    },
+                    {
+                        "language_code": "te",
+                        "language_name": "telugu"
+                    },
+                    {
+                        "language_code": "th",
+                        "language_name": "thai"
+                    },
+                    {
+                        "language_code": "tr",
+                        "language_name": "turkish"
+                    },
+                    {
+                        "language_code": "uk",
+                        "language_name": "ukrainian"
+                    },
+                    {
+                        "language_code": "ur",
+                        "language_name": "urdu"
+                    },
+                    {
+                        "language_code": "vi",
+                        "language_name": "vietnamese"
+                    },
+                    {
+                        "language_code": "zu",
+                        "language_name": "zulu"
+                    }
+                ]
             }
         ],
         "Transcription": [
@@ -2004,6 +2480,244 @@
                     {
                         "language_code": "yo",
                         "language_name": "yoruba"
+                    }
+                ]
+            },
+            {
+                "name": "gemini-flash",
+                "display_name": "Gemini-Flash",
+                "description": "Googles AI is also a very cost effective transcription solution with many languages supported",
+                "pricing": "Pay-per-second",
+                "reliability": "medium",
+                "price": 0.0126,
+                "languages_supported": [
+                    {
+                        "language_code": "ar",
+                        "language_name": "arabic"
+                    },
+                    {
+                        "language_code": "bn",
+                        "language_name": "bengali"
+                    },
+                    {
+                        "language_code": "bg",
+                        "language_name": "bulgarian"
+                    },
+                    {
+                        "language_code": "ca",
+                        "language_name": "catalan"
+                    },
+                    {
+                        "language_code": "zh-CN",
+                        "language_name": "chinese (China)"
+                    },
+                    {
+                        "language_code": "zh-TW",
+                        "language_name": "chinese (Taiwan)"
+                    },
+                    {
+                        "language_code": "hr",
+                        "language_name": "croatian"
+                    },
+                    {
+                        "language_code": "cs",
+                        "language_name": "czech"
+                    },
+                    {
+                        "language_code": "da",
+                        "language_name": "danish"
+                    },
+                    {
+                        "language_code": "nl",
+                        "language_name": "dutch"
+                    },
+                    {
+                        "language_code": "en",
+                        "language_name": "english"
+                    },
+                    {
+                        "language_code": "en-GB",
+                        "language_name": "english (United Kingdom)"
+                    },
+                    {
+                        "language_code": "en-US",
+                        "language_name": "english (United States)"
+                    },
+                    {
+                        "language_code": "et",
+                        "language_name": "estonian"
+                    },
+                    {
+                        "language_code": "fi",
+                        "language_name": "finnish"
+                    },
+                    {
+                        "language_code": "fr",
+                        "language_name": "french"
+                    },
+                    {
+                        "language_code": "de",
+                        "language_name": "german"
+                    },
+                    {
+                        "language_code": "el",
+                        "language_name": "greek"
+                    },
+                    {
+                        "language_code": "gu",
+                        "language_name": "gujarati"
+                    },
+                    {
+                        "language_code": "he",
+                        "language_name": "hebrew"
+                    },
+                    {
+                        "language_code": "hi",
+                        "language_name": "hindi"
+                    },
+                    {
+                        "language_code": "hu",
+                        "language_name": "hungarian"
+                    },
+                    {
+                        "language_code": "is",
+                        "language_name": "icelandic"
+                    },
+                    {
+                        "language_code": "id",
+                        "language_name": "indonesian"
+                    },
+                    {
+                        "language_code": "it",
+                        "language_name": "italian"
+                    },
+                    {
+                        "language_code": "ja",
+                        "language_name": "japanese"
+                    },
+                    {
+                        "language_code": "kn",
+                        "language_name": "kannada"
+                    },
+                    {
+                        "language_code": "ko",
+                        "language_name": "korean"
+                    },
+                    {
+                        "language_code": "lv",
+                        "language_name": "latvian"
+                    },
+                    {
+                        "language_code": "lt",
+                        "language_name": "lithuanian"
+                    },
+                    {
+                        "language_code": "ml",
+                        "language_name": "malayalam"
+                    },
+                    {
+                        "language_code": "mr",
+                        "language_name": "marathi"
+                    },
+                    {
+                        "language_code": "no",
+                        "language_name": "norwegian"
+                    },
+                    {
+                        "language_code": "fa",
+                        "language_name": "persian"
+                    },
+                    {
+                        "language_code": "pl",
+                        "language_name": "polish"
+                    },
+                    {
+                        "language_code": "pt",
+                        "language_name": "portuguese"
+                    },
+                    {
+                        "language_code": "pt-BR",
+                        "language_name": "portuguese (Brazil)"
+                    },
+                    {
+                        "language_code": "pt-PT",
+                        "language_name": "portuguese (Portugal)"
+                    },
+                    {
+                        "language_code": "pa",
+                        "language_name": "punjabi"
+                    },
+                    {
+                        "language_code": "ro",
+                        "language_name": "romanian"
+                    },
+                    {
+                        "language_code": "ru",
+                        "language_name": "russian"
+                    },
+                    {
+                        "language_code": "sk",
+                        "language_name": "slovak"
+                    },
+                    {
+                        "language_code": "sl",
+                        "language_name": "slovenian"
+                    },
+                    {
+                        "language_code": "es",
+                        "language_name": "spanish"
+                    },
+                    {
+                        "language_code": "es-419",
+                        "language_name": "es-419"
+                    },
+                    {
+                        "language_code": "es-ES",
+                        "language_name": "spanish (Spain)"
+                    },
+                    {
+                        "language_code": "es-MX",
+                        "language_name": "spanish (Mexico)"
+                    },
+                    {
+                        "language_code": "sw",
+                        "language_name": "swahili"
+                    },
+                    {
+                        "language_code": "sv",
+                        "language_name": "swedish"
+                    },
+                    {
+                        "language_code": "ta",
+                        "language_name": "tamil"
+                    },
+                    {
+                        "language_code": "te",
+                        "language_name": "telugu"
+                    },
+                    {
+                        "language_code": "th",
+                        "language_name": "thai"
+                    },
+                    {
+                        "language_code": "tr",
+                        "language_name": "turkish"
+                    },
+                    {
+                        "language_code": "uk",
+                        "language_name": "ukrainian"
+                    },
+                    {
+                        "language_code": "ur",
+                        "language_name": "urdu"
+                    },
+                    {
+                        "language_code": "vi",
+                        "language_name": "vietnamese"
+                    },
+                    {
+                        "language_code": "zu",
+                        "language_name": "zulu"
                     }
                 ]
             }
