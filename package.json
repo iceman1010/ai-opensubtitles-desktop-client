@@ -74,7 +74,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
-    }
+    },
+    "publish": null
   },
   "devDependencies": {
     "@types/fluent-ffmpeg": "^2.1.27",
