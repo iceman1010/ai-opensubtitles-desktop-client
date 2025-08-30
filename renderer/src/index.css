@@ -211,6 +211,11 @@ body {
   width: 100%;
 }
 
+.info-container {
+  max-width: 800px;
+  width: 100%;
+}
+
 .preferences-form {
   margin-top: 20px;
 }
