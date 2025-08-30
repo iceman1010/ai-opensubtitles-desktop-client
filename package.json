@@ -26,6 +26,7 @@
   "build": {
     "appId": "com.opensubtitles.ai.client",
     "productName": "AI.Opensubtitles.com Client",
+    "icon": "assets/icon.png",
     "directories": {
       "output": "release"
     },
