@@ -54,3 +54,4 @@ API_Tests/
 api_tests/
 *_tests/
 test_scripts/
+test/
