@@ -89,6 +89,21 @@ function MainScreen({ config, setAppProcessing }: MainScreenProps) {
     }
   }, [config]);
 
+  // Listen for external file opening (from file associations or command line)
+  useEffect(() => {
+    const handleExternalFile = (event: any, filePath: string) => {
+      handleFileSelect(filePath);
+    };
+
+    // Listen for external file opening events
+    window.electronAPI?.onExternalFileOpen?.(handleExternalFile);
+
+    // Cleanup listener on unmount
+    return () => {
+      window.electronAPI?.removeExternalFileListener?.(handleExternalFile);
+    };
+  }, []);
+
   const attemptLogin = async () => {
     try {
       // First, try to load cached token

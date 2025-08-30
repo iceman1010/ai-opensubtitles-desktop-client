@@ -8,6 +8,7 @@ class MainApp {
   private mainWindow: BrowserWindow | null = null;
   private configManager: ConfigManager;
   private ffmpegManager: FFmpegManager;
+  private pendingFilePath: string | null = null;
 
   constructor() {
     this.configManager = new ConfigManager();
@@ -15,6 +16,36 @@ class MainApp {
   }
 
   async initialize() {
+    // Parse command line arguments for file path
+    this.parseCommandLineArguments(process.argv);
+
+    // Enforce single instance
+    const gotTheLock = app.requestSingleInstanceLock();
+    
+    if (!gotTheLock) {
+      // Another instance is already running - show warning and exit
+      console.warn('Another instance of the application is already running.');
+      app.quit();
+      return;
+    }
+
+    // Handle when someone tries to run a second instance
+    app.on('second-instance', (event, commandLine, workingDirectory) => {
+      // Parse the file path from second instance
+      const filePath = this.parseCommandLineArguments(commandLine);
+      
+      // Focus the existing window
+      if (this.mainWindow) {
+        if (this.mainWindow.isMinimized()) this.mainWindow.restore();
+        this.mainWindow.focus();
+        
+        // Send the file path to renderer if provided
+        if (filePath) {
+          this.mainWindow.webContents.send('open-file-from-external', filePath);
+        }
+      }
+    });
+
     await app.whenReady();
     
     // Get user-agent from config, fallback to hardcoded value
@@ -87,6 +118,55 @@ class MainApp {
     this.mainWindow.on('closed', () => {
       this.mainWindow = null;
     });
+
+    // Send pending file path to renderer once the window is ready
+    this.mainWindow.webContents.once('did-finish-load', () => {
+      if (this.pendingFilePath) {
+        this.mainWindow!.webContents.send('open-file-from-external', this.pendingFilePath);
+        this.pendingFilePath = null;
+      }
+    });
+  }
+
+  private parseCommandLineArguments(argv: string[]): string | null {
+    // Skip the first argument (executable path) and second (script path in dev mode)
+    // Look for a file path argument
+    const fileArg = argv.find((arg, index) => {
+      // Skip electron executable and main script
+      if (index < 2) return false;
+      
+      // Skip electron flags
+      if (arg.startsWith('--')) return false;
+      
+      // Check if it's a valid file path
+      try {
+        const fs = require('fs');
+        return fs.existsSync(arg);
+      } catch {
+        return false;
+      }
+    });
+
+    // Validate file extension
+    if (fileArg && this.isValidFileExtension(fileArg)) {
+      // Store for initial load if window isn't ready yet
+      if (!this.mainWindow || !this.mainWindow.webContents) {
+        this.pendingFilePath = fileArg;
+      }
+      return fileArg;
+    }
+
+    return null;
+  }
+
+  private isValidFileExtension(filePath: string): boolean {
+    const ext = path.extname(filePath).toLowerCase().slice(1);
+    const allFormats = [
+      ...fileFormatsConfig.video,
+      ...fileFormatsConfig.audio,
+      ...fileFormatsConfig.subtitle
+    ];
+    return allFormats.includes(ext);
   }
 
   private async setupIPC() {
