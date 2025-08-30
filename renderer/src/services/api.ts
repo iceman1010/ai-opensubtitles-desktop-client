@@ -63,6 +63,13 @@ export interface ServicesInfo {
   Transcription: ServiceModel[];
 }
 
+export interface CreditPackage {
+  name: string;
+  value: string;
+  discount_percent: number;
+  checkout_url: string;
+}
+
 export interface CompletedTaskData {
   file_name: string;
   url: string;
@@ -900,6 +907,65 @@ export class OpenSubtitlesAPI {
       return result;
     } catch (error: any) {
       logger.error('API', 'Error fetching services info after retries:', error);
+      return {
+        success: false,
+        error: getUserFriendlyErrorMessage(error),
+      };
+    }
+  }
+
+  async getCreditPackages(email?: string): Promise<{ success: boolean; data?: CreditPackage[]; error?: string }> {
+    try {
+      const result = await apiRequestWithRetry(async () => {
+        const headers = {
+          'Accept': 'application/json',
+          'Api-Key': this.apiKey || '',
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': getUserAgent(),
+        };
+        
+        if (this.token) {
+          headers['Authorization'] = `Bearer ${this.token}`;
+        }
+        
+        const body = new URLSearchParams();
+        if (email) {
+          body.append('email', email);
+        }
+        
+        const response = await fetch(`${this.baseURL}/credits/buy`, {
+          method: 'POST',
+          headers,
+          body: body.toString()
+        });
+        
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            await this.handleAuthError();
+          }
+          
+          const error = new Error(`Request failed: ${response.status} ${response.statusText}`);
+          (error as any).status = response.status;
+          (error as any).responseText = await response.text().catch(() => '');
+          throw error;
+        }
+        
+        const responseData = await response.json();
+        logger.info('API', 'Credit packages response:', responseData);
+        
+        if (responseData.data && Array.isArray(responseData.data)) {
+          return {
+            success: true,
+            data: responseData.data,
+          };
+        } else {
+          throw new Error('Invalid response format - expected data array');
+        }
+      }, 'Get Credit Packages', 3);
+      
+      return result;
+    } catch (error: any) {
+      logger.error('API', 'Error fetching credit packages after retries:', error);
       return {
         success: false,
         error: getUserFriendlyErrorMessage(error),

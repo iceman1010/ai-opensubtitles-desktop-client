@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, session } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, session, shell } from 'electron';
 import * as path from 'path';
 import { ConfigManager } from './config';
 import { FFmpegManager } from './ffmpeg';
@@ -221,6 +221,16 @@ class MainApp {
 
     ipcMain.handle('clear-token', () => {
       this.configManager.clearToken();
+    });
+
+    ipcMain.handle('open-external', async (_, url: string) => {
+      try {
+        await shell.openExternal(url);
+        return true;
+      } catch (error) {
+        console.error('Failed to open external URL:', error);
+        return false;
+      }
     });
 
     ipcMain.handle('save-file', async (_, content: string, defaultFileName: string) => {
