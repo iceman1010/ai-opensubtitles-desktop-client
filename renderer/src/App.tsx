@@ -3,6 +3,7 @@ import Login from './components/Login';
 import MainScreen from './components/MainScreen';
 import Preferences from './components/Preferences';
 import Info from './components/Info';
+import Credits from './components/Credits';
 import StatusBar from './components/StatusBar';
 import './utils/errorLogger'; // Initialize global error handlers
 import appConfig from './config/appConfig.json';
@@ -22,7 +23,7 @@ interface AppConfig {
 
 function App() {
   const [config, setConfig] = useState<AppConfig | null>(null);
-  const [currentScreen, setCurrentScreen] = useState<'login' | 'main' | 'preferences' | 'info'>('main');
+  const [currentScreen, setCurrentScreen] = useState<'login' | 'main' | 'preferences' | 'info' | 'credits'>('main');
   const [isLoading, setIsLoading] = useState(true);
   
   // Centralized status state
@@ -123,6 +124,14 @@ function App() {
               </li>
               <li>
                 <button
+                  className={currentScreen === 'credits' ? 'active' : ''}
+                  onClick={() => setCurrentScreen('credits')}
+                >
+                  Credits
+                </button>
+              </li>
+              <li>
+                <button
                   className={currentScreen === 'preferences' ? 'active' : ''}
                   onClick={() => setCurrentScreen('preferences')}
                 >
@@ -156,6 +165,12 @@ function App() {
         )}
         {currentScreen === 'info' && config && (
           <Info 
+            config={config} 
+            setAppProcessing={setAppProcessing}
+          />
+        )}
+        {currentScreen === 'credits' && config && (
+          <Credits 
             config={config} 
             setAppProcessing={setAppProcessing}
           />

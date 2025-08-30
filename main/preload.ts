@@ -18,6 +18,7 @@ const electronAPI = {
   getValidToken: () => ipcRenderer.invoke('get-valid-token'),
   saveToken: (token: string) => ipcRenderer.invoke('save-token', token),
   clearToken: () => ipcRenderer.invoke('clear-token'),
+  openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);
