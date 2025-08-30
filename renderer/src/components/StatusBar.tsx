@@ -18,6 +18,11 @@ const StatusBar: React.FC<StatusBarProps> = ({
   const [online, setOnline] = useState(isOnline());
   const [showConnectionChange, setShowConnectionChange] = useState(false);
   const [isApiActive, setIsApiActive] = useState(false);
+  
+  // State for managing minimum display time of processing status
+  const [displayedTask, setDisplayedTask] = useState<string | undefined>(currentTask);
+  const [shouldShowProcessing, setShouldShowProcessing] = useState(isProcessing);
+  const [lastUpdateTime, setLastUpdateTime] = useState(Date.now());
 
   useEffect(() => {
     const cleanup = setupNetworkListeners(
@@ -42,6 +47,40 @@ const StatusBar: React.FC<StatusBarProps> = ({
 
     return cleanup;
   }, [onNetworkChange]);
+
+  // Handle minimum display time for processing status
+  useEffect(() => {
+    const MIN_DISPLAY_TIME = 2000; // 2 seconds minimum display time
+
+    if (isProcessing && currentTask) {
+      // New task started - show immediately
+      setDisplayedTask(currentTask);
+      setShouldShowProcessing(true);
+      setLastUpdateTime(Date.now());
+    } else if (!isProcessing && shouldShowProcessing) {
+      // Processing stopped - enforce minimum display time
+      const timeSinceLastUpdate = Date.now() - lastUpdateTime;
+      const remainingTime = Math.max(0, MIN_DISPLAY_TIME - timeSinceLastUpdate);
+
+      if (remainingTime > 0) {
+        // Wait for remaining time before hiding
+        const timeoutId = setTimeout(() => {
+          setShouldShowProcessing(false);
+          setDisplayedTask(undefined);
+        }, remainingTime);
+        
+        return () => clearTimeout(timeoutId);
+      } else {
+        // Minimum time already passed - hide immediately
+        setShouldShowProcessing(false);
+        setDisplayedTask(undefined);
+      }
+    } else if (isProcessing && currentTask !== displayedTask) {
+      // Task changed while processing - update immediately
+      setDisplayedTask(currentTask);
+      setLastUpdateTime(Date.now());
+    }
+  }, [isProcessing, currentTask, shouldShowProcessing, displayedTask, lastUpdateTime]);
 
   useEffect(() => {
     // Set up activity tracking
@@ -99,12 +138,12 @@ const StatusBar: React.FC<StatusBarProps> = ({
       )}
       
       {/* Processing Status */}
-      {isProcessing && currentTask && (
+      {shouldShowProcessing && displayedTask && (
         <>
           <span className="status-separator">|</span>
           <span className="status-item processing">
             <span className="status-icon spinning">⟳</span>
-            {currentTask}
+            {displayedTask}
           </span>
         </>
       )}
