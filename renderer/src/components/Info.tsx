@@ -148,7 +148,7 @@ function Info({ config, setAppProcessing }: InfoProps) {
 
   if (isLoading) {
     return (
-      <div className="info-screen" style={{ padding: '20px' }}>
+      <div className="info-container">
         <h1>AI Model Information & Pricing</h1>
         <p>Loading model information...</p>
       </div>
@@ -158,7 +158,7 @@ function Info({ config, setAppProcessing }: InfoProps) {
 
   return (
     <>
-      <div className="info-screen" style={{ padding: '20px', maxWidth: '800px' }}>
+      <div className="info-container">
       <h1>AI Model Information & Pricing</h1>
       <p style={{ marginBottom: '30px', color: '#666' }}>
         Learn about the available AI models and their pricing structure. All prices are in credits.
