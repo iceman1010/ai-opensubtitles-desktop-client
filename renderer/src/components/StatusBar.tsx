@@ -121,117 +121,46 @@ const StatusBar: React.FC<StatusBarProps> = ({
     }
   };
 
+  const statusBarStyles: React.CSSProperties = {
+    position: 'fixed',
+    bottom: 0,
+    left: hasSidebar ? 200 : 0,
+    right: 0,
+    height: 26,
+    background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+    borderTop: '1px solid #dee2e6',
+    display: 'flex',
+    alignItems: 'center',
+    padding: hasSidebar ? '0 16px' : '0 12px',
+    fontSize: 12,
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    color: '#495057',
+    zIndex: 998,
+    userSelect: 'none' as const,
+  };
+
+  const statusItemStyles: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+    fontWeight: 500,
+  };
+
+  const statusSeparatorStyles: React.CSSProperties = {
+    margin: '0 8px',
+    color: '#adb5bd',
+    fontWeight: 'normal' as const,
+  };
+
+  const statusIconStyles: React.CSSProperties = {
+    fontSize: 11,
+    lineHeight: 1,
+    display: 'inline-block',
+  };
+
   return (
-    <div className={`status-bar ${hasSidebar ? 'with-sidebar' : ''}`}>
-      {/* Network Status */}
-      {getNetworkStatusDisplay()}
-      
-      {/* API Activity Indicator */}
-      {isApiActive && (
-        <>
-          <span className="status-separator">|</span>
-          <span className="status-item api-activity">
-            <span className="status-icon pulsing">◐</span>
-            API
-          </span>
-        </>
-      )}
-      
-      {/* Processing Status */}
-      {shouldShowProcessing && displayedTask && (
-        <>
-          <span className="status-separator">|</span>
-          <span className="status-item processing">
-            <span className="status-icon spinning">⟳</span>
-            {displayedTask}
-          </span>
-        </>
-      )}
-      
-      <style jsx>{`
-        .status-bar {
-          position: fixed;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          height: 26px;
-          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-          border-top: 1px solid #dee2e6;
-          display: flex;
-          align-items: center;
-          padding: 0 12px;
-          font-size: 12px;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: #495057;
-          z-index: 998; /* Lower than modals but above content */
-          user-select: none;
-        }
-        
-        /* Adjust for sidebar - avoid overlapping with sidebar version display */
-        .status-bar.with-sidebar {
-          left: 200px; /* Standard sidebar width */
-          padding-left: 16px;
-        }
-        
-        /* Ensure status bar without sidebar takes full width */
-        .status-bar:not(.with-sidebar) {
-          left: 0;
-          right: 0;
-        }
-        
-        .status-item {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          font-weight: 500;
-        }
-        
-        .status-item.offline {
-          color: #dc3545;
-          font-weight: 600;
-        }
-        
-        .status-item.online {
-          color: #28a745;
-        }
-        
-        .status-item.online-restored {
-          color: #28a745;
-          font-weight: 600;
-          animation: pulse 2s ease-in-out;
-        }
-        
-        .status-item.processing {
-          color: #007bff;
-          font-weight: 600;
-        }
-        
-        .status-item.api-activity {
-          color: #6f42c1;
-          font-weight: 500;
-          font-size: 11px;
-        }
-        
-        .status-separator {
-          margin: 0 8px;
-          color: #adb5bd;
-          font-weight: normal;
-        }
-        
-        .status-icon {
-          font-size: 11px;
-          line-height: 1;
-          display: inline-block;
-        }
-        
-        .status-icon.spinning {
-          animation: spin 1s linear infinite;
-        }
-        
-        .status-icon.pulsing {
-          animation: pulse-rotate 1.5s ease-in-out infinite;
-        }
-        
+    <div style={statusBarStyles}>
+      <style>{`
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
@@ -257,43 +186,74 @@ const StatusBar: React.FC<StatusBarProps> = ({
           }
         }
         
-        /* Responsive adjustments */
+        .status-spinning {
+          animation: spin 1s linear infinite;
+        }
+        
+        .status-pulsing {
+          animation: pulse-rotate 1.5s ease-in-out infinite;
+        }
+        
+        .status-pulse {
+          animation: pulse 2s ease-in-out;
+        }
+        
         @media (max-width: 768px) {
-          .status-bar, .status-bar.with-sidebar {
-            left: 0 !important; /* Full width on mobile */
-            font-size: 11px;
-            padding: 0 8px;
-            height: 24px;
-          }
-          
-          .status-separator {
-            margin: 0 6px;
+          .status-bar-mobile {
+            left: 0 !important;
+            font-size: 11px !important;
+            padding: 0 8px !important;
+            height: 24px !important;
           }
         }
         
-        /* When sidebar is collapsed/hidden on medium screens */
         @media (max-width: 900px) {
-          .status-bar.with-sidebar {
-            left: 0;
-            padding-left: 12px;
-          }
-        }
-        
-        /* Ensure proper scaling on larger screens */
-        @media (min-width: 1200px) {
-          .status-bar:not(.with-sidebar) {
-            left: 0;
-            right: 0;
-            width: 100%;
-          }
-          
-          .status-bar.with-sidebar {
-            left: 200px;
-            right: 0;
-            width: calc(100% - 200px);
+          .status-bar-tablet {
+            left: 0 !important;
+            padding-left: 12px !important;
           }
         }
       `}</style>
+      
+      {/* Network Status */}
+      {!online ? (
+        <span style={{...statusItemStyles, color: '#dc3545', fontWeight: 600}}>
+          <span style={statusIconStyles}>⚠</span>
+          Offline
+        </span>
+      ) : showConnectionChange ? (
+        <span style={{...statusItemStyles, color: '#28a745', fontWeight: 600}} className="status-pulse">
+          <span style={statusIconStyles}>✓</span>
+          Connected
+        </span>
+      ) : (
+        <span style={{...statusItemStyles, color: '#28a745'}}>
+          <span style={statusIconStyles}>●</span>
+          Online
+        </span>
+      )}
+      
+      {/* API Activity Indicator */}
+      {isApiActive && (
+        <>
+          <span style={statusSeparatorStyles}>|</span>
+          <span style={{...statusItemStyles, color: '#6f42c1', fontWeight: 500, fontSize: 11}}>
+            <span style={statusIconStyles} className="status-pulsing">◐</span>
+            API
+          </span>
+        </>
+      )}
+      
+      {/* Processing Status */}
+      {shouldShowProcessing && displayedTask && (
+        <>
+          <span style={statusSeparatorStyles}>|</span>
+          <span style={{...statusItemStyles, color: '#007bff', fontWeight: 600}}>
+            <span style={statusIconStyles} className="status-spinning">⟳</span>
+            {displayedTask}
+          </span>
+        </>
+      )}
     </div>
   );
 };
