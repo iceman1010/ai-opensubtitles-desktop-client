@@ -44,7 +44,8 @@
           "target": "dmg",
           "arch": ["x64", "arm64"]
         }
-      ]
+      ],
+      "artifactName": "${productName}-${arch}.${ext}"
     },
     "win": {
       "target": [
@@ -56,7 +57,8 @@
           "target": "portable",
           "arch": ["x64"]
         }
-      ]
+      ],
+      "artifactName": "${productName}-Setup.${ext}"
     },
     "linux": {
       "target": [
@@ -69,7 +71,8 @@
           "arch": ["x64"]
         }
       ],
-      "category": "AudioVideo"
+      "category": "AudioVideo",
+      "artifactName": "${productName}.${ext}"
     },
     "nsis": {
       "oneClick": false,
