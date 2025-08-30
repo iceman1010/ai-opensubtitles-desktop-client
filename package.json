@@ -16,8 +16,9 @@
     "build:main": "tsc -p main/tsconfig.json",
     "build:renderer": "vite build",
     "copy:shared": "cp -r shared dist/",
-    "pack": "electron-builder --dir",
-    "dist": "electron-builder --publish never",
+    "pack": "npm run generate-file-associations && electron-builder --dir",
+    "dist": "npm run generate-file-associations && electron-builder --publish never",
+    "generate-file-associations": "node scripts/generate-file-associations.js",
     "dist:all": "electron-builder --mac --win --linux --publish never",
     "dist:win": "electron-builder --win --publish never",
     "dist:mac": "electron-builder --mac --publish never",
@@ -42,7 +43,10 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         }
       ],
       "artifactName": "${productName}-${arch}.${ext}"
@@ -51,11 +55,15 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "artifactName": "${productName}-Setup.${ext}"
@@ -64,11 +72,15 @@
       "target": [
         {
           "target": "AppImage",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "deb",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "category": "AudioVideo",
@@ -80,7 +92,82 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
     },
-    "publish": null
+    "publish": null,
+    "fileAssociations": [
+      {
+        "ext": [
+          "mp4",
+          "mkv",
+          "avi",
+          "mov",
+          "wmv",
+          "flv",
+          "webm",
+          "m4v",
+          "mpg",
+          "mpeg",
+          "mp2",
+          "mpe",
+          "mpv",
+          "m2v",
+          "3gp",
+          "3g2",
+          "f4v",
+          "f4p",
+          "f4a",
+          "f4b",
+          "mxf",
+          "roq",
+          "nsv",
+          "vob",
+          "dv",
+          "ts",
+          "mts",
+          "m2ts",
+          "asf"
+        ],
+        "name": "Video File",
+        "description": "Video file for transcription",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "mp3",
+          "wav",
+          "flac",
+          "aac",
+          "ogg",
+          "wma",
+          "m4a",
+          "aiff",
+          "au",
+          "raw",
+          "pcm",
+          "opus",
+          "vorbis",
+          "ac3",
+          "dts",
+          "ape",
+          "wv",
+          "amr",
+          "awb",
+          "gsm",
+          "spx"
+        ],
+        "name": "Audio File",
+        "description": "Audio file for transcription",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "srt",
+          "vtt"
+        ],
+        "name": "Subtitle File",
+        "description": "Subtitle file for translation",
+        "role": "Editor"
+      }
+    ]
   },
   "devDependencies": {
     "@types/fluent-ffmpeg": "^2.1.27",

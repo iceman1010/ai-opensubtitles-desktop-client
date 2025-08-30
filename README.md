@@ -38,7 +38,7 @@ Download the latest installer for your platform from the [Releases page](https:/
 
 ## Setup
 
-1. **Get API Credentials**: Register at [AI.Opensubtitles.com](https://ai.opensubtitles.com) to obtain:
+1. **Get API Credentials**: Register at [www.Opensubtitles.com](https://www.opensubtitles.com) to obtain:
    - Username
    - Password  
    - API Key

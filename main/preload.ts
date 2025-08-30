@@ -19,6 +19,10 @@ const electronAPI = {
   saveToken: (token: string) => ipcRenderer.invoke('save-token', token),
   clearToken: () => ipcRenderer.invoke('clear-token'),
   openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
+  onExternalFileOpen: (callback: (event: any, filePath: string) => void) => 
+    ipcRenderer.on('open-file-from-external', callback),
+  removeExternalFileListener: (callback: (event: any, filePath: string) => void) => 
+    ipcRenderer.removeListener('open-file-from-external', callback),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);
