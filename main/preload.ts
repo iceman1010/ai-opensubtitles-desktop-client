@@ -23,6 +23,13 @@ const electronAPI = {
     ipcRenderer.on('open-file-from-external', callback),
   removeExternalFileListener: (callback: (event: any, filePath: string) => void) => 
     ipcRenderer.removeListener('open-file-from-external', callback),
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  downloadUpdate: () => ipcRenderer.invoke('download-update'), 
+  installUpdate: () => ipcRenderer.invoke('install-update'),
+  onUpdateStatus: (callback: (event: any, status: { event: string, message: string }) => void) => 
+    ipcRenderer.on('update-status', callback),
+  removeUpdateStatusListener: (callback: (event: any, status: { event: string, message: string }) => void) => 
+    ipcRenderer.removeListener('update-status', callback),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);

@@ -18,6 +18,8 @@ const StatusBar: React.FC<StatusBarProps> = ({
   const [online, setOnline] = useState(isOnline());
   const [showConnectionChange, setShowConnectionChange] = useState(false);
   const [isApiActive, setIsApiActive] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<string>('');
+  const [showUpdateStatus, setShowUpdateStatus] = useState(false);
   
   // State for managing minimum display time of processing status
   const [displayedTask, setDisplayedTask] = useState<string | undefined>(currentTask);
@@ -94,6 +96,28 @@ const StatusBar: React.FC<StatusBarProps> = ({
     });
 
     return cleanupActivity;
+  }, []);
+
+  useEffect(() => {
+    // Set up update status listener
+    const handleUpdateStatus = (_event: any, status: { event: string, message: string }) => {
+      setUpdateStatus(status.message);
+      setShowUpdateStatus(true);
+      
+      // Auto-hide update status after 10 seconds for most events
+      // Keep showing for download progress and update ready
+      if (!status.event.includes('downloading') && status.event !== 'update-downloaded') {
+        setTimeout(() => {
+          setShowUpdateStatus(false);
+        }, 10000);
+      }
+    };
+
+    window.electronAPI.onUpdateStatus(handleUpdateStatus);
+
+    return () => {
+      window.electronAPI.removeUpdateStatusListener(handleUpdateStatus);
+    };
   }, []);
 
   const getNetworkStatusDisplay = () => {
@@ -251,6 +275,22 @@ const StatusBar: React.FC<StatusBarProps> = ({
           <span style={{...statusItemStyles, color: '#007bff', fontWeight: 600}}>
             <span style={statusIconStyles} className="status-spinning">⟳</span>
             {displayedTask}
+          </span>
+        </>
+      )}
+      
+      {/* Update Status */}
+      {showUpdateStatus && updateStatus && (
+        <>
+          <span style={statusSeparatorStyles}>|</span>
+          <span style={{...statusItemStyles, color: '#fd7e14', fontWeight: 500}}>
+            <span style={statusIconStyles} className={updateStatus.includes('Downloading') ? 'status-pulsing' : ''}>
+              {updateStatus.includes('available') ? '↓' : 
+               updateStatus.includes('Downloading') ? '⬇' : 
+               updateStatus.includes('ready') ? '✓' : 
+               updateStatus.includes('error') ? '✗' : '⟳'}
+            </span>
+            {updateStatus}
           </span>
         </>
       )}

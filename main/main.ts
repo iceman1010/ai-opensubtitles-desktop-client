@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, dialog, session, shell } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import * as path from 'path';
 import { ConfigManager } from './config';
 import { FFmpegManager } from './ffmpeg';
@@ -72,6 +73,7 @@ class MainApp {
     
     await this.createWindow();
     await this.setupIPC();
+    await this.setupAutoUpdater();
     await this.ffmpegManager.initialize();
   }
 
@@ -167,6 +169,143 @@ class MainApp {
       ...fileFormatsConfig.subtitle
     ];
     return allFormats.includes(ext);
+  }
+
+  private async setupAutoUpdater() {
+    // Skip auto-updater setup in development
+    const isDev = process.env.NODE_ENV === 'development';
+    console.log('=== AUTO-UPDATER SETUP ===');
+    console.log('Environment:', process.env.NODE_ENV);
+    console.log('Is Development:', isDev);
+    
+    if (isDev) {
+      console.log('Skipping auto-updater setup in development mode');
+      return;
+    }
+
+    try {
+      console.log('Configuring auto-updater for GitHub releases...');
+      
+      // Configure auto-updater for GitHub releases
+      autoUpdater.setFeedURL({
+        provider: 'github',
+        owner: 'iceman1010',
+        repo: 'ai-opensubtitles-desktop-client'
+      });
+      
+      console.log('Auto-updater feed URL set successfully');
+    } catch (error) {
+      console.error('Failed to configure auto-updater:', error);
+    }
+
+    // Set up auto-updater event handlers
+    autoUpdater.on('checking-for-update', () => {
+      console.log('Checking for update...');
+      this.sendUpdateStatus('checking-for-update', 'Checking for updates...');
+    });
+
+    autoUpdater.on('update-available', (info) => {
+      console.log('Update available:', info);
+      this.sendUpdateStatus('update-available', `Update available: v${info.version}`);
+    });
+
+    autoUpdater.on('update-not-available', (info) => {
+      console.log('Update not available:', info);
+      this.sendUpdateStatus('update-not-available', 'You have the latest version');
+    });
+
+    autoUpdater.on('error', (err) => {
+      console.error('Update error:', err);
+      this.sendUpdateStatus('update-error', `Update error: ${err.message}`);
+    });
+
+    autoUpdater.on('download-progress', (progressObj) => {
+      const logMessage = `Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent}% (${progressObj.transferred}/${progressObj.total})`;
+      console.log(logMessage);
+      this.sendUpdateStatus('update-downloading', `Downloading update: ${Math.round(progressObj.percent)}%`);
+    });
+
+    autoUpdater.on('update-downloaded', (info) => {
+      console.log('Update downloaded:', info);
+      this.sendUpdateStatus('update-downloaded', `Update ready: v${info.version}`);
+    });
+
+    // Check for updates on startup if enabled
+    const config = await this.configManager.getConfig();
+    if (config.checkUpdatesOnStart) {
+      setTimeout(() => {
+        this.checkForUpdates();
+      }, 3000); // Wait 3 seconds after startup
+    }
+  }
+
+  private sendUpdateStatus(event: string, message: string) {
+    if (this.mainWindow) {
+      this.mainWindow.webContents.send('update-status', { event, message });
+    }
+  }
+
+  private async checkForUpdates() {
+    const isDev = process.env.NODE_ENV === 'development';
+    console.log('=== UPDATE CHECK DEBUG ===');
+    console.log('Environment:', process.env.NODE_ENV);
+    console.log('Is Development:', isDev);
+    console.log('Platform:', process.platform);
+    console.log('App Version:', require('../../package.json').version);
+    
+    if (isDev) {
+      console.log('Update check skipped in development mode');
+      this.sendUpdateStatus('update-not-available', 'Updates not available in development mode');
+      return;
+    }
+
+    try {
+      console.log('Starting update check...');
+      console.log('AutoUpdater feed URL:', {
+        provider: 'github',
+        owner: 'iceman1010',
+        repo: 'ai-opensubtitles-desktop-client'
+      });
+      
+      const result = await autoUpdater.checkForUpdates();
+      console.log('Update check result:', result);
+    } catch (error) {
+      console.error('Failed to check for updates:', error);
+      console.error('Error details:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      });
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.sendUpdateStatus('update-error', `Update check failed: ${errorMessage}`);
+    }
+    console.log('=== END UPDATE CHECK DEBUG ===');
+  }
+
+  private async downloadAndInstallUpdate() {
+    const isDev = process.env.NODE_ENV === 'development';
+    if (isDev) {
+      this.sendUpdateStatus('update-error', 'Downloads not available in development mode');
+      return;
+    }
+
+    try {
+      await autoUpdater.downloadUpdate();
+    } catch (error) {
+      console.error('Failed to download update:', error);
+      this.sendUpdateStatus('update-error', 'Failed to download update');
+    }
+  }
+
+  private installUpdate() {
+    const isDev = process.env.NODE_ENV === 'development';
+    if (isDev) {
+      this.sendUpdateStatus('update-error', 'Install not available in development mode');
+      return;
+    }
+
+    autoUpdater.quitAndInstall();
   }
 
   private async setupIPC() {
@@ -337,6 +476,19 @@ class MainApp {
         console.error('Failed to save file:', error);
         throw error;
       }
+    });
+
+    // Auto-updater IPC handlers
+    ipcMain.handle('check-for-updates', async () => {
+      await this.checkForUpdates();
+    });
+
+    ipcMain.handle('download-update', async () => {
+      await this.downloadAndInstallUpdate();
+    });
+
+    ipcMain.handle('install-update', () => {
+      this.installUpdate();
     });
   }
 }
