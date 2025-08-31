@@ -8,6 +8,7 @@ import StatusBar from './components/StatusBar';
 import './utils/errorLogger'; // Initialize global error handlers
 import appConfig from './config/appConfig.json';
 import packageInfo from '../../package.json';
+import logoImage from './assets/logo.png';
 
 interface AppConfig {
   username: string;
@@ -15,6 +16,7 @@ interface AppConfig {
   apiKey?: string;
   lastUsedLanguage?: string;
   debugMode?: boolean;
+  checkUpdatesOnStart?: boolean;
   credits?: {
     used: number;
     remaining: number;
@@ -145,6 +147,31 @@ function App() {
               <p>Credits: {config.credits.remaining}</p>
             </div>
           )}
+          
+          {/* Logo positioned above version display at bottom of sidebar */}
+          <div 
+            className="sidebar-logo" 
+            style={{ 
+              position: 'absolute',
+              bottom: '75px', // 45px (version position) + 20px (logo height) + 10px (gap)
+              left: '50%',
+              transform: 'translateX(-50%)',
+              textAlign: 'center',
+              padding: '0 10px',
+              width: 'calc(100% - 40px)' // Account for sidebar padding
+            }}
+          >
+            <img 
+              src={logoImage} 
+              alt="Logo" 
+              style={{
+                width: '100%',
+                maxWidth: '60px', // Smaller size for bottom positioning
+                height: 'auto',
+                borderRadius: '50%'
+              }}
+            />
+          </div>
           
           {/* Version display at bottom of sidebar */}
           <div className="sidebar-version">
