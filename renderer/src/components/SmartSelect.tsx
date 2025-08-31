@@ -43,14 +43,55 @@ const SmartSelect: React.FC<SmartSelectProps> = ({
     }
   };
 
+  const containerStyles: React.CSSProperties = {
+    position: 'relative'
+  };
+
+  const selectStyles: React.CSSProperties = {
+    width: '100%',
+    padding: '8px 12px',
+    border: '1px solid #ddd',
+    borderRadius: 4,
+    backgroundColor: 'white',
+    fontSize: 14,
+    color: '#333',
+    cursor: disabled ? 'not-allowed' : 'pointer'
+  };
+
+  const disabledSelectStyles: React.CSSProperties = {
+    ...selectStyles,
+    backgroundColor: '#f5f5f5',
+    color: '#666'
+  };
+
   return (
-    <div className="smart-select-container">
+    <div style={containerStyles}>
+      <style>{`
+        .smart-select:focus {
+          outline: none;
+          border-color: #007bff;
+          box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+        
+        .smart-select:hover:not(:disabled) {
+          border-color: #007bff;
+        }
+        
+        .smart-select option[disabled] {
+          background-color: #f0f0f0 !important;
+          color: #666 !important;
+          font-style: normal !important;
+          text-align: center !important;
+        }
+      `}</style>
+      
       <select
         id={id}
         value={value}
         onChange={handleSelectChange}
         disabled={disabled}
         className="smart-select"
+        style={disabled ? disabledSelectStyles : selectStyles}
       >
         {!selectedOption && (
           <option value="" disabled>
@@ -88,47 +129,6 @@ const SmartSelect: React.FC<SmartSelectProps> = ({
           </option>
         ))}
       </select>
-      
-      <style jsx>{`
-        .smart-select-container {
-          position: relative;
-        }
-        
-        .smart-select {
-          width: 100%;
-          padding: 8px 12px;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-          background-color: white;
-          font-size: 14px;
-          color: #333;
-          cursor: pointer;
-        }
-        
-        .smart-select:disabled {
-          background-color: #f5f5f5;
-          color: #666;
-          cursor: not-allowed;
-        }
-        
-        .smart-select:focus {
-          outline: none;
-          border-color: #007bff;
-          box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-        }
-        
-        .smart-select:hover:not(:disabled) {
-          border-color: #007bff;
-        }
-        
-        /* Ensure separator option is styled correctly */
-        .smart-select option[disabled] {
-          background-color: #f0f0f0 !important;
-          color: #666 !important;
-          font-style: normal !important;
-          text-align: center !important;
-        }
-      `}</style>
     </div>
   );
 };
