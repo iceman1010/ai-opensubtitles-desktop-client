@@ -11,27 +11,38 @@ const fileFormats = JSON.parse(fs.readFileSync(fileFormatsPath, 'utf8'));
 const packagePath = path.join(__dirname, '../package.json');
 const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
 
-// Generate file associations dynamically
-const fileAssociations = [
-  {
-    ext: fileFormats.video,
+// Generate file associations dynamically - create individual entries for each extension
+const fileAssociations = [];
+
+// Add video files
+fileFormats.video.forEach(ext => {
+  fileAssociations.push({
+    ext: ext,
     name: "Video File",
     description: "Video file for transcription",
     role: "Editor"
-  },
-  {
-    ext: fileFormats.audio,
-    name: "Audio File", 
-    description: "Audio file for transcription",
+  });
+});
+
+// Add audio files  
+fileFormats.audio.forEach(ext => {
+  fileAssociations.push({
+    ext: ext,
+    name: "Audio File",
+    description: "Audio file for transcription", 
     role: "Editor"
-  },
-  {
-    ext: fileFormats.subtitle,
+  });
+});
+
+// Add subtitle files
+fileFormats.subtitle.forEach(ext => {
+  fileAssociations.push({
+    ext: ext,
     name: "Subtitle File",
     description: "Subtitle file for translation",
     role: "Editor"
-  }
-];
+  });
+});
 
 // Add file associations to package.json build config
 packageJson.build.fileAssociations = fileAssociations;
