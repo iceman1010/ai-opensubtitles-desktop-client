@@ -55,29 +55,74 @@ function App() {
     }
   };
 
-  const handleLogin = async (username: string, password: string, apiKey: string) => {
+  const handleLogin = async (username: string, password: string, apiKey: string): Promise<boolean> => {
     try {
-      const success = await window.electronAPI.saveConfig({ username, password, apiKey });
-      if (success) {
-        const updatedConfig = await window.electronAPI.getConfig();
-        setConfig(updatedConfig);
-        setCurrentScreen('main');
+      setAppProcessing(true, 'Validating credentials...');
+      
+      // Import the API class dynamically
+      const { OpenSubtitlesAPI } = await import('./services/api');
+      
+      // Create API instance and test login
+      const api = new OpenSubtitlesAPI(apiKey);
+      const loginResult = await api.login(username, password);
+      
+      if (loginResult.success) {
+        // Only save config if login was successful
+        const success = await window.electronAPI.saveConfig({ username, password, apiKey });
+        if (success) {
+          const updatedConfig = await window.electronAPI.getConfig();
+          setConfig(updatedConfig);
+          setCurrentScreen('main');
+          return true;
+        }
       }
+      
+      console.error('Login failed:', loginResult.error);
+      return false;
     } catch (error) {
       console.error('Login failed:', error);
+      return false;
+    } finally {
+      setAppProcessing(false);
     }
   };
 
-  const handlePreferencesSave = async (newConfig: Partial<AppConfig>) => {
+  const handlePreferencesSave = async (newConfig: Partial<AppConfig>): Promise<boolean> => {
     try {
+      setAppProcessing(true, 'Validating credentials...');
+      
+      // If username, password, or apiKey are being changed, validate them
+      if (newConfig.username || newConfig.password || newConfig.apiKey) {
+        const { OpenSubtitlesAPI } = await import('./services/api');
+        
+        // Use the new values if provided, otherwise use current config values
+        const username = newConfig.username || config?.username || '';
+        const password = newConfig.password || config?.password || '';
+        const apiKey = newConfig.apiKey || config?.apiKey || '';
+        
+        const api = new OpenSubtitlesAPI(apiKey);
+        const loginResult = await api.login(username, password);
+        
+        if (!loginResult.success) {
+          console.error('Credential validation failed:', loginResult.error);
+          return false;
+        }
+      }
+      
+      // If validation passed, save the config
       const success = await window.electronAPI.saveConfig(newConfig);
       if (success) {
         const updatedConfig = await window.electronAPI.getConfig();
         setConfig(updatedConfig);
         setCurrentScreen('main');
+        return true;
       }
+      return false;
     } catch (error) {
       console.error('Failed to save preferences:', error);
+      return false;
+    } finally {
+      setAppProcessing(false);
     }
   };
 

@@ -15,7 +15,7 @@ interface AppConfig {
 
 interface PreferencesProps {
   config: AppConfig;
-  onSave: (config: Partial<AppConfig>) => void;
+  onSave: (config: Partial<AppConfig>) => Promise<boolean>;
   onCancel: () => void;
   setAppProcessing: (processing: boolean, task?: string) => void;
 }
@@ -28,6 +28,7 @@ function Preferences({ config, onSave, onCancel, setAppProcessing }: Preferences
   const [checkUpdatesOnStart, setCheckUpdatesOnStart] = useState(config.checkUpdatesOnStart ?? true);
   const [isLoading, setIsLoading] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<string>('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const handleUpdateStatus = (_event: any, status: { event: string, message: string }) => {
@@ -57,9 +58,15 @@ function Preferences({ config, onSave, onCancel, setAppProcessing }: Preferences
     }
 
     setIsLoading(true);
-    setAppProcessing(true, 'Saving preferences...');
+    setError('');
+    setAppProcessing(true, 'Validating credentials...');
     try {
-      await onSave({ username, password, apiKey, debugMode, checkUpdatesOnStart });
+      const success = await onSave({ username, password, apiKey, debugMode, checkUpdatesOnStart });
+      if (!success) {
+        setError('Failed to save preferences. Please check your credentials.');
+      }
+    } catch (error) {
+      setError('Failed to save preferences. Please check your credentials and try again.');
     } finally {
       setIsLoading(false);
       setAppProcessing(false);
@@ -71,6 +78,12 @@ function Preferences({ config, onSave, onCancel, setAppProcessing }: Preferences
     <>
       <div className="preferences-container">
       <h1>Preferences</h1>
+      
+      {error && (
+        <div className="status-message error">
+          {error}
+        </div>
+      )}
       
       <form onSubmit={handleSubmit} className="preferences-form">
         <div className="form-group">

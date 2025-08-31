@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import appConfig from '../config/appConfig.json';
 
 interface LoginProps {
-  onLogin: (username: string, password: string, apiKey: string) => void;
+  onLogin: (username: string, password: string, apiKey: string) => Promise<boolean>;
 }
 
 function Login({ onLogin }: LoginProps) {
@@ -10,6 +10,7 @@ function Login({ onLogin }: LoginProps) {
   const [password, setPassword] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,8 +19,14 @@ function Login({ onLogin }: LoginProps) {
     }
 
     setIsLoading(true);
+    setError('');
     try {
-      await onLogin(username, password, apiKey);
+      const success = await onLogin(username, password, apiKey);
+      if (!success) {
+        setError('Login failed. Please check your credentials.');
+      }
+    } catch (error) {
+      setError('Login failed. Please check your credentials and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -29,6 +36,12 @@ function Login({ onLogin }: LoginProps) {
     <div style={{ maxWidth: '400px', margin: '50px auto' }}>
       <h1>Welcome to {appConfig.name}</h1>
       <p>Please enter your OpenSubtitles credentials to continue.</p>
+      
+      {error && (
+        <div className="status-message error">
+          {error}
+        </div>
+      )}
       
       <form onSubmit={handleSubmit}>
         <div className="form-group">
