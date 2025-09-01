@@ -1,6 +1,6 @@
 {
   "name": "ai-opensubtitles-client",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "_comment": "CRITICAL: When creating GitHub releases, the tag MUST start with 'v' (e.g., v1.0.1) to trigger GitHub Actions workflow! Without 'v' prefix, builds will NOT be triggered and no installers will be created!",
   "description": "Cross-platform desktop client for AI.Opensubtitles.com",
   "main": "dist/main/main.js",
@@ -18,11 +18,11 @@
     "build:renderer": "vite build",
     "copy:shared": "cp -r shared dist/",
     "pack": "npm run generate-file-associations && electron-builder --dir",
-    "dist": "npm run generate-file-associations && electron-builder --publish never",
+    "dist": "npm run generate-file-associations && electron-builder --publish onTagOrDraft",
     "generate-file-associations": "node scripts/generate-file-associations.js",
-    "dist:all": "electron-builder --mac --win --linux --publish never",
-    "dist:win": "electron-builder --win --publish never",
-    "dist:mac": "electron-builder --mac --publish never",
+    "dist:all": "electron-builder --mac --win --linux --publish onTagOrDraft",
+    "dist:win": "electron-builder --win --publish onTagOrDraft",
+    "dist:mac": "electron-builder --mac --publish onTagOrDraft",
     "postinstall": "electron-builder install-app-deps"
   },
   "build": {
