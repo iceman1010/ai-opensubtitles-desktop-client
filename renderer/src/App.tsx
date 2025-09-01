@@ -233,6 +233,7 @@ function App() {
           <MainScreen 
             config={config} 
             setAppProcessing={setAppProcessing}
+            onNavigateToCredits={() => setCurrentScreen('credits')}
           />
         )}
         {currentScreen === 'info' && config && (

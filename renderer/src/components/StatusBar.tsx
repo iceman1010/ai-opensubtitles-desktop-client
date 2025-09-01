@@ -182,6 +182,12 @@ const StatusBar: React.FC<StatusBarProps> = ({
     display: 'inline-block',
   };
 
+  // Helper function to truncate long text
+  const truncateText = (text: string, maxLength: number = 50): string => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength - 3) + '...';
+  };
+
   return (
     <div style={statusBarStyles}>
       <style>{`
@@ -274,7 +280,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
           <span style={statusSeparatorStyles}>|</span>
           <span style={{...statusItemStyles, color: '#007bff', fontWeight: 600}}>
             <span style={statusIconStyles} className="status-spinning">⟳</span>
-            {displayedTask}
+            <span title={displayedTask}>{truncateText(displayedTask, 40)}</span>
           </span>
         </>
       )}
@@ -290,7 +296,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
                updateStatus.includes('ready') ? '✓' : 
                updateStatus.includes('error') ? '✗' : '⟳'}
             </span>
-            {updateStatus}
+            <span title={updateStatus}>{truncateText(updateStatus, 35)}</span>
           </span>
         </>
       )}

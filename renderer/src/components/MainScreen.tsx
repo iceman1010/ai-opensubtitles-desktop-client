@@ -25,9 +25,10 @@ interface AppConfig {
 interface MainScreenProps {
   config: AppConfig;
   setAppProcessing: (processing: boolean, task?: string) => void;
+  onNavigateToCredits?: () => void;
 }
 
-function MainScreen({ config, setAppProcessing }: MainScreenProps) {
+function MainScreen({ config, setAppProcessing, onNavigateToCredits }: MainScreenProps) {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileType, setFileType] = useState<'transcription' | 'translation' | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -67,6 +68,7 @@ function MainScreen({ config, setAppProcessing }: MainScreenProps) {
   const [isLoadingFileInfo, setIsLoadingFileInfo] = useState(false);
   const [isNetworkOnline, setIsNetworkOnline] = useState(isOnline());
   const hasAttemptedLogin = useRef(false);
+  const [showCreditModal, setShowCreditModal] = useState(false);
 
   useEffect(() => {
     if (config.apiKey) {
@@ -467,6 +469,12 @@ function MainScreen({ config, setAppProcessing }: MainScreenProps) {
 
   const handleProcess = async () => {
     if (!selectedFile || !fileType) return;
+
+    // Check if credits are available
+    if (credits === 0) {
+      setShowCreditModal(true);
+      return;
+    }
 
     setIsProcessing(true);
     setAppProcessing(true, fileType === 'transcription' ? 'Transcribing...' : 'Translating...');
@@ -911,6 +919,116 @@ function MainScreen({ config, setAppProcessing }: MainScreenProps) {
           translationOptions={translationOptions}
           transcriptionOptions={transcriptionOptions}
         />
+      )}
+      
+      {/* Credit Warning Modal */}
+      {showCreditModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            maxWidth: '500px',
+            width: '90%',
+            borderRadius: '12px',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              padding: '24px',
+              backgroundColor: '#dc3545',
+              color: 'white',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '12px' }}>⚠️</div>
+              <h2 style={{ margin: 0, fontSize: '24px' }}>Insufficient Credits</h2>
+            </div>
+            
+            <div style={{ padding: '24px' }}>
+              <p style={{ 
+                fontSize: '16px', 
+                lineHeight: '1.5', 
+                color: '#333',
+                textAlign: 'center',
+                margin: '0 0 20px 0'
+              }}>
+                You don't have enough credits to process this file. Credits are required to use AI transcription and translation services.
+              </p>
+              
+              <div style={{
+                backgroundColor: '#f8f9fa',
+                padding: '16px',
+                borderRadius: '8px',
+                marginBottom: '20px',
+                textAlign: 'center'
+              }}>
+                <strong style={{ color: '#dc3545', fontSize: '18px' }}>
+                  Current Balance: {credits || 0} credits
+                </strong>
+              </div>
+              
+              <p style={{
+                fontSize: '14px',
+                color: '#6c757d',
+                textAlign: 'center',
+                margin: '0 0 24px 0'
+              }}>
+                Purchase credits to continue using transcription and translation features.
+              </p>
+            </div>
+
+            <div style={{
+              padding: '16px 24px',
+              backgroundColor: '#f8f9fa',
+              display: 'flex',
+              gap: '12px',
+              justifyContent: 'center'
+            }}>
+              <button
+                onClick={() => setShowCreditModal(false)}
+                style={{
+                  padding: '12px 20px',
+                  backgroundColor: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowCreditModal(false);
+                  onNavigateToCredits?.();
+                }}
+                style={{
+                  padding: '12px 20px',
+                  backgroundColor: '#007bff',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
+              >
+                Buy Credits
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
