@@ -5,6 +5,11 @@ node_modules/
 dist/
 release/
 
+# Auto-updater metadata files (generated locally, not committed)
+latest-linux.yml
+latest-mac.yml
+latest.yml
+
 # Environment files
 .env
 .env.local
