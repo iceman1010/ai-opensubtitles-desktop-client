@@ -1,7 +1,6 @@
 {
   "name": "ai-opensubtitles-client",
-  "version": "1.1.1",
-  "_comment": "CRITICAL: When creating GitHub releases, the tag MUST start with 'v' (e.g., v1.0.1) to trigger GitHub Actions workflow! Without 'v' prefix, builds will NOT be triggered and no installers will be created!",
+  "version": "1.1.2",
   "description": "Cross-platform desktop client for AI.Opensubtitles.com",
   "main": "dist/main/main.js",
   "homepage": "./",
@@ -89,7 +88,6 @@
       "category": "AudioVideo",
       "artifactName": "${productName}.${ext}"
     },
-    "_comment_naming": "CRITICAL: Local builds generate files with dashes (AI.Opensubtitles.com-Client.AppImage) but GitHub Actions generates with dots (AI.Opensubtitles.com.Client.AppImage). Always verify metadata filenames match GitHub release assets to prevent 404 download errors.",
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
