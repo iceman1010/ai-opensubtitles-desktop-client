@@ -158,19 +158,19 @@ function Info({ config, setAppProcessing }: InfoProps) {
 
   return (
     <>
-      <div className="info-container">
+      <div className="info-container" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '20px', gap: '20px' }}>
       <h1>AI Model Information & Pricing</h1>
       <p style={{ marginBottom: '30px', color: '#666' }}>
         Learn about the available AI models and their pricing structure. All prices are in credits.
       </p>
 
       {/* Transcription Models */}
-      <section style={{ marginBottom: '40px' }}>
+      <section style={{ marginBottom: '40px', width: '100%' }}>
         <h2 style={{ marginBottom: '20px', color: '#333', borderBottom: '2px solid #3498db', paddingBottom: '8px' }}>
           Transcription Models
         </h2>
         {servicesInfo?.Transcription && servicesInfo.Transcription.length > 0 ? (
-          <div style={{ display: 'grid', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '16px', width: '100%' }}>
             {servicesInfo.Transcription.map((model) => (
               <div key={model.name} style={{
                 padding: '20px',
@@ -236,12 +236,12 @@ function Info({ config, setAppProcessing }: InfoProps) {
       </section>
 
       {/* Translation Models */}
-      <section style={{ marginBottom: '40px' }}>
+      <section style={{ marginBottom: '40px', width: '100%' }}>
         <h2 style={{ marginBottom: '20px', color: '#333', borderBottom: '2px solid #e74c3c', paddingBottom: '8px' }}>
           Translation Models
         </h2>
         {servicesInfo?.Translation && servicesInfo.Translation.length > 0 ? (
-          <div style={{ display: 'grid', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '16px', width: '100%' }}>
             {servicesInfo.Translation.map((model) => (
               <div key={model.name} style={{
                 padding: '20px',

@@ -6,14 +6,12 @@ interface StatusBarProps {
   onNetworkChange?: (isOnline: boolean) => void;
   isProcessing?: boolean;
   currentTask?: string;
-  hasSidebar?: boolean;
 }
 
 const StatusBar: React.FC<StatusBarProps> = ({ 
   onNetworkChange, 
   isProcessing = false,
-  currentTask,
-  hasSidebar = true
+  currentTask
 }) => {
   const [online, setOnline] = useState(isOnline());
   const [showConnectionChange, setShowConnectionChange] = useState(false);
@@ -148,14 +146,14 @@ const StatusBar: React.FC<StatusBarProps> = ({
   const statusBarStyles: React.CSSProperties = {
     position: 'fixed',
     bottom: 0,
-    left: hasSidebar ? 200 : 0,
+    left: 0,
     right: 0,
     height: 26,
     background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
     borderTop: '1px solid #dee2e6',
     display: 'flex',
     alignItems: 'center',
-    padding: hasSidebar ? '0 16px' : '0 12px',
+    padding: '0 12px',
     fontSize: 12,
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     color: '#495057',

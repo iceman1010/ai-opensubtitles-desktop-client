@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import appConfig from '../config/appConfig.json';
+import logoImage from '../assets/logo.png';
 
+// CRITICAL: Authentication validates credentials via OpenSubtitles API before allowing app access
 interface LoginProps {
   onLogin: (username: string, password: string, apiKey: string) => Promise<boolean>;
+  setAppProcessing: (processing: boolean, task?: string) => void;
 }
 
-function Login({ onLogin }: LoginProps) {
+function Login({ onLogin, setAppProcessing }: LoginProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [apiKey, setApiKey] = useState('');
@@ -21,22 +24,44 @@ function Login({ onLogin }: LoginProps) {
 
     setIsLoading(true);
     setError('');
+    setAppProcessing(true, 'Logging in...');
     try {
       const success = await onLogin(username, password, apiKey);
       if (!success) {
         setError('Login failed. Please check your credentials.');
+        setAppProcessing(true, 'Login failed');
+        // Clear the failed status after 3 seconds
+        setTimeout(() => setAppProcessing(false), 3000);
       }
+      // Note: setAppProcessing(false) is handled in App.tsx handleLogin on success
     } catch (error) {
       setError('Login failed. Please check your credentials and try again.');
+      setAppProcessing(true, 'Login failed');
+      // Clear the failed status after 3 seconds
+      setTimeout(() => setAppProcessing(false), 3000);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '50px auto' }}>
-      <h1>Welcome to {appConfig.name}</h1>
-      <p>Please enter your OpenSubtitles credentials to continue.</p>
+    <div style={{ maxWidth: '400px', margin: '5px auto 20px auto', textAlign: 'center' }}>
+      {/* Logo at the top */}
+      <div style={{ marginBottom: '10px' }}>
+        <img 
+          src={logoImage} 
+          alt="AI.Opensubtitles.com Logo" 
+          style={{
+            width: '100px',
+            height: '100px',
+            borderRadius: '50%',
+            objectFit: 'cover'
+          }}
+        />
+      </div>
+      
+      <h1 style={{ marginBottom: '10px', fontSize: '16px' }}>Welcome to AI.Opensubtitles.com Client</h1>
+      <p style={{ marginBottom: '20px', textAlign: 'left' }}>Please enter your OpenSubtitles.com credentials to continue.</p>
       
       {error && (
         <div className="status-message error">
@@ -44,7 +69,7 @@ function Login({ onLogin }: LoginProps) {
         </div>
       )}
       
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} style={{ textAlign: 'left' }}>
         <div className="form-group">
           <label htmlFor="username">Username:</label>
           <input
@@ -90,7 +115,7 @@ function Login({ onLogin }: LoginProps) {
             </button>
           </label>
           <input
-            type="password"
+            type="text"
             id="apiKey"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
@@ -165,7 +190,8 @@ function Login({ onLogin }: LoginProps) {
             <div style={{
               padding: '20px',
               overflowY: 'auto',
-              flex: 1
+              flex: 1,
+              textAlign: 'left'
             }}>
               <div style={{
                 backgroundColor: '#d1ecf1',

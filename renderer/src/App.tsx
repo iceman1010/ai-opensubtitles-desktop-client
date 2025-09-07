@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import Login from './components/Login';
 import MainScreen from './components/MainScreen';
+import BatchScreen from './components/BatchScreen';
 import Preferences from './components/Preferences';
+import Update from './components/Update';
 import Info from './components/Info';
 import Credits from './components/Credits';
+import Help from './components/Help';
 import StatusBar from './components/StatusBar';
 import './utils/errorLogger'; // Initialize global error handlers
 import appConfig from './config/appConfig.json';
@@ -25,8 +28,10 @@ interface AppConfig {
 
 function App() {
   const [config, setConfig] = useState<AppConfig | null>(null);
-  const [currentScreen, setCurrentScreen] = useState<'login' | 'main' | 'preferences' | 'info' | 'credits'>('main');
+  const [currentScreen, setCurrentScreen] = useState<'login' | 'main' | 'batch' | 'preferences' | 'update' | 'info' | 'credits' | 'help'>('main');
   const [isLoading, setIsLoading] = useState(true);
+  const [pendingBatchFiles, setPendingBatchFiles] = useState<string[]>([]);
+  const [pendingMainFile, setPendingMainFile] = useState<string | null>(null);
   
   // Centralized status state
   const [isNetworkOnline, setIsNetworkOnline] = useState(true);
@@ -35,6 +40,68 @@ function App() {
 
   useEffect(() => {
     loadConfig();
+    
+    // Set up keyboard shortcut listener
+    const handleKeyboardShortcut = (event: any, shortcut: string) => {
+      switch (shortcut) {
+        case 'help':
+          setCurrentScreen('help');
+          break;
+        case 'navigate-main':
+          setCurrentScreen('main');
+          break;
+        case 'navigate-batch':
+          setCurrentScreen('batch');
+          break;
+        case 'navigate-info':
+          setCurrentScreen('info');
+          break;
+        case 'navigate-credits':
+          setCurrentScreen('credits');
+          break;
+        case 'navigate-preferences':
+          setCurrentScreen('preferences');
+          break;
+        case 'navigate-update':
+          setCurrentScreen('update');
+          break;
+      }
+    };
+
+    window.electronAPI.onKeyboardShortcut(handleKeyboardShortcut);
+
+    return () => {
+      window.electronAPI.removeKeyboardShortcutListener(handleKeyboardShortcut);
+    };
+  }, []);
+
+  // Handle external file opening (from file associations or command line)
+  useEffect(() => {
+    // Handle single file opening - route to Single File screen
+    const handleExternalFile = (event: any, filePath: string) => {
+      console.log('App: Received single external file:', filePath);
+      setCurrentScreen('main');
+      // Set the file for MainScreen to pick up
+      setPendingMainFile(filePath);
+    };
+
+    // Handle multiple files opening - route to Batch screen
+    const handleExternalFiles = (event: any, filePaths: string[]) => {
+      console.log(`App: Received ${filePaths.length} external files:`, filePaths);
+      setCurrentScreen('batch');
+      // Set files for batch screen to pick up
+      setPendingBatchFiles(filePaths);
+    };
+
+    // Listen for external file events
+    window.electronAPI?.onExternalFileOpen?.(handleExternalFile);
+    window.electronAPI?.onExternalFilesOpen?.(handleExternalFiles);
+
+    // Cleanup listeners on unmount
+    return () => {
+      window.electronAPI?.removeExternalFileListener?.(handleExternalFile);
+      window.electronAPI?.removeExternalFilesListener?.(handleExternalFiles);
+    };
   }, []);
 
   const loadConfig = async () => {
@@ -54,6 +121,7 @@ function App() {
       setIsLoading(false);
     }
   };
+
 
   const handleLogin = async (username: string, password: string, apiKey: string): Promise<boolean> => {
     try {
@@ -85,6 +153,16 @@ function App() {
     } finally {
       setAppProcessing(false);
     }
+  };
+
+  const handleCreditsUpdate = (credits: { used: number; remaining: number }) => {
+    setConfig(prevConfig => {
+      if (!prevConfig) return prevConfig;
+      return {
+        ...prevConfig,
+        credits: credits
+      };
+    });
   };
 
   const handlePreferencesSave = async (newConfig: Partial<AppConfig>): Promise<boolean> => {
@@ -136,6 +214,19 @@ function App() {
     setCurrentTask(processing ? task : undefined);
   };
 
+  const handleScreenChange = (screen: typeof currentScreen) => {
+    setCurrentScreen(screen);
+    // Reset scroll position to top when changing screens
+    setTimeout(() => {
+      const mainContentElement = document.querySelector('.main-content');
+      if (mainContentElement) {
+        mainContentElement.scrollTop = 0;
+      }
+      // Also reset body/window scroll as fallback
+      window.scrollTo(0, 0);
+    }, 0);
+  };
+
   if (isLoading) {
     return (
       <div className="app">
@@ -156,15 +247,23 @@ function App() {
               <li>
                 <button
                   className={currentScreen === 'main' ? 'active' : ''}
-                  onClick={() => setCurrentScreen('main')}
+                  onClick={() => handleScreenChange('main')}
                 >
-                  Main
+                  Single File
+                </button>
+              </li>
+              <li>
+                <button
+                  className={currentScreen === 'batch' ? 'active' : ''}
+                  onClick={() => handleScreenChange('batch')}
+                >
+                  Batch
                 </button>
               </li>
               <li>
                 <button
                   className={currentScreen === 'info' ? 'active' : ''}
-                  onClick={() => setCurrentScreen('info')}
+                  onClick={() => handleScreenChange('info')}
                 >
                   Info
                 </button>
@@ -172,7 +271,7 @@ function App() {
               <li>
                 <button
                   className={currentScreen === 'credits' ? 'active' : ''}
-                  onClick={() => setCurrentScreen('credits')}
+                  onClick={() => handleScreenChange('credits')}
                 >
                   Credits
                 </button>
@@ -180,18 +279,29 @@ function App() {
               <li>
                 <button
                   className={currentScreen === 'preferences' ? 'active' : ''}
-                  onClick={() => setCurrentScreen('preferences')}
+                  onClick={() => handleScreenChange('preferences')}
                 >
                   Preferences
                 </button>
               </li>
+              <li>
+                <button
+                  className={currentScreen === 'update' ? 'active' : ''}
+                  onClick={() => handleScreenChange('update')}
+                >
+                  Update
+                </button>
+              </li>
+              <li>
+                <button
+                  className={currentScreen === 'help' ? 'active' : ''}
+                  onClick={() => handleScreenChange('help')}
+                >
+                  Help
+                </button>
+              </li>
             </ul>
           </nav>
-          {config?.credits && (
-            <div style={{ marginTop: '20px', fontSize: '14px' }}>
-              <p>Credits: {config.credits.remaining}</p>
-            </div>
-          )}
           
           {/* Logo positioned above version display at bottom of sidebar */}
           <div 
@@ -227,13 +337,33 @@ function App() {
 
       <div className="main-content">
         {currentScreen === 'login' && (
-          <Login onLogin={handleLogin} />
+          <Login 
+            onLogin={handleLogin} 
+            setAppProcessing={setAppProcessing}
+          />
         )}
         {currentScreen === 'main' && config && (
           <MainScreen 
             config={config} 
             setAppProcessing={setAppProcessing}
             onNavigateToCredits={() => setCurrentScreen('credits')}
+            onNavigateToBatch={(filePaths?: string[]) => {
+              if (filePaths) {
+                setPendingBatchFiles(filePaths);
+              }
+              setCurrentScreen('batch');
+            }}
+            pendingExternalFile={pendingMainFile}
+            onExternalFileProcessed={() => setPendingMainFile(null)}
+            onCreditsUpdate={handleCreditsUpdate}
+          />
+        )}
+        {currentScreen === 'batch' && config && (
+          <BatchScreen 
+            config={config} 
+            setAppProcessing={setAppProcessing}
+            pendingFiles={pendingBatchFiles}
+            onFilesPending={() => setPendingBatchFiles([])}
           />
         )}
         {currentScreen === 'info' && config && (
@@ -256,17 +386,44 @@ function App() {
             setAppProcessing={setAppProcessing}
           />
         )}
+        {currentScreen === 'update' && (
+          <Update
+            onCancel={() => setCurrentScreen('main')}
+          />
+        )}
+        {currentScreen === 'help' && (
+          <Help
+            onCancel={() => setCurrentScreen('main')}
+          />
+        )}
       </div>
 
-      {/* Centralized StatusBar - only show when not on login */}
-      {currentScreen !== 'login' && (
-        <StatusBar 
-          onNetworkChange={handleNetworkChange}
-          isProcessing={isProcessing}
-          currentTask={currentTask}
-          hasSidebar={false}
-        />
+      {/* Floating Credits Display */}
+      {config?.credits && currentScreen !== 'login' && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          background: 'rgba(255, 255, 255, 0.95)',
+          border: '1px solid #ddd',
+          borderRadius: '8px',
+          padding: '8px 12px',
+          fontSize: '14px',
+          fontWeight: '500',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          zIndex: 1000,
+          color: '#333'
+        }}>
+          💳 Credits: <strong>{config.credits.remaining}</strong>
+        </div>
       )}
+
+      {/* Centralized StatusBar - always full width */}
+      <StatusBar 
+        onNetworkChange={handleNetworkChange}
+        isProcessing={isProcessing}
+        currentTask={currentTask}
+      />
     </div>
   );
 }

@@ -84,7 +84,8 @@ export class FFmpegManager {
   async extractAudioFromVideo(
     inputPath: string,
     outputPath?: string,
-    onProgress?: (progress: number) => void
+    onProgress?: (progress: number) => void,
+    durationSeconds?: number
   ): Promise<string> {
     if (!this.isReady()) {
       throw new Error('FFmpeg is not ready. Call initialize() first.');
@@ -99,6 +100,11 @@ export class FFmpegManager {
         .audioChannels(1)
         .audioFrequency(16000)
         .output(outputFile);
+      
+      // Add duration limit if specified (for language detection: first 3 minutes)
+      if (durationSeconds) {
+        command.duration(durationSeconds);
+      }
 
       if (onProgress) {
         command.on('progress', (progress: any) => {

@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import FileSelector from './FileSelector';
 import { getProcessingType } from '../config/fileFormats';
-import { OpenSubtitlesAPI, LanguageInfo, TranscriptionInfo, TranslationInfo } from '../services/api';
+import { OpenSubtitlesAPI, LanguageInfo, TranscriptionInfo, TranslationInfo, DetectedLanguage, LanguageDetectionResult, APIResponse } from '../services/api';
 import { logger } from '../utils/errorLogger';
 import { parseSubtitleFile, formatDuration, formatCharacterCount, ParsedSubtitle } from '../utils/subtitleParser';
 import ImprovedTranscriptionOptions from './ImprovedTranscriptionOptions';
@@ -9,6 +9,32 @@ import ImprovedTranslationOptions from './ImprovedTranslationOptions';
 import { isOnline } from '../utils/networkUtils';
 import appConfig from '../config/appConfig.json';
 import * as fileFormatsConfig from '../../../shared/fileFormats.json';
+
+// Utility functions for file type checking
+const isVideoFile = (fileName: string): boolean => {
+  const ext = fileName.toLowerCase().split('.').pop();
+  return ext ? fileFormatsConfig.video.includes(ext) : false;
+};
+
+const isAudioFile = (fileName: string): boolean => {
+  const ext = fileName.toLowerCase().split('.').pop();
+  return ext ? fileFormatsConfig.audio.includes(ext) : false;
+};
+
+const isSubtitleFile = (fileName: string): boolean => {
+  const ext = fileName.toLowerCase().split('.').pop();
+  return ext ? fileFormatsConfig.subtitle.includes(ext) : false;
+};
+
+const isAudioVideoFile = (fileName: string): boolean => {
+  return isVideoFile(fileName) || isAudioFile(fileName);
+};
+
+const needsAudioConversion = (fileName: string): boolean => {
+  const ext = fileName.toLowerCase().split('.').pop();
+  const supportedAudioFormats = ['mp3', 'wav', 'flac', 'm4a'];
+  return ext ? !supportedAudioFormats.includes(ext) : false;
+};
 
 interface AppConfig {
   username: string;
@@ -26,9 +52,13 @@ interface MainScreenProps {
   config: AppConfig;
   setAppProcessing: (processing: boolean, task?: string) => void;
   onNavigateToCredits?: () => void;
+  onNavigateToBatch?: (filePaths?: string[]) => void;
+  pendingExternalFile?: string | null;
+  onExternalFileProcessed?: () => void;
+  onCreditsUpdate?: (credits: { used: number; remaining: number }) => void;
 }
 
-function MainScreen({ config, setAppProcessing, onNavigateToCredits }: MainScreenProps) {
+function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateToBatch, pendingExternalFile, onExternalFileProcessed, onCreditsUpdate }: MainScreenProps) {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileType, setFileType] = useState<'transcription' | 'translation' | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -57,6 +87,14 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits }: MainScree
   const [isLoadingDynamicOptions, setIsLoadingDynamicOptions] = useState(false);
   const [credits, setCredits] = useState<number | null>(null);
   const [isLoadingCredits, setIsLoadingCredits] = useState(false);
+  const [detectedLanguage, setDetectedLanguage] = useState<DetectedLanguage | null>(null);
+  const [isDetectingLanguage, setIsDetectingLanguage] = useState(false);
+  const [languageDetectionCorrelationId, setLanguageDetectionCorrelationId] = useState<string | null>(null);
+  const [showLanguageDetectionResult, setShowLanguageDetectionResult] = useState(false);
+  const [compatibleModels, setCompatibleModels] = useState<{
+    translation: string[];
+    transcription: string[];
+  }>({ translation: [], transcription: [] });
   const [creditsAnimating, setCreditsAnimating] = useState(false);
   const [fileInfo, setFileInfo] = useState<{
     duration?: number;
@@ -69,6 +107,15 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits }: MainScree
   const [isNetworkOnline, setIsNetworkOnline] = useState(isOnline());
   const hasAttemptedLogin = useRef(false);
   const [showCreditModal, setShowCreditModal] = useState(false);
+  const languageDetectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Helper function to clear language detection timeout
+  const clearLanguageDetectionTimeout = () => {
+    if (languageDetectionTimeoutRef.current) {
+      clearTimeout(languageDetectionTimeoutRef.current);
+      languageDetectionTimeoutRef.current = null;
+    }
+  };
 
   useEffect(() => {
     if (config.apiKey) {
@@ -91,20 +138,15 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits }: MainScree
     }
   }, [config]);
 
-  // Listen for external file opening (from file associations or command line)
+  // Handle external file from App.tsx (command line or file association)
   useEffect(() => {
-    const handleExternalFile = (event: any, filePath: string) => {
-      handleFileSelect(filePath);
-    };
+    if (pendingExternalFile) {
+      console.log('MainScreen: Processing external file:', pendingExternalFile);
+      handleFileSelect(pendingExternalFile);
+      onExternalFileProcessed?.();
+    }
+  }, [pendingExternalFile, onExternalFileProcessed]);
 
-    // Listen for external file opening events
-    window.electronAPI?.onExternalFileOpen?.(handleExternalFile);
-
-    // Cleanup listener on unmount
-    return () => {
-      window.electronAPI?.removeExternalFileListener?.(handleExternalFile);
-    };
-  }, []);
 
   const attemptLogin = async () => {
     try {
@@ -240,6 +282,11 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits }: MainScree
       const result = await api.getCredits();
       if (result.success && typeof result.credits === 'number') {
         setCredits(result.credits);
+        // Update global config with credits
+        onCreditsUpdate?.({
+          used: 0, // We don't get used credits from the API, just remaining
+          remaining: result.credits
+        });
       } else {
         logger.error('MainScreen', 'Failed to load credits:', result.error);
         // Don't show error message for network issues when offline
@@ -257,6 +304,333 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits }: MainScree
     }
   };
 
+  const detectLanguage = async () => {
+    if (!selectedFile || isDetectingLanguage) return;
+
+    setIsDetectingLanguage(true);
+    setDetectedLanguage(null);
+    setShowLanguageDetectionResult(false);
+    setCompatibleModels({ translation: [], transcription: [] });
+    
+    // Set up 60-second timeout
+    languageDetectionTimeoutRef.current = setTimeout(() => {
+      logger.warn('MainScreen', 'Language detection timed out after 60 seconds');
+      setStatusMessage({
+        type: 'error',
+        message: 'Language detection timed out. Please try again.'
+      });
+      setIsDetectingLanguage(false);
+      setAppProcessing(false);
+      setLanguageDetectionCorrelationId(null);
+      clearLanguageDetectionTimeout();
+    }, 60000); // 60 seconds
+    
+    try {
+      logger.info('MainScreen', 'Starting language detection for file:', selectedFile);
+      
+      let fileToProcess = selectedFile;
+      
+      // Check if it's a video/audio file that needs audio extraction
+      const fileName = typeof selectedFile === 'string' ? selectedFile : selectedFile.name;
+      const isVideoOrAudio = isAudioVideoFile(fileName);
+      
+      if (isVideoOrAudio) {
+        setStatusMessage({ 
+          type: 'info', 
+          message: 'Extracting first 3 minutes of audio for language detection...' 
+        });
+        setAppProcessing(true, 'Extracting audio for language detection...');
+        
+        // Extract first 3 minutes (180 seconds) as MP3
+        const extractedPath = await window.electronAPI.extractAudio(
+          typeof selectedFile === 'string' ? selectedFile : selectedFile.path,
+          undefined, // Let system choose temp path
+          undefined, // No progress callback for now
+          180        // Duration: first 3 minutes
+        );
+        
+        if (extractedPath) {
+          fileToProcess = extractedPath;
+          setStatusMessage({ 
+            type: 'info', 
+            message: 'Audio extracted, detecting language...' 
+          });
+          setAppProcessing(true, 'Detecting language...');
+        } else {
+          throw new Error('Failed to extract audio from video file');
+        }
+      } else {
+        // For text files, start detection immediately
+        setAppProcessing(true, 'Detecting language...');
+      }
+      
+      const result = await api.detectLanguage(fileToProcess);
+      
+      if (result.data?.language) {
+        // Text file - immediate result with data wrapper
+        await handleDetectedLanguage(result.data.language);
+        
+        // Clean up extracted audio file if it was created
+        if (isVideoOrAudio && fileToProcess !== selectedFile) {
+          try {
+            await window.electronAPI.deleteFile(fileToProcess as string);
+          } catch (cleanupError) {
+            logger.warn('MainScreen', 'Failed to cleanup extracted audio file:', cleanupError);
+          }
+        }
+      } else if (result.correlation_id) {
+        // Audio file - need to poll for completion
+        setLanguageDetectionCorrelationId(result.correlation_id);
+        setStatusMessage({ 
+          type: 'info', 
+          message: 'Processing audio file for language detection...' 
+        });
+        setAppProcessing(true, 'Processing audio for language detection...');
+        pollLanguageDetection(result.correlation_id);
+        
+        // Note: Cleanup of extracted file will happen after polling completes
+        if (isVideoOrAudio && fileToProcess !== selectedFile) {
+          // Store for cleanup after polling
+          (window as any).tempAudioFile = fileToProcess;
+        }
+      } else if (result.status === 'ERROR') {
+        throw new Error(result.errors?.join(', ') || 'Language detection failed');
+      } else {
+        throw new Error('Unexpected response from language detection');
+      }
+    } catch (error) {
+      logger.error('MainScreen', 'Language detection failed', error);
+      setStatusMessage({ 
+        type: 'error', 
+        message: `Language detection failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      });
+      setIsDetectingLanguage(false);
+      setAppProcessing(false);
+    } finally {
+      // Clear the timeout
+      clearLanguageDetectionTimeout();
+    }
+  };
+
+  const pollLanguageDetection = async (correlationId: string) => {
+    const maxAttempts = 24; // 2 minutes with 5-second intervals
+    let attempts = 0;
+
+    const poll = async () => {
+      try {
+        attempts++;
+        const result = await api.checkLanguageDetectionStatus(correlationId);
+        
+        if (result.status === 'COMPLETED' && result.data?.language) {
+          await handleDetectedLanguage(result.data.language);
+          setLanguageDetectionCorrelationId(null);
+          
+          // Clean up temporary audio file if it exists
+          if ((window as any).tempAudioFile) {
+            try {
+              await window.electronAPI.deleteFile((window as any).tempAudioFile);
+              (window as any).tempAudioFile = null;
+            } catch (cleanupError) {
+              logger.warn('MainScreen', 'Failed to cleanup temp audio file after polling:', cleanupError);
+            }
+          }
+        } else if (result.status === 'ERROR') {
+          throw new Error(result.errors?.join(', ') || 'Language detection failed');
+        } else if (result.status === 'TIMEOUT') {
+          throw new Error('Language detection timed out');
+        } else if (attempts >= maxAttempts) {
+          throw new Error('Language detection timed out after 2 minutes');
+        } else {
+          // Still processing, poll again
+          setTimeout(poll, 5000);
+        }
+      } catch (error) {
+        logger.error('MainScreen', 'Language detection polling failed', error);
+        setStatusMessage({ 
+          type: 'error', 
+          message: `Language detection failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
+        });
+        setIsDetectingLanguage(false);
+        setLanguageDetectionCorrelationId(null);
+        setAppProcessing(false);
+        clearLanguageDetectionTimeout();
+        
+        // Clean up temporary audio file if it exists
+        if ((window as any).tempAudioFile) {
+          try {
+            await window.electronAPI.deleteFile((window as any).tempAudioFile);
+            (window as any).tempAudioFile = null;
+          } catch (cleanupError) {
+            logger.warn('MainScreen', 'Failed to cleanup temp audio file after polling error:', cleanupError);
+          }
+        }
+      }
+    };
+
+    poll();
+  };
+
+  const handleDetectedLanguage = async (language: DetectedLanguage) => {
+    setDetectedLanguage(language);
+    setShowLanguageDetectionResult(true);
+    setIsDetectingLanguage(false);
+    clearLanguageDetectionTimeout();
+    
+    setStatusMessage({ 
+      type: 'success', 
+      message: `Language detected: ${language.name} (${language.native})` 
+    });
+    setAppProcessing(true, 'Finding compatible AI models...');
+
+    // Find compatible models
+    await findCompatibleModels(language.ISO_639_1);
+    
+    // Language detection complete
+    setAppProcessing(false);
+    
+    // Auto-update language selections if not already set
+    if (fileType === 'translation' && translationOptions.sourceLanguage === 'auto') {
+      setTranslationOptions(prev => ({ 
+        ...prev, 
+        sourceLanguage: language.ISO_639_1 
+      }));
+    } else if (fileType === 'transcription' && !transcriptionOptions.language) {
+      setTranscriptionOptions(prev => ({ 
+        ...prev, 
+        language: language.ISO_639_1 
+      }));
+    }
+  };
+
+  const findCompatibleModels = async (languageCode: string) => {
+    const compatible = { translation: [], transcription: [] };
+    
+    // Determine what type of file we're working with
+    const fileName = typeof selectedFile === 'string' ? selectedFile : selectedFile?.name || '';
+    const isSubtitle = isSubtitleFile(fileName);
+    const isAudioVideo = isAudioVideoFile(fileName);
+    
+    logger.info('MainScreen', 'findCompatibleModels debug:', {
+      languageCode,
+      fileName,
+      selectedFile,
+      isSubtitle,
+      isAudioVideo,
+      transcriptionInfoApis: transcriptionInfo?.apis,
+      translationInfoApis: translationInfo?.apis
+    });
+    
+    // Only check translation models for subtitle files
+    if (isSubtitle && translationInfo?.apis) {
+      for (const apiName of translationInfo.apis) {
+        try {
+          const result = await api.getTranslationLanguagesForApi(apiName);
+          if (result.success && result.data) {
+            // The data structure is { data: { data: { apiName: [languages] } } }
+            const apiLanguages = result.data.data?.[apiName] || result.data[apiName] || result.data;
+            
+            if (Array.isArray(apiLanguages)) {
+              // Smart language matching - check multiple possible formats
+              const hasLanguage = apiLanguages.some(lang => {
+                const apiLangCode = lang.language_code.toLowerCase();
+                const detectedCode = languageCode.toLowerCase();
+                
+                // Direct match (e.g., "en" matches "en")
+                if (apiLangCode === detectedCode) return true;
+                
+                // Base language match (e.g., "en" matches "en-US", "en_us", "en-GB")
+                if (apiLangCode.startsWith(detectedCode + '-') || 
+                    apiLangCode.startsWith(detectedCode + '_')) return true;
+                
+                // Common alternative formats
+                const baseApiCode = apiLangCode.split(/[-_]/)[0];
+                if (baseApiCode === detectedCode) return true;
+                
+                return false;
+              });
+              
+              if (hasLanguage) {
+                compatible.translation.push(apiName);
+              }
+            }
+          }
+        } catch (error) {
+          logger.warn('MainScreen', `Failed to check translation API ${apiName}`, error);
+        }
+      }
+    }
+    
+    // Only check transcription models for audio/video files
+    if (isAudioVideo && transcriptionInfo?.apis) {
+      logger.info('MainScreen', `Checking ${transcriptionInfo.apis.length} transcription APIs for language: ${languageCode}`);
+      
+      for (const apiName of transcriptionInfo.apis) {
+        try {
+          const result = await api.getTranscriptionLanguagesForApi(apiName);
+          logger.info('MainScreen', `API ${apiName} result:`, { success: result.success, dataLength: result.data?.length });
+          
+          if (result.success && result.data) {
+            // Debug: Let's see the exact structure
+            logger.info('MainScreen', `${apiName} raw result.data:`, result.data);
+            logger.info('MainScreen', `${apiName} result.data keys:`, Object.keys(result.data));
+            
+            // The data structure is { data: { data: { apiName: [languages] } } }
+            const apiLanguages = result.data.data?.[apiName] || result.data[apiName] || result.data;
+            logger.info('MainScreen', `${apiName} apiLanguages:`, apiLanguages);
+            logger.info('MainScreen', `${apiName} apiLanguages type:`, typeof apiLanguages, Array.isArray(apiLanguages));
+            
+            if (Array.isArray(apiLanguages)) {
+              const supportedCodes = apiLanguages.map(l => l.language_code);
+              logger.info('MainScreen', `${apiName} supported codes (first 10):`, supportedCodes.slice(0, 10));
+              
+              // Smart language matching - check multiple possible formats
+              const matchingLangs = apiLanguages.filter(lang => {
+                const apiLangCode = lang.language_code.toLowerCase();
+                const detectedCode = languageCode.toLowerCase();
+                
+                // Direct match (e.g., "en" matches "en")
+                if (apiLangCode === detectedCode) return true;
+                
+                // Base language match (e.g., "en" matches "en-US", "en_us", "en-GB")
+                if (apiLangCode.startsWith(detectedCode + '-') || 
+                    apiLangCode.startsWith(detectedCode + '_')) return true;
+                
+                // Common alternative formats
+                const baseApiCode = apiLangCode.split(/[-_]/)[0];
+                if (baseApiCode === detectedCode) return true;
+                
+                return false;
+              });
+              
+              logger.info('MainScreen', `${apiName} matching languages for "${languageCode}":`, matchingLangs.map(l => l.language_code));
+              
+              if (matchingLangs.length > 0) {
+                compatible.transcription.push(apiName);
+                logger.info('MainScreen', `✓ ${apiName} added to compatible transcription models`);
+              } else {
+                logger.info('MainScreen', `✗ ${apiName} does not support language "${languageCode}"`);
+              }
+            } else {
+              logger.warn('MainScreen', `${apiName} data is not an array:`, typeof apiLanguages, apiLanguages);
+            }
+          } else {
+            logger.warn('MainScreen', `${apiName} API call failed or returned no data`);
+          }
+        } catch (error) {
+          logger.warn('MainScreen', `Failed to check transcription API ${apiName}`, error);
+        }
+      }
+    } else {
+      logger.info('MainScreen', 'Skipping transcription check:', { 
+        isAudioVideo, 
+        hasTranscriptionInfo: !!transcriptionInfo,
+        hasApis: !!transcriptionInfo?.apis 
+      });
+    }
+    
+    setCompatibleModels(compatible);
+    logger.info('MainScreen', 'Compatible models found:', compatible);
+  };
 
   const triggerCreditsAnimation = () => {
     setCreditsAnimating(true);
@@ -461,9 +835,34 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits }: MainScree
     setFileType(processingType === 'unknown' ? null : processingType);
     setStatusMessage(null);
     
+    // Reset language detection state when new file is selected
+    setDetectedLanguage(null);
+    setShowLanguageDetectionResult(false);
+    setCompatibleModels({ translation: [], transcription: [] });
+    setIsDetectingLanguage(false);
+    clearLanguageDetectionTimeout();
+    
+    // Clear any ongoing language detection status bar messages
+    if (isDetectingLanguage) {
+      setAppProcessing(false);
+    }
+    
     // Analyze the file for additional information
     if (processingType !== 'unknown') {
       analyzeSelectedFile(filePath);
+    }
+  };
+
+  const handleMultipleFileSelect = (filePaths: string[]) => {
+    // Redirect to batch screen when multiple files are dropped
+    if (onNavigateToBatch) {
+      setStatusMessage({ 
+        type: 'info', 
+        message: `Redirecting to batch screen for ${filePaths.length} files...` 
+      });
+      setTimeout(() => {
+        onNavigateToBatch(filePaths);
+      }, 500); // Small delay to show the message
     }
   };
 
@@ -502,8 +901,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits }: MainScree
           }
         } else if (mediaInfo.hasAudio && !mediaInfo.hasVideo) {
           // It's already an audio file, but may need conversion
-          const fileExtension = selectedFile.toLowerCase().split('.').pop();
-          if (fileExtension && !['mp3', 'wav', 'flac', 'm4a'].includes(fileExtension)) {
+          if (needsAudioConversion(selectedFile)) {
             setStatusMessage({ type: 'info', message: 'Converting audio format...' });
             
             try {
@@ -570,6 +968,12 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits }: MainScree
         if (typeof result.data.credits_left === 'number') {
           const oldCredits = credits;
           setCredits(result.data.credits_left);
+          
+          // Update global config with credits
+          onCreditsUpdate?.({
+            used: 0, // We don't get used credits from the API, just remaining
+            remaining: result.data.credits_left
+          });
           
           // Trigger animation if credits actually changed
           if (oldCredits !== null && oldCredits !== result.data.credits_left) {
@@ -656,6 +1060,12 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits }: MainScree
           if (typeof result.data.credits_left === 'number') {
             const oldCredits = credits;
             setCredits(result.data.credits_left);
+            
+            // Update global config with credits
+            onCreditsUpdate?.({
+              used: 0, // We don't get used credits from the API, just remaining
+              remaining: result.data.credits_left
+            });
             
             // Trigger animation if credits actually changed
             if (oldCredits !== null && oldCredits !== result.data.credits_left) {
@@ -764,15 +1174,77 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits }: MainScree
   };
 
   return (
-    <div className="main-screen">
+    <div className="main-screen" style={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+      padding: '20px',
+      gap: '20px'
+    }}>
       <CreditsDisplay credits={credits} isLoading={isLoadingCredits} isAnimating={creditsAnimating} />
       <h1>{appConfig.name}</h1>
       <p>Select a file to transcribe or translate:</p>
 
-      <FileSelector onFileSelect={handleFileSelect} disabled={isProcessing} />
+      <FileSelector 
+        onFileSelect={handleFileSelect} 
+        onMultipleFileSelect={handleMultipleFileSelect}
+        disabled={isProcessing || isDetectingLanguage} 
+      />
+
+      {/* Welcome message when no file is selected */}
+      {!selectedFile && (
+        <div 
+          style={{
+            textAlign: 'center',
+            padding: '60px 20px',
+            backgroundColor: '#f8f9fa',
+            borderRadius: '12px',
+            border: '2px dashed #dee2e6',
+            margin: '20px 0',
+            opacity: 1,
+            transform: 'translateY(0)',
+            transition: 'opacity 0.3s ease-in-out, transform 0.3s ease-in-out'
+          }}
+        >
+          <div style={{ fontSize: '48px', marginBottom: '20px' }}>
+            🎬
+          </div>
+          <div style={{ fontSize: '28px', color: '#495057', marginBottom: '15px', fontWeight: '500' }}>
+            Ready to Process Your Media
+          </div>
+          <div style={{ fontSize: '16px', color: '#6c757d', marginBottom: '25px', lineHeight: '1.5' }}>
+            Select an audio, video, or subtitle file to get started
+          </div>
+          <div style={{ fontSize: '14px', color: '#adb5bd', marginBottom: '20px' }}>
+            <div style={{ marginBottom: '8px' }}>
+              <strong>Transcription:</strong> Convert audio/video to text
+            </div>
+            <div>
+              <strong>Translation:</strong> Translate existing subtitles
+            </div>
+          </div>
+          <div style={{ 
+            fontSize: '13px', 
+            color: '#adb5bd',
+            fontStyle: 'italic',
+            borderTop: '1px solid #e9ecef',
+            paddingTop: '20px',
+            marginTop: '20px'
+          }}>
+            Supported formats: MP4, MP3, WAV, SRT, VTT, and more
+          </div>
+        </div>
+      )}
 
       {selectedFile && fileType && (
-        <div className="file-info">
+        <div 
+          className="file-info"
+          style={{
+            opacity: selectedFile ? 1 : 0,
+            transform: selectedFile ? 'translateY(0)' : 'translateY(-10px)',
+            transition: 'opacity 0.3s ease-in-out, transform 0.3s ease-in-out'
+          }}
+        >
           <h3>Selected File:</h3>
           <p style={{ wordBreak: 'break-all', marginBottom: '8px' }}>{selectedFile}</p>
           <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
@@ -862,8 +1334,165 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits }: MainScree
         </div>
       )}
 
+      {/* Language Detection Section */}
+      {selectedFile && (
+        <div style={{ 
+          marginTop: '20px', 
+          padding: '15px', 
+          border: '1px solid #ddd', 
+          borderRadius: '6px',
+          backgroundColor: '#f9f9f9',
+          opacity: selectedFile ? 1 : 0,
+          transform: selectedFile ? 'translateY(0)' : 'translateY(-10px)',
+          transition: 'opacity 0.4s ease-in-out, transform 0.4s ease-in-out',
+          transitionDelay: '0.1s'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '10px' }}>
+            <h4 style={{ margin: 0 }}>Language Detection</h4>
+            <button 
+              onClick={detectLanguage}
+              disabled={isDetectingLanguage || isProcessing}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: isDetectingLanguage ? '#ccc' : '#4CAF50',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: isDetectingLanguage ? 'not-allowed' : 'pointer',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              {isDetectingLanguage ? (
+                <>
+                  <span style={{ 
+                    display: 'inline-block', 
+                    width: '12px', 
+                    height: '12px', 
+                    border: '2px solid white',
+                    borderTop: '2px solid transparent',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }}></span>
+                  Detecting...
+                </>
+              ) : (
+                <>
+                  🔍 Detect Language
+                </>
+              )}
+            </button>
+          </div>
+          
+          <p style={{ 
+            margin: '0 0 15px 0', 
+            color: '#666', 
+            fontSize: '14px' 
+          }}>
+            Click "Detect Language" to automatically identify the source language and see which AI models support it.
+          </p>
+
+          {/* Language Detection Result */}
+          {showLanguageDetectionResult && detectedLanguage && (
+            <div style={{
+              marginTop: '15px',
+              padding: '12px',
+              backgroundColor: '#e8f5e8',
+              border: '1px solid #4CAF50',
+              borderRadius: '4px'
+            }}>
+              <h5 style={{ margin: '0 0 10px 0', color: '#2E7D32' }}>
+                Language Detected: {detectedLanguage.name}
+              </h5>
+              
+              <div style={{ display: 'flex', gap: '20px', marginBottom: '15px', fontSize: '14px' }}>
+                <div><strong>Native Name:</strong> {detectedLanguage.native}</div>
+                <div><strong>ISO Code:</strong> {detectedLanguage.ISO_639_1}</div>
+                <div><strong>W3C Code:</strong> {detectedLanguage.W3C}</div>
+              </div>
+              
+              {/* Only show relevant model compatibility based on file type */}
+              {(() => {
+                const fileName = typeof selectedFile === 'string' ? selectedFile : selectedFile?.name || '';
+                const isSubtitle = isSubtitleFile(fileName);
+                const isAudioVideo = isAudioVideoFile(fileName);
+                
+                return (
+                  <div>
+                    {/* Show translation models for subtitle files */}
+                    {isSubtitle && (
+                      <div style={{ marginBottom: '15px' }}>
+                        <h6 style={{ margin: '0 0 8px 0', color: '#1976D2' }}>
+                          Compatible Translation Models ({compatibleModels.translation.length})
+                        </h6>
+                        {compatibleModels.translation.length > 0 ? (
+                          <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px' }}>
+                            {compatibleModels.translation.map(model => (
+                              <li key={model}>{model}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p style={{ margin: 0, fontSize: '13px', color: '#666', fontStyle: 'italic' }}>
+                            No translation models support this language
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Show transcription models for audio/video files */}
+                    {isAudioVideo && (
+                      <div style={{ marginBottom: '15px' }}>
+                        <h6 style={{ margin: '0 0 8px 0', color: '#1976D2' }}>
+                          Compatible Transcription Models ({compatibleModels.transcription.length})
+                        </h6>
+                        {compatibleModels.transcription.length > 0 ? (
+                          <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px' }}>
+                            {compatibleModels.transcription.map(model => (
+                              <li key={model}>{model}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p style={{ margin: 0, fontSize: '13px', color: '#666', fontStyle: 'italic' }}>
+                            No transcription models support this language
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Auto-update notification */}
+              {((fileType === 'translation' && translationOptions.sourceLanguage === detectedLanguage.ISO_639_1) ||
+                (fileType === 'transcription' && transcriptionOptions.language === detectedLanguage.ISO_639_1)) && (
+                <div style={{
+                  marginTop: '10px',
+                  padding: '8px',
+                  backgroundColor: '#e8f5e8',
+                  borderRadius: '3px',
+                  fontSize: '12px',
+                  color: '#2e7d32'
+                }}>
+                  ✅ Language selection has been automatically updated below
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {fileType && (
-        <div className="options-section">
+        <div 
+          className="options-section"
+          style={{
+            opacity: fileType ? 1 : 0,
+            transform: fileType ? 'translateY(0)' : 'translateY(-10px)',
+            transition: 'opacity 0.4s ease-in-out, transform 0.4s ease-in-out',
+            transitionDelay: '0.2s'
+          }}
+        >
           {isLoadingOptions ? (
             <div className="options-container">
               <p>Loading options...</p>
@@ -873,7 +1502,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits }: MainScree
               options={transcriptionOptions}
               setOptions={setTranscriptionOptions}
               transcriptionInfo={transcriptionInfo}
-              disabled={isProcessing}
+              disabled={isProcessing || isDetectingLanguage}
             />
           ) : (
             <ImprovedTranslationOptions 
@@ -882,7 +1511,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits }: MainScree
               onModelChange={handleTranslationModelChange}
               onLanguageChange={handleTranslationLanguageChange}
               onFormatChange={(format) => setTranslationOptions(prev => ({ ...prev, format }))}
-              disabled={isProcessing}
+              disabled={isProcessing || isDetectingLanguage}
             />
           )}
         </div>
@@ -895,13 +1524,21 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits }: MainScree
       )}
 
       {selectedFile && fileType && (
-        <div className="action-section">
+        <div 
+          className="action-section"
+          style={{
+            opacity: selectedFile && fileType ? 1 : 0,
+            transform: selectedFile && fileType ? 'translateY(0)' : 'translateY(-10px)',
+            transition: 'opacity 0.4s ease-in-out, transform 0.4s ease-in-out',
+            transitionDelay: '0.3s'
+          }}
+        >
           <button
             className="button"
             onClick={handleProcess}
-            disabled={isProcessing}
+            disabled={isProcessing || isDetectingLanguage}
           >
-            {isProcessing ? 'Processing...' : `Start ${fileType === 'transcription' ? 'Transcription' : 'Translation'}`}
+            {isProcessing ? 'Processing...' : isDetectingLanguage ? 'Detecting Language...' : `Start ${fileType === 'transcription' ? 'Transcription' : 'Translation'}`}
           </button>
         </div>
       )}

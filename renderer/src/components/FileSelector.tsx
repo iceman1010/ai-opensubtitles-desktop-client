@@ -3,10 +3,11 @@ import { validateFileExtension, getFileTypeDescription } from '../config/fileFor
 
 interface FileSelectorProps {
   onFileSelect: (filePath: string) => void;
+  onMultipleFileSelect?: (filePaths: string[]) => void;
   disabled?: boolean;
 }
 
-function FileSelector({ onFileSelect, disabled = false }: FileSelectorProps) {
+function FileSelector({ onFileSelect, onMultipleFileSelect, disabled = false }: FileSelectorProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -44,8 +45,23 @@ function FileSelector({ onFileSelect, disabled = false }: FileSelectorProps) {
 
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
-      const file = files[0];
-      handleFileSelection(file.path || file.name);
+      if (files.length === 1) {
+        // Single file - use existing logic
+        const file = files[0];
+        handleFileSelection(file.path || file.name);
+      } else if (onMultipleFileSelect) {
+        // Multiple files - use new callback
+        const filePaths = files.map(file => file.path || file.name).filter(path => {
+          const validation = validateFileExtension(path);
+          return validation.isValid;
+        });
+        if (filePaths.length > 0) {
+          setFileError(null);
+          onMultipleFileSelect(filePaths);
+        } else {
+          setFileError('No valid files selected');
+        }
+      }
     }
   };
 

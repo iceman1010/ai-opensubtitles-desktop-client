@@ -132,4 +132,49 @@ export class ConfigManager {
       console.error('Error clearing token:', error);
     }
   }
+
+  resetAllSettings(): boolean {
+    try {
+      console.log('=== RESET SETTINGS DEBUG ===');
+      console.log('Config path:', this.configPath);
+      console.log('Config file exists:', fs.existsSync(this.configPath));
+      
+      // Clear config file
+      if (fs.existsSync(this.configPath)) {
+        console.log('Deleting config file...');
+        fs.unlinkSync(this.configPath);
+        console.log('Config file deleted successfully');
+      }
+      
+      // Clear token file
+      console.log('Clearing token...');
+      this.clearToken();
+      console.log('Token cleared successfully');
+      
+      // Reset in-memory config to defaults
+      console.log('Resetting in-memory config...');
+      this.config = {
+        username: '',
+        password: '',
+        apiKey: '',
+        debugMode: false,
+        checkUpdatesOnStart: true,
+      };
+      console.log('In-memory config reset successfully');
+      
+      console.log('All settings have been reset successfully');
+      console.log('=== END RESET SETTINGS DEBUG ===');
+      return true;
+    } catch (error) {
+      console.error('=== RESET SETTINGS ERROR ===');
+      console.error('Error resetting settings:', error);
+      console.error('Error details:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      });
+      console.error('=== END RESET SETTINGS ERROR ===');
+      return false;
+    }
+  }
 }

@@ -3,6 +3,12 @@ const path = require('path');
 const crypto = require('crypto');
 const packageJson = require('../package.json');
 
+// CRITICAL: Generates update metadata files for electron-updater:
+// - latest.yml (Windows installer updates)
+// - latest-mac.yml (macOS DMG updates)  
+// - latest-linux.yml (Linux AppImage updates)
+// These files contain version info, SHA512 hashes, and file sizes for security validation
+
 // Function to calculate SHA512 hash of a file
 function calculateSHA512(filePath) {
     const fileBuffer = fs.readFileSync(filePath);

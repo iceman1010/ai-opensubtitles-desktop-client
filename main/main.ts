@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, session, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, session, shell, globalShortcut, Menu } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import * as path from 'path';
 import { ConfigManager } from './config';
@@ -9,7 +9,7 @@ class MainApp {
   private mainWindow: BrowserWindow | null = null;
   private configManager: ConfigManager;
   private ffmpegManager: FFmpegManager;
-  private pendingFilePath: string | null = null;
+  private pendingFilePaths: string[] = [];
 
   constructor() {
     this.configManager = new ConfigManager();
@@ -32,17 +32,17 @@ class MainApp {
 
     // Handle when someone tries to run a second instance
     app.on('second-instance', (event, commandLine, workingDirectory) => {
-      // Parse the file path from second instance
-      const filePath = this.parseCommandLineArguments(commandLine);
+      // Parse the file paths from second instance
+      const filePaths = this.parseCommandLineArguments(commandLine);
       
       // Focus the existing window
       if (this.mainWindow) {
         if (this.mainWindow.isMinimized()) this.mainWindow.restore();
         this.mainWindow.focus();
         
-        // Send the file path to renderer if provided
-        if (filePath) {
-          this.mainWindow.webContents.send('open-file-from-external', filePath);
+        // Send the file paths to renderer if provided
+        if (filePaths.length > 0) {
+          this.sendFilesToRenderer(filePaths);
         }
       }
     });
@@ -121,44 +121,50 @@ class MainApp {
       this.mainWindow = null;
     });
 
-    // Send pending file path to renderer once the window is ready
+    // Send pending file paths to renderer once the window is ready
     this.mainWindow.webContents.once('did-finish-load', () => {
-      if (this.pendingFilePath) {
-        this.mainWindow!.webContents.send('open-file-from-external', this.pendingFilePath);
-        this.pendingFilePath = null;
+      if (this.pendingFilePaths.length > 0) {
+        this.sendFilesToRenderer(this.pendingFilePaths);
+        this.pendingFilePaths = [];
       }
     });
+
+    // Register keyboard shortcuts
+    this.registerShortcuts();
+    
+    // Setup application menu
+    this.setupMenu();
   }
 
-  private parseCommandLineArguments(argv: string[]): string | null {
+  private parseCommandLineArguments(argv: string[]): string[] {
     // Skip the first argument (executable path) and second (script path in dev mode)
-    // Look for a file path argument
-    const fileArg = argv.find((arg, index) => {
-      // Skip electron executable and main script
-      if (index < 2) return false;
+    // Look for file path arguments
+    const fileArgs: string[] = [];
+    
+    for (let i = 2; i < argv.length; i++) {
+      const arg = argv[i];
       
       // Skip electron flags
-      if (arg.startsWith('--')) return false;
+      if (arg.startsWith('--')) continue;
       
       // Check if it's a valid file path
       try {
         const fs = require('fs');
-        return fs.existsSync(arg);
+        if (fs.existsSync(arg) && this.isValidFileExtension(arg)) {
+          fileArgs.push(arg);
+        }
       } catch {
-        return false;
+        // Invalid file, skip
+        continue;
       }
-    });
-
-    // Validate file extension
-    if (fileArg && this.isValidFileExtension(fileArg)) {
-      // Store for initial load if window isn't ready yet
-      if (!this.mainWindow || !this.mainWindow.webContents) {
-        this.pendingFilePath = fileArg;
-      }
-      return fileArg;
     }
 
-    return null;
+    // Store for initial load if window isn't ready yet
+    if (fileArgs.length > 0 && (!this.mainWindow || !this.mainWindow.webContents)) {
+      this.pendingFilePaths = fileArgs;
+    }
+    
+    return fileArgs;
   }
 
   private isValidFileExtension(filePath: string): boolean {
@@ -169,6 +175,277 @@ class MainApp {
       ...fileFormatsConfig.subtitle
     ];
     return allFormats.includes(ext);
+  }
+
+  private registerShortcuts() {
+    // F1 - Open Help
+    globalShortcut.register('F1', () => {
+      if (this.mainWindow && this.mainWindow.webContents) {
+        this.mainWindow.webContents.send('keyboard-shortcut', 'help');
+      }
+    });
+
+    // Ctrl+1-5 - Navigation shortcuts
+    globalShortcut.register('CommandOrControl+1', () => {
+      if (this.mainWindow && this.mainWindow.webContents) {
+        this.mainWindow.webContents.send('keyboard-shortcut', 'navigate-main');
+      }
+    });
+
+    globalShortcut.register('CommandOrControl+2', () => {
+      if (this.mainWindow && this.mainWindow.webContents) {
+        this.mainWindow.webContents.send('keyboard-shortcut', 'navigate-batch');
+      }
+    });
+
+    globalShortcut.register('CommandOrControl+3', () => {
+      if (this.mainWindow && this.mainWindow.webContents) {
+        this.mainWindow.webContents.send('keyboard-shortcut', 'navigate-info');
+      }
+    });
+
+    globalShortcut.register('CommandOrControl+4', () => {
+      if (this.mainWindow && this.mainWindow.webContents) {
+        this.mainWindow.webContents.send('keyboard-shortcut', 'navigate-credits');
+      }
+    });
+
+    globalShortcut.register('CommandOrControl+P', () => {
+      if (this.mainWindow && this.mainWindow.webContents) {
+        this.mainWindow.webContents.send('keyboard-shortcut', 'navigate-preferences');
+      }
+    });
+
+    globalShortcut.register('CommandOrControl+U', () => {
+      if (this.mainWindow && this.mainWindow.webContents) {
+        this.mainWindow.webContents.send('keyboard-shortcut', 'navigate-update');
+      }
+    });
+
+    globalShortcut.register('CommandOrControl+?', () => {
+      if (this.mainWindow && this.mainWindow.webContents) {
+        this.mainWindow.webContents.send('keyboard-shortcut', 'help');
+      }
+    });
+  }
+
+  private setupMenu() {
+    const isMac = process.platform === 'darwin';
+    
+    const template: Electron.MenuItemConstructorOptions[] = [
+      // App Menu (macOS only)
+      ...(isMac ? [{
+        label: 'AI.Opensubtitles.com Client',
+        submenu: [
+          { role: 'about' as const },
+          { type: 'separator' as const },
+          {
+            label: 'Preferences...',
+            accelerator: 'Command+,',
+            click: () => {
+              if (this.mainWindow && this.mainWindow.webContents) {
+                this.mainWindow.webContents.send('keyboard-shortcut', 'navigate-preferences');
+              }
+            }
+          },
+          { type: 'separator' as const },
+          { role: 'hide' as const },
+          { role: 'hideOthers' as const },
+          { role: 'unhide' as const },
+          { type: 'separator' as const },
+          { role: 'quit' as const }
+        ]
+      }] : []),
+
+      // File Menu
+      {
+        label: 'File',
+        submenu: [
+          {
+            label: 'Open File...',
+            accelerator: 'CmdOrCtrl+O',
+            click: async () => {
+              if (this.mainWindow && this.mainWindow.webContents) {
+                const result = await dialog.showOpenDialog(this.mainWindow, {
+                  filters: [
+                    { name: 'Video Files', extensions: fileFormatsConfig.video },
+                    { name: 'Audio Files', extensions: fileFormatsConfig.audio },
+                    { name: 'Subtitle Files', extensions: fileFormatsConfig.subtitle },
+                    { name: 'All Files', extensions: ['*'] }
+                  ],
+                  properties: ['openFile']
+                });
+
+                if (!result.canceled && result.filePaths.length > 0) {
+                  this.mainWindow.webContents.send('open-file-from-external', result.filePaths[0]);
+                }
+              }
+            }
+          },
+          { type: 'separator' },
+          ...(isMac ? [
+            { role: 'close' as const }
+          ] : [
+            {
+              label: 'Preferences...',
+              accelerator: 'Ctrl+,',
+              click: () => {
+                if (this.mainWindow && this.mainWindow.webContents) {
+                  this.mainWindow.webContents.send('keyboard-shortcut', 'navigate-preferences');
+                }
+              }
+            },
+            { type: 'separator' as const },
+            { role: 'quit' as const }
+          ])
+        ]
+      },
+
+      // Edit Menu
+      {
+        label: 'Edit',
+        submenu: [
+          { role: 'undo' as const },
+          { role: 'redo' as const },
+          { type: 'separator' as const },
+          { role: 'cut' as const },
+          { role: 'copy' as const },
+          { role: 'paste' as const },
+          { role: 'selectAll' as const }
+        ]
+      },
+
+      // View Menu
+      {
+        label: 'View',
+        submenu: [
+          {
+            label: 'Main',
+            accelerator: 'CmdOrCtrl+1',
+            click: () => {
+              if (this.mainWindow && this.mainWindow.webContents) {
+                this.mainWindow.webContents.send('keyboard-shortcut', 'navigate-main');
+              }
+            }
+          },
+          {
+            label: 'Batch Processing',
+            accelerator: 'CmdOrCtrl+2',
+            click: () => {
+              if (this.mainWindow && this.mainWindow.webContents) {
+                this.mainWindow.webContents.send('keyboard-shortcut', 'navigate-batch');
+              }
+            }
+          },
+          {
+            label: 'Info',
+            accelerator: 'CmdOrCtrl+3',
+            click: () => {
+              if (this.mainWindow && this.mainWindow.webContents) {
+                this.mainWindow.webContents.send('keyboard-shortcut', 'navigate-info');
+              }
+            }
+          },
+          {
+            label: 'Credits',
+            accelerator: 'CmdOrCtrl+4',
+            click: () => {
+              if (this.mainWindow && this.mainWindow.webContents) {
+                this.mainWindow.webContents.send('keyboard-shortcut', 'navigate-credits');
+              }
+            }
+          },
+          { type: 'separator' },
+          {
+            label: 'Updates',
+            accelerator: 'CmdOrCtrl+U',
+            click: () => {
+              if (this.mainWindow && this.mainWindow.webContents) {
+                this.mainWindow.webContents.send('keyboard-shortcut', 'navigate-update');
+              }
+            }
+          },
+          { type: 'separator' },
+          { role: 'reload' as const },
+          { role: 'forceReload' as const },
+          { role: 'toggleDevTools' as const },
+          { type: 'separator' },
+          { role: 'resetZoom' as const },
+          { role: 'zoomIn' as const },
+          { role: 'zoomOut' as const },
+          { type: 'separator' },
+          { role: 'togglefullscreen' as const }
+        ]
+      },
+
+      // Window Menu
+      {
+        label: 'Window',
+        submenu: [
+          { role: 'minimize' as const },
+          ...(isMac ? [
+            { type: 'separator' as const },
+            { role: 'front' as const },
+            { type: 'separator' as const },
+            { role: 'window' as const }
+          ] : [
+            { role: 'close' as const }
+          ])
+        ]
+      },
+
+      // Help Menu
+      {
+        label: 'Help',
+        submenu: [
+          {
+            label: 'Help & Documentation',
+            accelerator: 'F1',
+            click: () => {
+              if (this.mainWindow && this.mainWindow.webContents) {
+                this.mainWindow.webContents.send('keyboard-shortcut', 'help');
+              }
+            }
+          },
+          {
+            label: 'Keyboard Shortcuts',
+            accelerator: 'CmdOrCtrl+?',
+            click: () => {
+              if (this.mainWindow && this.mainWindow.webContents) {
+                this.mainWindow.webContents.send('keyboard-shortcut', 'help');
+              }
+            }
+          },
+          { type: 'separator' },
+          {
+            label: 'Visit AI.Opensubtitles.com',
+            click: async () => {
+              await shell.openExternal('https://ai.opensubtitles.com');
+            }
+          },
+          {
+            label: 'Report Issue',
+            click: async () => {
+              await shell.openExternal('https://github.com/iceman1010/ai-opensubtitles-desktop-client/issues');
+            }
+          },
+          ...(isMac ? [] : [
+            { type: 'separator' as const },
+            {
+              label: 'About AI.Opensubtitles.com Client',
+              click: () => {
+                if (this.mainWindow && this.mainWindow.webContents) {
+                  this.mainWindow.webContents.send('keyboard-shortcut', 'navigate-info');
+                }
+              }
+            }
+          ])
+        ]
+      }
+    ];
+
+    const menu = Menu.buildFromTemplate(template);
+    Menu.setApplicationMenu(menu);
   }
 
   private async setupAutoUpdater() {
@@ -340,6 +617,105 @@ class MainApp {
       return result.canceled ? null : result.filePaths[0];
     });
 
+    ipcMain.handle('select-multiple-files', async () => {
+      if (!this.mainWindow) return [];
+      
+      console.log('Main: Multiple file dialog requested');
+      
+      const allMediaExtensions = [
+        ...fileFormatsConfig.video,
+        ...fileFormatsConfig.audio,
+        ...fileFormatsConfig.subtitle
+      ];
+      
+      const dialogOptions = {
+        properties: ['openFile', 'multiSelections'] as ('openFile' | 'multiSelections')[],
+        buttonLabel: 'Select Files',
+        title: 'Select Multiple Files for Batch Processing',
+        filters: [
+          { name: 'Media Files', extensions: allMediaExtensions },
+          { name: 'Video Files', extensions: fileFormatsConfig.video },
+          { name: 'Audio Files', extensions: fileFormatsConfig.audio },
+          { name: 'Subtitle Files', extensions: fileFormatsConfig.subtitle },
+          { name: 'All Files', extensions: ['*'] }
+        ]
+      };
+      
+      console.log('Main: Dialog options:', dialogOptions);
+      
+      const result = await dialog.showOpenDialog(this.mainWindow, dialogOptions);
+      
+      console.log('Main: Dialog result:', {
+        canceled: result.canceled,
+        filePaths: result.filePaths,
+        filePathsLength: result.filePaths?.length
+      });
+      
+      return result.canceled ? [] : result.filePaths;
+    });
+
+    // Directory selection handler
+    ipcMain.handle('select-directory', async () => {
+      if (!this.mainWindow) return null;
+      
+      const result = await dialog.showOpenDialog(this.mainWindow, {
+        properties: ['openDirectory'],
+        buttonLabel: 'Select Directory',
+        title: 'Select Output Directory'
+      });
+      
+      return result.canceled ? null : result.filePaths[0];
+    });
+
+    // File operation handlers for batch processing
+    ipcMain.handle('write-file-directly', async (_, content: string, filePath: string) => {
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        
+        // Ensure directory exists
+        const dir = path.dirname(filePath);
+        fs.mkdirSync(dir, { recursive: true });
+        
+        // Write file
+        fs.writeFileSync(filePath, content, 'utf8');
+        return filePath;
+      } catch (error: any) {
+        throw new Error(`Failed to write file: ${error?.message || 'Unknown error'}`);
+      }
+    });
+
+    ipcMain.handle('check-file-exists', async (_, filePath: string) => {
+      try {
+        const fs = require('fs');
+        fs.accessSync(filePath);
+        return true;
+      } catch {
+        return false;
+      }
+    });
+
+    ipcMain.handle('get-directory-name', async (_, filePath: string) => {
+      const path = require('path');
+      return path.dirname(filePath);
+    });
+
+    ipcMain.handle('generate-unique-filename', async (_, basePath: string, extension: string) => {
+      const fs = require('fs');
+      const path = require('path');
+      
+      let finalPath = `${basePath}.${extension}`;
+      let counter = 1;
+      
+      // Keep checking until we find a unique name
+      while (fs.existsSync(finalPath)) {
+        finalPath = `${basePath}_${counter}.${extension}`;
+        counter++;
+      }
+      
+      return finalPath;
+    });
+
     ipcMain.handle('read-file', async (_, filePath: string) => {
       try {
         const fs = require('fs');
@@ -359,9 +735,9 @@ class MainApp {
       return this.ffmpegManager.isReady();
     });
 
-    ipcMain.handle('extract-audio', async (_, inputPath: string, outputPath?: string, onProgress?: (progress: number) => void) => {
+    ipcMain.handle('extract-audio', async (_, inputPath: string, outputPath?: string, onProgress?: (progress: number) => void, durationSeconds?: number) => {
       try {
-        return await this.ffmpegManager.extractAudioFromVideo(inputPath, outputPath, onProgress);
+        return await this.ffmpegManager.extractAudioFromVideo(inputPath, outputPath, onProgress, durationSeconds);
       } catch (error) {
         console.error('Audio extraction failed:', error);
         throw error;
@@ -442,6 +818,10 @@ class MainApp {
       this.configManager.clearToken();
     });
 
+    ipcMain.handle('reset-all-settings', () => {
+      return this.configManager.resetAllSettings();
+    });
+
     ipcMain.handle('open-external', async (_, url: string) => {
       try {
         await shell.openExternal(url);
@@ -490,6 +870,297 @@ class MainApp {
     ipcMain.handle('install-update', () => {
       this.installUpdate();
     });
+
+    // File association handlers
+    ipcMain.handle('check-file-associations', async () => {
+      return this.checkFileAssociations();
+    });
+
+    ipcMain.handle('register-file-associations', async () => {
+      return this.registerFileAssociations();
+    });
+  }
+
+  private async checkFileAssociations(): Promise<{registered: boolean, associatedFormats: string[]}> {
+    try {
+      const os = require('os');
+      const platform = os.platform();
+      
+      if (platform === 'win32') {
+        return this.checkWindowsFileAssociations();
+      } else if (platform === 'linux') {
+        return this.checkLinuxFileAssociations();
+      } else if (platform === 'darwin') {
+        return this.checkMacOSFileAssociations();
+      } else {
+        return { registered: false, associatedFormats: [] };
+      }
+    } catch (error) {
+      console.error('Error checking file associations:', error);
+      return { registered: false, associatedFormats: [] };
+    }
+  }
+
+  private async checkWindowsFileAssociations(): Promise<{registered: boolean, associatedFormats: string[]}> {
+    try {
+      const { execSync } = require('child_process');
+      const allFormats = [
+        ...fileFormatsConfig.video,
+        ...fileFormatsConfig.audio,
+        ...fileFormatsConfig.subtitle
+      ];
+      
+      const associatedFormats: string[] = [];
+      
+      for (const ext of allFormats) {
+        try {
+          const result = execSync(`assoc .${ext}`, { encoding: 'utf8', stdio: 'pipe' });
+          if (result.includes('AI.Opensubtitles.com Client') || result.includes('OpenSubtitles')) {
+            associatedFormats.push(ext);
+          }
+        } catch {
+          // Extension not associated, continue
+        }
+      }
+      
+      return {
+        registered: associatedFormats.length > 0,
+        associatedFormats
+      };
+    } catch (error) {
+      console.error('Error checking Windows file associations:', error);
+      return { registered: false, associatedFormats: [] };
+    }
+  }
+
+  private async checkLinuxFileAssociations(): Promise<{registered: boolean, associatedFormats: string[]}> {
+    try {
+      const fs = require('fs');
+      const os = require('os');
+      const path = require('path');
+      
+      const desktopFile = path.join(os.homedir(), '.local/share/applications/ai-opensubtitles-client.desktop');
+      const mimeListFile = path.join(os.homedir(), '.local/share/applications/mimeinfo.cache');
+      
+      let registered = false;
+      const associatedFormats: string[] = [];
+      
+      // Check if our desktop file exists
+      if (fs.existsSync(desktopFile)) {
+        registered = true;
+        // For simplicity, assume all formats are associated if desktop file exists
+        associatedFormats.push(...fileFormatsConfig.video, ...fileFormatsConfig.audio, ...fileFormatsConfig.subtitle);
+      }
+      
+      return { registered, associatedFormats };
+    } catch (error) {
+      console.error('Error checking Linux file associations:', error);
+      return { registered: false, associatedFormats: [] };
+    }
+  }
+
+  private async checkMacOSFileAssociations(): Promise<{registered: boolean, associatedFormats: string[]}> {
+    try {
+      const { execSync } = require('child_process');
+      const allFormats = [
+        ...fileFormatsConfig.video,
+        ...fileFormatsConfig.audio,
+        ...fileFormatsConfig.subtitle
+      ];
+      
+      const associatedFormats: string[] = [];
+      
+      for (const ext of allFormats) {
+        try {
+          const result = execSync(`duti -x .${ext}`, { encoding: 'utf8', stdio: 'pipe' });
+          if (result.includes('ai-opensubtitles-client') || result.includes('AI.Opensubtitles.com Client')) {
+            associatedFormats.push(ext);
+          }
+        } catch {
+          // Extension not associated, continue
+        }
+      }
+      
+      return {
+        registered: associatedFormats.length > 0,
+        associatedFormats
+      };
+    } catch (error) {
+      console.error('Error checking macOS file associations:', error);
+      return { registered: false, associatedFormats: [] };
+    }
+  }
+
+  private async registerFileAssociations(): Promise<{success: boolean, message: string}> {
+    try {
+      const os = require('os');
+      const platform = os.platform();
+      
+      if (platform === 'win32') {
+        return this.registerWindowsFileAssociations();
+      } else if (platform === 'linux') {
+        return this.registerLinuxFileAssociations();
+      } else if (platform === 'darwin') {
+        return this.registerMacOSFileAssociations();
+      } else {
+        return {
+          success: false,
+          message: `File associations not supported on ${platform}`
+        };
+      }
+    } catch (error) {
+      console.error('Error registering file associations:', error);
+      return {
+        success: false,
+        message: `Failed to register file associations: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
+    }
+  }
+
+  private async registerWindowsFileAssociations(): Promise<{success: boolean, message: string}> {
+    try {
+      const { execSync } = require('child_process');
+      const path = require('path');
+      
+      const appPath = process.execPath;
+      const allFormats = [
+        ...fileFormatsConfig.video,
+        ...fileFormatsConfig.audio,
+        ...fileFormatsConfig.subtitle
+      ];
+      
+      for (const ext of allFormats) {
+        try {
+          // Associate file extension with our app
+          execSync(`ftype OpenSubtitles.${ext}="${appPath}" "%1"`, { stdio: 'pipe' });
+          execSync(`assoc .${ext}=OpenSubtitles.${ext}`, { stdio: 'pipe' });
+        } catch (error) {
+          console.error(`Failed to associate .${ext}:`, error);
+        }
+      }
+      
+      return {
+        success: true,
+        message: `Registered ${allFormats.length} file types successfully`
+      };
+    } catch (error) {
+      console.error('Error registering Windows file associations:', error);
+      return {
+        success: false,
+        message: `Failed to register Windows file associations: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
+    }
+  }
+
+  private async registerLinuxFileAssociations(): Promise<{success: boolean, message: string}> {
+    try {
+      const fs = require('fs');
+      const os = require('os');
+      const path = require('path');
+      const { execSync } = require('child_process');
+      
+      const homeDir = os.homedir();
+      const applicationsDir = path.join(homeDir, '.local/share/applications');
+      const desktopFile = path.join(applicationsDir, 'ai-opensubtitles-client.desktop');
+      
+      // Ensure applications directory exists
+      fs.mkdirSync(applicationsDir, { recursive: true });
+      
+      // Create desktop entry
+      const desktopEntry = `[Desktop Entry]
+Version=1.0
+Type=Application
+Name=AI.Opensubtitles.com Client
+Comment=Desktop client for AI.Opensubtitles.com
+Exec=${process.execPath} %f
+Icon=ai-opensubtitles-client
+StartupNotify=true
+NoDisplay=false
+MimeType=`;
+      
+      // Add MIME types for all supported formats
+      const allFormats = [
+        ...fileFormatsConfig.video,
+        ...fileFormatsConfig.audio,
+        ...fileFormatsConfig.subtitle
+      ];
+      
+      const videoMimes = fileFormatsConfig.video.map(ext => `video/${ext}`).join(';');
+      const audioMimes = fileFormatsConfig.audio.map(ext => `audio/${ext}`).join(';');
+      const subtitleMimes = fileFormatsConfig.subtitle.map(ext => `application/${ext}`).join(';');
+      
+      const fullDesktopEntry = desktopEntry + [videoMimes, audioMimes, subtitleMimes].join(';') + ';\n';
+      
+      // Write desktop file
+      fs.writeFileSync(desktopFile, fullDesktopEntry, 'utf8');
+      
+      // Make executable
+      fs.chmodSync(desktopFile, '755');
+      
+      // Update mime database
+      try {
+        execSync('update-desktop-database ~/.local/share/applications/', { stdio: 'pipe' });
+      } catch {
+        // Non-critical if update-desktop-database fails
+      }
+      
+      return {
+        success: true,
+        message: `Created desktop entry for ${allFormats.length} file types`
+      };
+    } catch (error) {
+      console.error('Error registering Linux file associations:', error);
+      return {
+        success: false,
+        message: `Failed to register Linux file associations: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
+    }
+  }
+
+  private async registerMacOSFileAssociations(): Promise<{success: boolean, message: string}> {
+    try {
+      const { execSync } = require('child_process');
+      const allFormats = [
+        ...fileFormatsConfig.video,
+        ...fileFormatsConfig.audio,
+        ...fileFormatsConfig.subtitle
+      ];
+      
+      const bundleId = 'com.ai-opensubtitles.desktop-client';
+      
+      for (const ext of allFormats) {
+        try {
+          execSync(`duti -s ${bundleId} .${ext} all`, { stdio: 'pipe' });
+        } catch (error) {
+          console.error(`Failed to associate .${ext}:`, error);
+        }
+      }
+      
+      return {
+        success: true,
+        message: `Registered ${allFormats.length} file types successfully`
+      };
+    } catch (error) {
+      console.error('Error registering macOS file associations:', error);
+      return {
+        success: false,
+        message: `Failed to register macOS file associations: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
+    }
+  }
+
+  private sendFilesToRenderer(filePaths: string[]) {
+    if (!this.mainWindow || !this.mainWindow.webContents) return;
+    
+    if (filePaths.length === 1) {
+      // Single file - send to Single File screen
+      console.log('Sending single file to Single File screen:', filePaths[0]);
+      this.mainWindow.webContents.send('open-file-from-external', filePaths[0]);
+    } else if (filePaths.length > 1) {
+      // Multiple files - send to Batch screen
+      console.log(`Sending ${filePaths.length} files to Batch screen:`, filePaths);
+      this.mainWindow.webContents.send('open-files-from-external', filePaths);
+    }
   }
 }
 
@@ -500,6 +1171,9 @@ app.on('ready', () => {
 });
 
 app.on('window-all-closed', () => {
+  // Unregister all global shortcuts
+  globalShortcut.unregisterAll();
+  
   if (process.platform !== 'darwin') {
     app.quit();
   }

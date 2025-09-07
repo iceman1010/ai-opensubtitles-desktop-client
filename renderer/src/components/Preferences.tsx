@@ -27,27 +27,83 @@ function Preferences({ config, onSave, onCancel, setAppProcessing }: Preferences
   const [debugMode, setDebugMode] = useState(config.debugMode || false);
   const [checkUpdatesOnStart, setCheckUpdatesOnStart] = useState(config.checkUpdatesOnStart ?? true);
   const [isLoading, setIsLoading] = useState(false);
-  const [updateStatus, setUpdateStatus] = useState<string>('');
   const [error, setError] = useState('');
+  const [fileAssociationStatus, setFileAssociationStatus] = useState<{registered: boolean, associatedFormats: string[]}>({ registered: false, associatedFormats: [] });
+  const [isCheckingAssociations, setIsCheckingAssociations] = useState(false);
+  const [isRegisteringAssociations, setIsRegisteringAssociations] = useState(false);
+
+
+
+  const handleResetSettings = async () => {
+    if (window.confirm('Are you sure you want to reset all settings? This will clear your login credentials and all preferences. This action cannot be undone.')) {
+      try {
+        console.log('=== FRONTEND RESET DEBUG ===');
+        console.log('Calling resetAllSettings...');
+        const success = await window.electronAPI.resetAllSettings();
+        console.log('resetAllSettings returned:', success);
+        console.log('Success type:', typeof success);
+        
+        if (success) {
+          console.log('Reset successful, updating UI...');
+          // Reset local state to match cleared config
+          setUsername('');
+          setPassword('');
+          setApiKey('');
+          setDebugMode(false);
+          setCheckUpdatesOnStart(true);
+          setError('');
+          alert('All settings have been reset successfully.');
+        } else {
+          console.log('Reset failed, showing error...');
+          setError('Failed to reset settings. Please try again.');
+        }
+        console.log('=== END FRONTEND RESET DEBUG ===');
+      } catch (error) {
+        console.error('=== FRONTEND RESET ERROR ===');
+        console.error('Reset settings error:', error);
+        console.error('Error details:', {
+          name: error instanceof Error ? error.name : 'Unknown',
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : 'No stack trace'
+        });
+        console.error('=== END FRONTEND RESET ERROR ===');
+        setError('Failed to reset settings. Please try again.');
+      }
+    }
+  };
 
   useEffect(() => {
-    const handleUpdateStatus = (_event: any, status: { event: string, message: string }) => {
-      setUpdateStatus(status.message);
-    };
-
-    window.electronAPI.onUpdateStatus(handleUpdateStatus);
-
-    return () => {
-      window.electronAPI.removeUpdateStatusListener(handleUpdateStatus);
-    };
+    checkFileAssociationStatus();
   }, []);
 
-  const handleCheckForUpdates = async () => {
-    setUpdateStatus('Checking for updates...');
+  const checkFileAssociationStatus = async () => {
+    setIsCheckingAssociations(true);
     try {
-      await window.electronAPI.checkForUpdates();
+      const status = await window.electronAPI.checkFileAssociations();
+      setFileAssociationStatus(status);
     } catch (error) {
-      setUpdateStatus('Failed to check for updates');
+      console.error('Failed to check file associations:', error);
+    } finally {
+      setIsCheckingAssociations(false);
+    }
+  };
+
+  const handleRegisterFileTypes = async () => {
+    setIsRegisteringAssociations(true);
+    try {
+      const result = await window.electronAPI.registerFileAssociations();
+      if (result.success) {
+        alert(`✅ ${result.message}`);
+        // Refresh status after successful registration
+        await checkFileAssociationStatus();
+      } else {
+        alert(`❌ ${result.message}`);
+      }
+    } catch (error) {
+      console.error('Failed to register file associations:', error);
+      alert('❌ Failed to register file types. Please try running the application as administrator/root.');
+    } finally {
+      setIsRegisteringAssociations(false);
     }
   };
 
@@ -76,7 +132,13 @@ function Preferences({ config, onSave, onCancel, setAppProcessing }: Preferences
 
   return (
     <>
-      <div className="preferences-container">
+      <div className="preferences-container" style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        padding: '20px',
+        gap: '20px'
+      }}>
       <h1>Preferences</h1>
       
       {error && (
@@ -215,49 +277,7 @@ function Preferences({ config, onSave, onCancel, setAppProcessing }: Preferences
           </div>
         </div>
 
-        <div className="form-group">
-          <div style={{
-            padding: '15px',
-            backgroundColor: '#f8f9fa',
-            border: '1px solid #dee2e6',
-            borderRadius: '4px',
-            marginBottom: '15px'
-          }}>
-            <h3 style={{ marginBottom: '15px', fontSize: '16px', color: '#2c3e50' }}>Updates</h3>
-            <div style={{ marginBottom: '15px' }}>
-              <button
-                type="button"
-                className="button"
-                onClick={handleCheckForUpdates}
-                disabled={isLoading}
-                style={{ marginRight: '10px' }}
-              >
-                Check for Updates
-              </button>
-              {updateStatus && (
-                <div style={{ 
-                  marginTop: '10px',
-                  padding: '8px 12px',
-                  backgroundColor: '#d1ecf1',
-                  color: '#0c5460',
-                  border: '1px solid #bee5eb',
-                  borderRadius: '4px',
-                  fontSize: '14px'
-                }}>
-                  {updateStatus}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
 
-        {config.credits && (
-          <div className="credits-info">
-            <label>Current Credits:</label>
-            <p>Remaining: {config.credits.remaining}</p>
-            <p>Used: {config.credits.used}</p>
-          </div>
-        )}
 
         <div className="button-group">
           <button
@@ -275,6 +295,214 @@ function Preferences({ config, onSave, onCancel, setAppProcessing }: Preferences
           >
             Cancel
           </button>
+        </div>
+        
+        {/* File Associations Section */}
+        <div className="form-group">
+          <div style={{
+            padding: '20px',
+            backgroundColor: '#f8f9fa',
+            border: '2px solid #e9ecef',
+            borderRadius: '6px',
+            marginBottom: '15px',
+            marginTop: '15px'
+          }}>
+            <h3 style={{ marginBottom: '12px', fontSize: '16px', color: '#495057', fontWeight: 'bold' }}>File Type Associations</h3>
+            <p style={{ fontSize: '14px', color: '#6c757d', marginBottom: '18px', lineHeight: '1.4' }}>
+              Register the app to handle media files so you can right-click any supported file and "Open with" this application.
+            </p>
+            
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '12px',
+              marginBottom: '15px'
+            }}>
+              <div style={{
+                width: '12px',
+                height: '12px',
+                borderRadius: '50%',
+                backgroundColor: fileAssociationStatus.registered ? '#28a745' : '#dc3545',
+                flexShrink: 0
+              }} />
+              <span style={{
+                fontSize: '14px',
+                color: '#495057',
+                fontWeight: '500'
+              }}>
+                {isCheckingAssociations ? (
+                  'Checking status...'
+                ) : fileAssociationStatus.registered ? (
+                  `✅ Registered for ${fileAssociationStatus.associatedFormats.length} file types`
+                ) : (
+                  '❌ Not registered as default handler'
+                )}
+              </span>
+            </div>
+            
+            {fileAssociationStatus.registered && fileAssociationStatus.associatedFormats.length > 0 && (
+              <div style={{
+                fontSize: '12px',
+                color: '#6c757d',
+                marginBottom: '15px',
+                padding: '8px',
+                backgroundColor: '#e8f5e8',
+                borderRadius: '4px',
+                maxHeight: '60px',
+                overflowY: 'auto'
+              }}>
+                <strong>Associated formats:</strong> {fileAssociationStatus.associatedFormats.join(', ')}
+              </div>
+            )}
+            
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={handleRegisterFileTypes}
+                disabled={isRegisteringAssociations || isLoading}
+                style={{
+                  backgroundColor: '#007bff',
+                  borderColor: '#007bff',
+                  color: 'white',
+                  padding: '8px 16px',
+                  border: '2px solid',
+                  borderRadius: '5px',
+                  cursor: (isRegisteringAssociations || isLoading) ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  transition: 'all 0.2s ease',
+                  opacity: (isRegisteringAssociations || isLoading) ? 0.6 : 1
+                }}
+                onMouseOver={(e) => {
+                  if (!isRegisteringAssociations && !isLoading) {
+                    e.currentTarget.style.backgroundColor = '#0056b3';
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (!isRegisteringAssociations && !isLoading) {
+                    e.currentTarget.style.backgroundColor = '#007bff';
+                  }
+                }}
+              >
+                {isRegisteringAssociations ? 'Registering...' : 'Register File Types'}
+              </button>
+              
+              <button
+                type="button"
+                onClick={checkFileAssociationStatus}
+                disabled={isCheckingAssociations || isLoading}
+                style={{
+                  backgroundColor: 'transparent',
+                  borderColor: '#6c757d',
+                  color: '#6c757d',
+                  padding: '8px 16px',
+                  border: '2px solid',
+                  borderRadius: '5px',
+                  cursor: (isCheckingAssociations || isLoading) ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  transition: 'all 0.2s ease',
+                  opacity: (isCheckingAssociations || isLoading) ? 0.6 : 1
+                }}
+                onMouseOver={(e) => {
+                  if (!isCheckingAssociations && !isLoading) {
+                    e.currentTarget.style.backgroundColor = '#6c757d';
+                    e.currentTarget.style.color = 'white';
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (!isCheckingAssociations && !isLoading) {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = '#6c757d';
+                  }
+                }}
+              >
+                {isCheckingAssociations ? 'Checking...' : 'Refresh Status'}
+              </button>
+            </div>
+            
+            <div style={{
+              fontSize: '12px',
+              color: '#6c757d',
+              marginTop: '10px',
+              lineHeight: '1.4'
+            }}>
+              💡 <strong>Note:</strong> On Windows/Linux, you may need to run as administrator/root for system-wide file associations.
+            </div>
+          </div>
+        </div>
+
+        {/* Visual divider */}
+        <div style={{
+          margin: '30px 0',
+          height: '1px',
+          background: 'linear-gradient(to right, transparent, #ddd 20%, #ddd 80%, transparent)',
+          position: 'relative'
+        }}>
+          <div style={{
+            position: 'absolute',
+            top: '-10px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: '#f5f5f5',
+            padding: '0 15px',
+            fontSize: '12px',
+            color: '#999',
+            textTransform: 'uppercase',
+            letterSpacing: '1px'
+          }}>
+            Danger Zone
+          </div>
+        </div>
+
+        {/* Reset Settings Section */}
+        <div className="form-group">
+          <div style={{
+            padding: '20px',
+            backgroundColor: '#fff5f5',
+            border: '2px solid #fed7d7',
+            borderRadius: '6px',
+            marginBottom: '15px'
+          }}>
+            <h3 style={{ marginBottom: '12px', fontSize: '16px', color: '#c53030', fontWeight: 'bold' }}>Reset Settings</h3>
+            <p style={{ fontSize: '14px', color: '#742a2a', marginBottom: '18px', lineHeight: '1.4' }}>
+              This will permanently clear all your login credentials and preferences. Use this to test the fresh install experience.
+            </p>
+            <button
+              type="button"
+              onClick={handleResetSettings}
+              disabled={isLoading}
+              style={{
+                backgroundColor: '#e53e3e',
+                borderColor: '#c53030',
+                color: 'white',
+                padding: '10px 20px',
+                border: '2px solid',
+                borderRadius: '5px',
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                transition: 'all 0.2s ease',
+                opacity: isLoading ? 0.6 : 1
+              }}
+              onMouseOver={(e) => {
+                if (!isLoading) {
+                  e.currentTarget.style.backgroundColor = '#c53030';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = '0 4px 8px rgba(197, 48, 48, 0.3)';
+                }
+              }}
+              onMouseOut={(e) => {
+                if (!isLoading) {
+                  e.currentTarget.style.backgroundColor = '#e53e3e';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }
+              }}
+            >
+              Reset All Settings
+            </button>
+          </div>
         </div>
       </form>
       </div>

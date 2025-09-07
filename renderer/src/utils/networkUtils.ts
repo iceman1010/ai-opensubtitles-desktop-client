@@ -335,11 +335,10 @@ export async function apiRequestWithRetry<T>(
   // Start activity tracking
   activityTracker.startActivity(requestId);
   
+  // Use configured max retries if not specified
+  const effectiveMaxRetries = maxRetries ?? networkConfigManager.getMaxRetries();
+  
   try {
-    // Use configured max retries if not specified
-    const effectiveMaxRetries = maxRetries ?? networkConfigManager.getMaxRetries();
-  
-  
     // Check if retry is enabled
     if (!networkConfigManager.isRetryEnabled()) {
       logger.info('NetworkUtils', `${context}: Retry disabled, making single request`);

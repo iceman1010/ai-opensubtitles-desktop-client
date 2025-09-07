@@ -89,7 +89,7 @@ function Credits({ config, setAppProcessing }: CreditsProps) {
   };
 
   return (
-    <div className="credits-screen" style={{ padding: '20px', maxWidth: '800px' }}>
+    <div className="credits-screen" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '20px', gap: '20px' }}>
       <h1>Credits Management</h1>
       
       {/* Current Credits Section */}

@@ -89,6 +89,22 @@ export interface CompletedTaskData {
   complete: number;
 }
 
+export interface DetectedLanguage {
+  W3C: string;
+  name: string;
+  native: string;
+  ISO_639_1: string;
+  ISO_639_2b: string;
+}
+
+export interface LanguageDetectionResult {
+  format?: string;
+  type: 'text' | 'audio';
+  language?: DetectedLanguage;
+  duration?: number;
+  media?: string;
+}
+
 export class OpenSubtitlesAPI {
   private baseURL = 'https://api.opensubtitles.com/api/v1/ai';
   private apiKey: string = '';
@@ -584,6 +600,96 @@ export class OpenSubtitlesAPI {
       return {
         status: 'ERROR',
         errors: [error.message || 'Failed to check translation status'],
+      };
+    }
+  }
+
+  async detectLanguage(file: File | string): Promise<APIResponse<LanguageDetectionResult>> {
+    try {
+      const formData = new FormData();
+      
+      // Follow the exact pattern from detect_Language_initial.sh: --form "file=@$FILE"
+      if (typeof file === 'string') {
+        const fileData = await window.electronAPI.readFile(file);
+        const buffer = new Uint8Array(fileData.buffer);
+        formData.append('file', new Blob([buffer]), fileData.fileName);
+      } else {
+        formData.append('file', file);
+      }
+
+      const headers = {
+        'Api-Key': this.apiKey || '',
+        'User-Agent': getUserAgent(),
+      };
+      
+      if (this.token) {
+        headers['Authorization'] = `Bearer ${this.token}`;
+      }
+
+      logger.info('API', 'Initiating language detection', {
+        fileType: typeof file,
+        fileName: typeof file === 'string' ? file : file.name
+      });
+
+      const response = await fetch(`${this.baseURL}/detect_language`, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorBody = await response.text();
+        logger.error('API', 'Language detection failed', { 
+          status: response.status, 
+          statusText: response.statusText,
+          body: errorBody 
+        });
+        throw new Error(`Request failed: ${response.status} ${response.statusText} - ${errorBody}`);
+      }
+
+      const data = await response.json();
+      logger.info('API', 'Language detection response received', data);
+      return data;
+    } catch (error: any) {
+      logger.error('API', 'Language detection error', error);
+      return {
+        status: 'ERROR',
+        errors: [error.message || 'Failed to detect language'],
+      };
+    }
+  }
+
+  async checkLanguageDetectionStatus(correlationId: string): Promise<APIResponse<LanguageDetectionResult>> {
+    try {
+      const headers = {
+        'Accept': 'application/json',
+        'Api-Key': this.apiKey || '',
+        'Content-Type': 'application/json',
+        'User-Agent': getUserAgent(),
+      };
+      
+      if (this.token) {
+        headers['Authorization'] = `Bearer ${this.token}`;
+      }
+
+      logger.info('API', `Checking language detection status for correlation ID: ${correlationId}`);
+
+      const response = await fetch(`${this.baseURL}/detectLanguage/${correlationId}`, {
+        method: 'POST',
+        headers,
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      logger.info('API', 'Language detection status response', data);
+      return data;
+    } catch (error: any) {
+      return {
+        status: 'ERROR',
+        errors: [error.message || 'Failed to check language detection status'],
       };
     }
   }
