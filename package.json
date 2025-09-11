@@ -1,6 +1,6 @@
 {
   "name": "ai-opensubtitles-client",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "Cross-platform desktop client for AI.Opensubtitles.com",
   "main": "dist/main/main.js",
   "homepage": "./",
@@ -39,7 +39,7 @@
       "node_modules/**/*"
     ],
     "extraMetadata": {
-      "description": "Cross-platform desktop client for AI.Opensubtitles.com - Version ${version}"
+      "description": "Cross-platform desktop client for AI.Opensubtitles.com"
     },
     "mac": {
       "category": "public.app-category.productivity",
