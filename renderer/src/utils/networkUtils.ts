@@ -332,8 +332,8 @@ export async function apiRequestWithRetry<T>(
   // Generate unique request ID for activity tracking
   const requestId = activityTracker.generateRequestId();
   
-  // Start activity tracking
-  activityTracker.startActivity(requestId);
+  // Start activity tracking with context
+  activityTracker.startActivity(requestId, context);
   
   // Use configured max retries if not specified
   const effectiveMaxRetries = maxRetries ?? networkConfigManager.getMaxRetries();

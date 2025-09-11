@@ -54,7 +54,7 @@ class MainApp {
     let customUserAgent = 'API_Test_AI.OS'; // fallback
     
     try {
-      const appConfigPath = path.join(__dirname, '../renderer/src/config/appConfig.json');
+      const appConfigPath = path.join(__dirname, '../../renderer/src/config/appConfig.json');
       const fs = require('fs');
       if (fs.existsSync(appConfigPath)) {
         const appConfig = JSON.parse(fs.readFileSync(appConfigPath, 'utf8'));

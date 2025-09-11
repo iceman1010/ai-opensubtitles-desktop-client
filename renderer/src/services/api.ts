@@ -544,27 +544,31 @@ export class OpenSubtitlesAPI {
 
   async checkTranscriptionStatus(correlationId: string): Promise<APIResponse<CompletedTaskData>> {
     try {
-      const headers = {
-        'Accept': 'application/json',
-        'Api-Key': this.apiKey || '',
-        'Content-Type': 'application/json',
-        'User-Agent': getUserAgent(),
-      };
-      
-      if (this.token) {
-        headers['Authorization'] = `Bearer ${this.token}`;
-      }
-      
-      const response = await fetch(`${this.baseURL}/transcribe/${correlationId}`, {
-        method: 'POST',
-        headers,
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Request failed: ${response.status} ${response.statusText}`);
-      }
-      
-      return await response.json();
+      return await apiRequestWithRetry(async () => {
+        const headers = {
+          'Accept': 'application/json',
+          'Api-Key': this.apiKey || '',
+          'Content-Type': 'application/json',
+          'User-Agent': getUserAgent(),
+        };
+        
+        if (this.token) {
+          headers['Authorization'] = `Bearer ${this.token}`;
+        }
+        
+        const response = await fetch(`${this.baseURL}/transcribe/${correlationId}`, {
+          method: 'POST',
+          headers,
+        });
+        
+        if (!response.ok) {
+          const error = new Error(`Request failed: ${response.status} ${response.statusText}`);
+          (error as any).status = response.status;
+          throw error;
+        }
+        
+        return await response.json();
+      }, `Check Transcription Status (${correlationId})`);
     } catch (error: any) {
       return {
         status: 'ERROR',
@@ -575,27 +579,31 @@ export class OpenSubtitlesAPI {
 
   async checkTranslationStatus(correlationId: string): Promise<APIResponse<CompletedTaskData>> {
     try {
-      const headers = {
-        'Accept': 'application/json',
-        'Api-Key': this.apiKey || '',
-        'Content-Type': 'application/json',
-        'User-Agent': getUserAgent(),
-      };
-      
-      if (this.token) {
-        headers['Authorization'] = `Bearer ${this.token}`;
-      }
-      
-      const response = await fetch(`${this.baseURL}/translation/${correlationId}`, {
-        method: 'POST',
-        headers,
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Request failed: ${response.status} ${response.statusText}`);
-      }
-      
-      return await response.json();
+      return await apiRequestWithRetry(async () => {
+        const headers = {
+          'Accept': 'application/json',
+          'Api-Key': this.apiKey || '',
+          'Content-Type': 'application/json',
+          'User-Agent': getUserAgent(),
+        };
+        
+        if (this.token) {
+          headers['Authorization'] = `Bearer ${this.token}`;
+        }
+        
+        const response = await fetch(`${this.baseURL}/translation/${correlationId}`, {
+          method: 'POST',
+          headers,
+        });
+        
+        if (!response.ok) {
+          const error = new Error(`Request failed: ${response.status} ${response.statusText}`);
+          (error as any).status = response.status;
+          throw error;
+        }
+        
+        return await response.json();
+      }, `Check Translation Status (${correlationId})`);
     } catch (error: any) {
       return {
         status: 'ERROR',

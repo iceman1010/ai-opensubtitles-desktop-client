@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { OpenSubtitlesAPI, LanguageInfo, TranscriptionInfo, TranslationInfo, ServicesInfo, ServiceModel } from '../services/api';
+import { LanguageInfo, ServicesInfo, ServiceModel } from '../services/api';
+import { useAPI } from '../contexts/APIContext';
 import { logger } from '../utils/errorLogger';
 
 interface AppConfig {
@@ -20,36 +21,23 @@ interface InfoProps {
 }
 
 function Info({ config, setAppProcessing }: InfoProps) {
-  const [transcriptionInfo, setTranscriptionInfo] = useState<TranscriptionInfo | null>(null);
-  const [translationInfo, setTranslationInfo] = useState<TranslationInfo | null>(null);
+  const { api, transcriptionInfo, translationInfo } = useAPI();
+  
   const [servicesInfo, setServicesInfo] = useState<ServicesInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [api] = useState(() => new OpenSubtitlesAPI());
 
   useEffect(() => {
     loadModelInfo();
-  }, [config]);
+  }, [api]);
 
   const loadModelInfo = async () => {
-    if (!config.apiKey) return;
+    if (!api) return;
     
     setIsLoading(true);
     setAppProcessing(true, 'Loading model info...');
-    api.setApiKey(config.apiKey);
 
     try {
-      // Try to load cached token first
-      const hasToken = await api.loadCachedToken();
-      
-      if (!hasToken) {
-        // Login with credentials to get fresh token
-        const loginResult = await api.login(config.username, config.password);
-        if (!loginResult.success) {
-          throw new Error(loginResult.error || 'Login failed');
-        }
-      }
-
-      // Load services info
+      // Load services info using centralized API
       const servicesResult = await api.getServicesInfo();
 
       if (servicesResult.success) {
@@ -67,7 +55,10 @@ function Info({ config, setAppProcessing }: InfoProps) {
   };
 
   // Helper function to format price with proper units
-  const formatPrice = (price: number, pricing: string) => {
+  const formatPrice = (price: number | undefined, pricing: string) => {
+    if (price === undefined || price === null) {
+      return 'Price not available';
+    }
     const unit = pricing.includes('character') ? 'per character' : 'per second';
     return `${price.toFixed(6)} credits ${unit}`;
   };
@@ -83,8 +74,14 @@ function Info({ config, setAppProcessing }: InfoProps) {
   };
 
   // Component for rendering collapsible language list
-  const LanguageList: React.FC<{ languages: LanguageInfo[]; modelName: string }> = ({ languages, modelName }) => {
+  const LanguageList: React.FC<{ languages: LanguageInfo[] | undefined; modelName: string }> = ({ languages, modelName }) => {
     const [isExpanded, setIsExpanded] = useState(false);
+    
+    // Handle undefined languages
+    if (!languages) {
+      return <div style={{ fontSize: '14px', color: '#6c757d', fontStyle: 'italic' }}>Language information not available</div>;
+    }
+    
     const showCollapsible = languages.length > 20;
     const displayLanguages = showCollapsible && !isExpanded ? languages.slice(0, 20) : languages;
 
@@ -158,7 +155,7 @@ function Info({ config, setAppProcessing }: InfoProps) {
 
   return (
     <>
-      <div className="info-container" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '20px', gap: '20px' }}>
+      <div className="info-container" style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '20px' }}>
       <h1>AI Model Information & Pricing</h1>
       <p style={{ marginBottom: '30px', color: '#666' }}>
         Learn about the available AI models and their pricing structure. All prices are in credits.
@@ -170,25 +167,40 @@ function Info({ config, setAppProcessing }: InfoProps) {
           Transcription Models
         </h2>
         {servicesInfo?.Transcription && servicesInfo.Transcription.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '16px', width: '100%' }}>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', 
+            gridAutoRows: '1fr',
+            gap: '16px', 
+            width: '100%' 
+          }}>
             {servicesInfo.Transcription.map((model) => (
               <div key={model.name} style={{
                 padding: '20px',
                 border: '1px solid #e0e0e0',
                 borderRadius: '8px',
                 backgroundColor: '#fff',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                display: 'grid',
+                gridTemplateRows: 'auto auto 1fr auto',
+                gridTemplateAreas: '"header" "description" "spacer" "footer"',
+                height: '100%'
               }}>
                 <div style={{ 
+                  gridArea: 'header',
                   display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'flex-start',
-                  marginBottom: '8px'
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  marginBottom: '12px',
+                  minHeight: '72px',
+                  justifyContent: 'center'
                 }}>
                   <div style={{ 
                     fontSize: '18px',
                     fontWeight: 'bold', 
-                    color: '#2c3e50'
+                    color: '#2c3e50',
+                    textAlign: 'center',
+                    marginBottom: '8px'
                   }}>
                     {model.display_name}
                   </div>
@@ -199,32 +211,42 @@ function Info({ config, setAppProcessing }: InfoProps) {
                     backgroundColor: getReliabilityColor(model.reliability),
                     color: 'white',
                     fontWeight: '600',
-                    textTransform: 'uppercase'
+                    textTransform: 'uppercase',
+                    minWidth: '140px',
+                    textAlign: 'center',
+                    whiteSpace: 'nowrap'
                   }}>
                     {model.reliability} reliability
                   </div>
                 </div>
                 <div style={{ 
+                  gridArea: 'description',
                   fontSize: '14px', 
                   color: '#666', 
                   marginBottom: '12px',
-                  lineHeight: '1.5'
+                  lineHeight: '1.5',
+                  alignSelf: 'start'
                 }}>
                   {model.description}
                 </div>
                 <div style={{ 
-                  fontSize: '16px', 
-                  color: '#2196F3', 
-                  fontWeight: 'bold',
-                  padding: '8px 12px',
-                  backgroundColor: '#e3f2fd',
-                  borderRadius: '4px',
-                  display: 'inline-block',
-                  marginBottom: '12px'
+                  gridArea: 'footer',
+                  alignSelf: 'end'
                 }}>
-                  {formatPrice(model.price, model.pricing)}
+                  <div style={{ 
+                    fontSize: '16px', 
+                    color: '#2196F3', 
+                    fontWeight: 'bold',
+                    padding: '8px 12px',
+                    backgroundColor: '#e3f2fd',
+                    borderRadius: '4px',
+                    display: 'inline-block',
+                    marginBottom: '12px'
+                  }}>
+                    {formatPrice(model.price, model.pricing)}
+                  </div>
+                  <LanguageList languages={model.languages_supported} modelName={model.name} />
                 </div>
-                <LanguageList languages={model.languages_supported} modelName={model.name} />
               </div>
             ))}
           </div>
@@ -241,25 +263,40 @@ function Info({ config, setAppProcessing }: InfoProps) {
           Translation Models
         </h2>
         {servicesInfo?.Translation && servicesInfo.Translation.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '16px', width: '100%' }}>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', 
+            gridAutoRows: '1fr',
+            gap: '16px', 
+            width: '100%' 
+          }}>
             {servicesInfo.Translation.map((model) => (
               <div key={model.name} style={{
                 padding: '20px',
                 border: '1px solid #e0e0e0',
                 borderRadius: '8px',
                 backgroundColor: '#fff',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                display: 'grid',
+                gridTemplateRows: 'auto auto 1fr auto',
+                gridTemplateAreas: '"header" "description" "spacer" "footer"',
+                height: '100%'
               }}>
                 <div style={{ 
+                  gridArea: 'header',
                   display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'flex-start',
-                  marginBottom: '8px'
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  marginBottom: '12px',
+                  minHeight: '72px',
+                  justifyContent: 'center'
                 }}>
                   <div style={{ 
                     fontSize: '18px',
                     fontWeight: 'bold', 
-                    color: '#2c3e50'
+                    color: '#2c3e50',
+                    textAlign: 'center',
+                    marginBottom: '8px'
                   }}>
                     {model.display_name}
                   </div>
@@ -270,32 +307,42 @@ function Info({ config, setAppProcessing }: InfoProps) {
                     backgroundColor: getReliabilityColor(model.reliability),
                     color: 'white',
                     fontWeight: '600',
-                    textTransform: 'uppercase'
+                    textTransform: 'uppercase',
+                    minWidth: '140px',
+                    textAlign: 'center',
+                    whiteSpace: 'nowrap'
                   }}>
                     {model.reliability} reliability
                   </div>
                 </div>
                 <div style={{ 
+                  gridArea: 'description',
                   fontSize: '14px', 
                   color: '#666', 
                   marginBottom: '12px',
-                  lineHeight: '1.5'
+                  lineHeight: '1.5',
+                  alignSelf: 'start'
                 }}>
                   {model.description}
                 </div>
                 <div style={{ 
-                  fontSize: '16px', 
-                  color: '#e74c3c', 
-                  fontWeight: 'bold',
-                  padding: '8px 12px',
-                  backgroundColor: '#ffebee',
-                  borderRadius: '4px',
-                  display: 'inline-block',
-                  marginBottom: '12px'
+                  gridArea: 'footer',
+                  alignSelf: 'end'
                 }}>
-                  {formatPrice(model.price, model.pricing)}
+                  <div style={{ 
+                    fontSize: '16px', 
+                    color: '#e74c3c', 
+                    fontWeight: 'bold',
+                    padding: '8px 12px',
+                    backgroundColor: '#ffebee',
+                    borderRadius: '4px',
+                    display: 'inline-block',
+                    marginBottom: '12px'
+                  }}>
+                    {formatPrice(model.price, model.pricing)}
+                  </div>
+                  <LanguageList languages={model.languages_supported} modelName={model.name} />
                 </div>
-                <LanguageList languages={model.languages_supported} modelName={model.name} />
               </div>
             ))}
           </div>

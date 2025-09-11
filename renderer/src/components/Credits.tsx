@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { OpenSubtitlesAPI, CreditPackage } from '../services/api';
+import { CreditPackage } from '../services/api';
+import { useAPI } from '../contexts/APIContext';
 
 interface AppConfig {
   username: string;
@@ -19,40 +20,29 @@ interface CreditsProps {
 }
 
 function Credits({ config, setAppProcessing }: CreditsProps) {
+  const { api, credits, refreshCredits } = useAPI();
+  
   const [creditPackages, setCreditPackages] = useState<CreditPackage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentCredits, setCurrentCredits] = useState<number | null>(null);
   const [isLoadingCredits, setIsLoadingCredits] = useState(false);
-  const [api] = useState(() => {
-    const apiInstance = new OpenSubtitlesAPI();
-    if (config.apiKey) {
-      apiInstance.setApiKey(config.apiKey);
-    }
-    return apiInstance;
-  });
 
   useEffect(() => {
-    if (config.apiKey) {
-      loadCurrentCredits();
+    if (api) {
       loadCreditPackages();
     }
-  }, [config]);
+  }, [api]);
 
   const loadCurrentCredits = async () => {
-    setIsLoadingCredits(true);
-    try {
-      await api.loadCachedToken();
-      const result = await api.getCredits();
-      if (result.success && typeof result.credits === 'number') {
-        setCurrentCredits(result.credits);
-      } else {
-        console.error('Failed to load current credits:', result.error);
+    if (refreshCredits) {
+      setIsLoadingCredits(true);
+      try {
+        await refreshCredits();
+      } catch (error) {
+        console.error('Error refreshing credits:', error);
+      } finally {
+        setIsLoadingCredits(false);
       }
-    } catch (error) {
-      console.error('Error loading current credits:', error);
-    } finally {
-      setIsLoadingCredits(false);
     }
   };
 
@@ -84,12 +74,8 @@ function Credits({ config, setAppProcessing }: CreditsProps) {
     window.electronAPI?.openExternal?.(checkoutUrl) || window.open(checkoutUrl, '_blank');
   };
 
-  const refreshCredits = () => {
-    loadCurrentCredits();
-  };
-
   return (
-    <div className="credits-screen" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '20px', gap: '20px' }}>
+    <div className="credits-screen" style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '20px' }}>
       <h1>Credits Management</h1>
       
       {/* Current Credits Section */}
@@ -107,12 +93,12 @@ function Credits({ config, setAppProcessing }: CreditsProps) {
               <p>Loading current credits...</p>
             ) : (
               <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0', color: '#007bff' }}>
-                {currentCredits !== null ? `${currentCredits} Credits` : 'Credits unavailable'}
+                {credits ? `${credits.remaining} Credits` : 'Credits unavailable'}
               </p>
             )}
           </div>
           <button
-            onClick={refreshCredits}
+            onClick={loadCurrentCredits}
             disabled={isLoadingCredits}
             style={{
               padding: '8px 16px',

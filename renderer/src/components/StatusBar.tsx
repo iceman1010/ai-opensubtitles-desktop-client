@@ -16,6 +16,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
   const [online, setOnline] = useState(isOnline());
   const [showConnectionChange, setShowConnectionChange] = useState(false);
   const [isApiActive, setIsApiActive] = useState(false);
+  const [currentApiContext, setCurrentApiContext] = useState<string | null>(null);
   const [updateStatus, setUpdateStatus] = useState<string>('');
   const [showUpdateStatus, setShowUpdateStatus] = useState(false);
   
@@ -85,11 +86,18 @@ const StatusBar: React.FC<StatusBarProps> = ({
   useEffect(() => {
     // Set up activity tracking
     const cleanupActivity = activityTracker.addListener({
-      onActivityStart: () => {
+      onActivityStart: (context) => {
         setIsApiActive(true);
+        setCurrentApiContext(context || null);
       },
       onActivityEnd: () => {
         setIsApiActive(false);
+        setCurrentApiContext(null);
+      },
+      onContextUpdate: (contexts) => {
+        // Update with the most recent context
+        const currentContext = contexts.length > 0 ? contexts[contexts.length - 1] : null;
+        setCurrentApiContext(currentContext);
       }
     });
 
@@ -186,6 +194,47 @@ const StatusBar: React.FC<StatusBarProps> = ({
     return text.substring(0, maxLength - 3) + '...';
   };
 
+  // Helper function to extract API endpoint name from context
+  const getEndpointDisplay = (context: string): string => {
+    if (!context) return 'API';
+    
+    // Extract meaningful parts from context strings
+    const lowercased = context.toLowerCase();
+    
+    if (lowercased.includes('transcription') || lowercased.includes('transcribe')) {
+      return 'transcription';
+    }
+    if (lowercased.includes('translation') || lowercased.includes('translate')) {
+      return 'translation';
+    }
+    if (lowercased.includes('login') || lowercased.includes('auth')) {
+      return 'login';
+    }
+    if (lowercased.includes('credits')) {
+      return 'credits';
+    }
+    if (lowercased.includes('language') || lowercased.includes('detect')) {
+      return 'language';
+    }
+    if (lowercased.includes('services') || lowercased.includes('info')) {
+      return 'info';
+    }
+    if (lowercased.includes('packages') || lowercased.includes('credit')) {
+      return 'packages';
+    }
+    if (lowercased.includes('download')) {
+      return 'download';
+    }
+    
+    // If no specific match, try to extract the last meaningful word
+    const words = context.toLowerCase().split(/[\s\-_/]+/).filter(w => w.length > 2);
+    if (words.length > 0) {
+      return words[words.length - 1];
+    }
+    
+    return 'API';
+  };
+
   return (
     <div style={statusBarStyles}>
       <style>{`
@@ -267,7 +316,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
           <span style={statusSeparatorStyles}>|</span>
           <span style={{...statusItemStyles, color: '#6f42c1', fontWeight: 500, fontSize: 11}}>
             <span style={statusIconStyles} className="status-pulsing">◐</span>
-            API
+            {currentApiContext ? getEndpointDisplay(currentApiContext) : 'API'}
           </span>
         </>
       )}

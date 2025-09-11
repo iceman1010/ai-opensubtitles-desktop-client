@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import CacheManager from '../services/cache';
 
 interface AppConfig {
   username: string;
@@ -7,6 +8,8 @@ interface AppConfig {
   lastUsedLanguage?: string;
   debugMode?: boolean;
   checkUpdatesOnStart?: boolean;
+  autoRemoveCompletedFiles?: boolean;
+  cacheExpirationHours?: number;
   credits?: {
     used: number;
     remaining: number;
@@ -26,11 +29,14 @@ function Preferences({ config, onSave, onCancel, setAppProcessing }: Preferences
   const [apiKey, setApiKey] = useState(config.apiKey || '');
   const [debugMode, setDebugMode] = useState(config.debugMode || false);
   const [checkUpdatesOnStart, setCheckUpdatesOnStart] = useState(config.checkUpdatesOnStart ?? true);
+  const [autoRemoveCompletedFiles, setAutoRemoveCompletedFiles] = useState(config.autoRemoveCompletedFiles ?? false);
+  const [cacheExpirationHours, setCacheExpirationHours] = useState(config.cacheExpirationHours ?? 24);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [fileAssociationStatus, setFileAssociationStatus] = useState<{registered: boolean, associatedFormats: string[]}>({ registered: false, associatedFormats: [] });
   const [isCheckingAssociations, setIsCheckingAssociations] = useState(false);
   const [isRegisteringAssociations, setIsRegisteringAssociations] = useState(false);
+  const [isClearingCache, setIsClearingCache] = useState(false);
 
 
 
@@ -51,6 +57,7 @@ function Preferences({ config, onSave, onCancel, setAppProcessing }: Preferences
           setApiKey('');
           setDebugMode(false);
           setCheckUpdatesOnStart(true);
+          setAutoRemoveCompletedFiles(false);
           setError('');
           alert('All settings have been reset successfully.');
         } else {
@@ -117,7 +124,7 @@ function Preferences({ config, onSave, onCancel, setAppProcessing }: Preferences
     setError('');
     setAppProcessing(true, 'Validating credentials...');
     try {
-      const success = await onSave({ username, password, apiKey, debugMode, checkUpdatesOnStart });
+      const success = await onSave({ username, password, apiKey, debugMode, checkUpdatesOnStart, autoRemoveCompletedFiles, cacheExpirationHours });
       if (!success) {
         setError('Failed to save preferences. Please check your credentials.');
       }
@@ -129,6 +136,20 @@ function Preferences({ config, onSave, onCancel, setAppProcessing }: Preferences
     }
   };
 
+  const handleClearCache = async () => {
+    if (window.confirm('Clear all cached API data? This will force fresh data to be fetched from the server on next use.')) {
+      setIsClearingCache(true);
+      try {
+        CacheManager.clear();
+        alert('Cache cleared successfully! Fresh data will be loaded on next API call.');
+      } catch (error) {
+        console.error('Failed to clear cache:', error);
+        alert('Failed to clear cache. Please try again.');
+      } finally {
+        setIsClearingCache(false);
+      }
+    }
+  };
 
   return (
     <>
@@ -136,7 +157,6 @@ function Preferences({ config, onSave, onCancel, setAppProcessing }: Preferences
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        padding: '20px',
         gap: '20px'
       }}>
       <h1>Preferences</h1>
@@ -277,7 +297,125 @@ function Preferences({ config, onSave, onCancel, setAppProcessing }: Preferences
           </div>
         </div>
 
+        <div className="form-group">
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '12px',
+            padding: '8px 0'
+          }}>
+            <input
+              type="checkbox"
+              id="auto-remove-completed-files"
+              checked={autoRemoveCompletedFiles}
+              onChange={(e) => setAutoRemoveCompletedFiles(e.target.checked)}
+              disabled={isLoading}
+              style={{ 
+                width: '18px',
+                height: '18px',
+                flexShrink: 0,
+                cursor: 'pointer'
+              }}
+            />
+            <div style={{ flex: 1 }}>
+              <label 
+                htmlFor="auto-remove-completed-files" 
+                style={{ 
+                  margin: 0, 
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  display: 'block',
+                  marginBottom: '4px'
+                }}
+              >
+                Auto-remove completed files
+              </label>
+              <div style={{ 
+                fontSize: '12px', 
+                color: '#666', 
+                lineHeight: '1.4',
+                maxWidth: '400px'
+              }}>
+                Automatically remove files from the batch queue after successful processing.
+              </div>
+            </div>
+          </div>
 
+          {/* Cache Expiration Setting */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '12px',
+            padding: '8px 0'
+          }}>
+            <div style={{ flex: 1 }}>
+              <label 
+                htmlFor="cache-expiration-hours" 
+                style={{ 
+                  margin: 0, 
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  display: 'block',
+                  marginBottom: '4px'
+                }}
+              >
+                API Cache Expiration (hours)
+              </label>
+              <div style={{ 
+                fontSize: '12px', 
+                color: '#666', 
+                lineHeight: '1.4',
+                maxWidth: '400px',
+                marginBottom: '8px'
+              }}>
+                How long to cache API model and language information. Lower values ensure fresher data but increase API calls.
+              </div>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <select
+                  id="cache-expiration-hours"
+                  value={cacheExpirationHours}
+                  onChange={(e) => setCacheExpirationHours(Number(e.target.value))}
+                  disabled={isLoading}
+                  style={{
+                    padding: '8px 12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    backgroundColor: '#fff',
+                    cursor: 'pointer',
+                    minWidth: '120px'
+                  }}
+                >
+                  <option value={1}>1 hour</option>
+                  <option value={6}>6 hours</option>
+                  <option value={12}>12 hours</option>
+                  <option value={24}>24 hours (default)</option>
+                  <option value={48}>48 hours</option>
+                  <option value={168}>1 week</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={handleClearCache}
+                  disabled={isClearingCache}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: '#dc3545',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    cursor: isClearingCache ? 'not-allowed' : 'pointer',
+                    opacity: isClearingCache ? 0.6 : 1,
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {isClearingCache ? 'Clearing...' : 'Clear Cache Now'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <div className="button-group">
           <button

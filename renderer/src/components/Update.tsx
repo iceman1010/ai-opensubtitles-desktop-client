@@ -111,7 +111,7 @@ function Update({ onCancel }: UpdateProps) {
   };
 
   return (
-    <div className="preferences-container" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '20px', gap: '20px' }}>
+    <div className="preferences-container" style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '20px' }}>
       <h1>Updates</h1>
       
       <div className="form-group">

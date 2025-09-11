@@ -7,6 +7,7 @@ import { parseSubtitleFile, formatDuration, formatCharacterCount, ParsedSubtitle
 import ImprovedTranscriptionOptions from './ImprovedTranscriptionOptions';
 import ImprovedTranslationOptions from './ImprovedTranslationOptions';
 import { isOnline } from '../utils/networkUtils';
+import { useAPI } from '../contexts/APIContext';
 import appConfig from '../config/appConfig.json';
 import * as fileFormatsConfig from '../../../shared/fileFormats.json';
 
@@ -59,11 +60,20 @@ interface MainScreenProps {
 }
 
 function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateToBatch, pendingExternalFile, onExternalFileProcessed, onCreditsUpdate }: MainScreenProps) {
+  const { 
+    api, 
+    isAuthenticated, 
+    credits,
+    transcriptionInfo, 
+    translationInfo,
+    refreshCredits,
+    updateCredits 
+  } = useAPI();
+
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileType, setFileType] = useState<'transcription' | 'translation' | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
-  const [api] = useState(() => new OpenSubtitlesAPI());
   const [showPreview, setShowPreview] = useState(false);
   const [previewContent, setPreviewContent] = useState<string>('');
   const [translationOptions, setTranslationOptions] = useState({
@@ -77,15 +87,12 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
     model: '',
     format: fileFormatsConfig.subtitle[0] || 'srt'
   });
-  const [translationInfo, setTranslationInfo] = useState<TranslationInfo | null>(null);
-  const [transcriptionInfo, setTranscriptionInfo] = useState<TranscriptionInfo | null>(null);
   const [availableTranslationLanguages, setAvailableTranslationLanguages] = useState<LanguageInfo[]>([]);
   const [availableTranslationApis, setAvailableTranslationApis] = useState<string[]>([]);
   const [availableTranscriptionLanguages, setAvailableTranscriptionLanguages] = useState<LanguageInfo[]>([]);
   const [availableTranscriptionApis, setAvailableTranscriptionApis] = useState<string[]>([]);
-  const [isLoadingOptions, setIsLoadingOptions] = useState(false);
   const [isLoadingDynamicOptions, setIsLoadingDynamicOptions] = useState(false);
-  const [credits, setCredits] = useState<number | null>(null);
+  const [isLoadingOptions, setIsLoadingOptions] = useState(false);
   const [isLoadingCredits, setIsLoadingCredits] = useState(false);
   const [detectedLanguage, setDetectedLanguage] = useState<DetectedLanguage | null>(null);
   const [isDetectingLanguage, setIsDetectingLanguage] = useState(false);
@@ -117,26 +124,83 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
     }
   };
 
+  // Initialize API info when context provides data
   useEffect(() => {
-    if (config.apiKey) {
-      api.setApiKey(config.apiKey);
-      logger.info('MainScreen', 'API Key set successfully');
-    } else {
-      logger.warn('MainScreen', 'No API Key provided in config');
+    if (transcriptionInfo) {
+      setAvailableTranscriptionApis(transcriptionInfo.apis);
+      
+      // Set default transcription model and language
+      if (transcriptionInfo.apis.length > 0) {
+        const defaultModel = transcriptionInfo.apis[0];
+        logger.info('MainScreen', `Setting default transcription model: ${defaultModel}`);
+        setTranscriptionOptions(prev => ({ ...prev, model: defaultModel }));
+        
+        // Load languages for default model
+        loadTranscriptionLanguages(defaultModel);
+      }
     }
+  }, [transcriptionInfo]);
 
-    if (config.username && config.password && config.apiKey && !hasAttemptedLogin.current) {
-      logger.info('MainScreen', 'All credentials present, attempting login');
-      hasAttemptedLogin.current = true;
-      attemptLogin();
-    } else if (!hasAttemptedLogin.current) {
-      const missing = [];
-      if (!config.username) missing.push('username');
-      if (!config.password) missing.push('password');
-      if (!config.apiKey) missing.push('apiKey');
-      logger.warn('MainScreen', `Login skipped - missing: ${missing.join(', ')}`);
+  useEffect(() => {
+    if (translationInfo) {
+      setAvailableTranslationApis(translationInfo.apis);
+      
+      // Set default translation model and load languages
+      if (translationInfo.apis.length > 0) {
+        const defaultModel = translationInfo.apis[0];
+        logger.info('MainScreen', `Setting default translation model: ${defaultModel}`);
+        setTranslationOptions(prev => ({ ...prev, model: defaultModel }));
+        
+        // Load languages for default model  
+        loadTranslationLanguages(defaultModel);
+      }
     }
-  }, [config]);
+  }, [translationInfo]);
+
+  // Language loading functions
+  const loadTranscriptionLanguages = async (model: string) => {
+    if (!transcriptionInfo) return;
+    
+    try {
+      let languages: LanguageInfo[] = [];
+      
+      if (Array.isArray(transcriptionInfo.languages)) {
+        // Simple array format - use all languages
+        languages = transcriptionInfo.languages;
+      } else if (typeof transcriptionInfo.languages === 'object' && transcriptionInfo.languages[model]) {
+        // Grouped by API - get languages for specific model
+        languages = transcriptionInfo.languages[model];
+      }
+      
+      setAvailableTranscriptionLanguages(languages);
+      
+      // Set default language - prioritize English or take first available
+      if (languages.length > 0) {
+        const defaultLang = languages.find(lang => lang.language_code === 'en') || languages[0];
+        logger.info('MainScreen', `Setting default transcription language: ${defaultLang.language_code}`);
+        setTranscriptionOptions(prev => ({ ...prev, language: defaultLang.language_code }));
+      }
+    } catch (error) {
+      logger.error('MainScreen', 'Failed to load transcription languages:', error);
+    }
+  };
+
+  const loadTranslationLanguages = async (model: string) => {
+    if (!translationInfo) return;
+    
+    try {
+      let languages: LanguageInfo[] = [];
+      
+      if (typeof translationInfo.languages === 'object' && translationInfo.languages[model]) {
+        languages = translationInfo.languages[model];
+      }
+      
+      setAvailableTranslationLanguages(languages);
+      logger.info('MainScreen', `Loaded ${languages.length} languages for translation model ${model}`);
+    } catch (error) {
+      logger.error('MainScreen', 'Failed to load translation languages:', error);
+    }
+  };
 
   // Handle external file from App.tsx (command line or file association)
   useEffect(() => {
@@ -281,10 +345,14 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
     try {
       const result = await api.getCredits();
       if (result.success && typeof result.credits === 'number') {
-        setCredits(result.credits);
+        // Update centralized credits (no transaction info in credits check)
+        updateCredits({
+          used: 0, // Credits check doesn't include transaction details
+          remaining: result.credits
+        });
         // Update global config with credits
         onCreditsUpdate?.({
-          used: 0, // We don't get used credits from the API, just remaining
+          used: 0, // Credits check doesn't include transaction details
           remaining: result.credits
         });
       } else {
@@ -967,11 +1035,17 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         // Update credits from the response with animation trigger
         if (typeof result.data.credits_left === 'number') {
           const oldCredits = credits;
-          setCredits(result.data.credits_left);
+          const usedCredits = result.data.total_price || 0;
+          
+          // Update centralized credits
+          updateCredits({
+            used: usedCredits,
+            remaining: result.data.credits_left
+          });
           
           // Update global config with credits
           onCreditsUpdate?.({
-            used: 0, // We don't get used credits from the API, just remaining
+            used: usedCredits,
             remaining: result.data.credits_left
           });
           
@@ -1059,11 +1133,17 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           // Update credits from the response with animation trigger
           if (typeof result.data.credits_left === 'number') {
             const oldCredits = credits;
-            setCredits(result.data.credits_left);
+            const usedCredits = result.data.total_price || 0;
+            
+            // Update centralized credits
+            updateCredits({
+              used: usedCredits,
+              remaining: result.data.credits_left
+            });
             
             // Update global config with credits
             onCreditsUpdate?.({
-              used: 0, // We don't get used credits from the API, just remaining
+              used: usedCredits,
               remaining: result.data.credits_left
             });
             
@@ -1178,10 +1258,8 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
-      padding: '20px',
       gap: '20px'
     }}>
-      <CreditsDisplay credits={credits} isLoading={isLoadingCredits} isAnimating={creditsAnimating} />
       <h1>{appConfig.name}</h1>
       <p>Select a file to transcribe or translate:</p>
 
@@ -1753,44 +1831,6 @@ function PreviewDialog({ content, onClose, onSave }: PreviewDialogProps) {
   );
 }
 
-function CreditsDisplay({ credits, isLoading, isAnimating }: { credits: number | null; isLoading: boolean; isAnimating: boolean }) {
-  if (credits === null && !isLoading) {
-    return null; // Don't show anything if credits haven't been loaded and not loading
-  }
-
-  return (
-    <div style={{
-      position: 'fixed',
-      top: '15px',
-      right: '15px',
-      background: '#ffffff',
-      border: '1px solid #ddd',
-      padding: '8px 12px',
-      borderRadius: '6px',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-      zIndex: 1000,
-      fontSize: '14px',
-      fontWeight: '500',
-      color: '#333',
-      transform: isAnimating ? 'scale(1.2)' : 'scale(1)',
-      transformOrigin: 'center',
-      transition: 'transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
-      // Slight glow effect during animation
-      ...(isAnimating && {
-        boxShadow: '0 4px 16px rgba(0, 123, 255, 0.3), 0 2px 8px rgba(0,0,0,0.1)',
-        borderColor: '#007bff'
-      })
-    }}>
-      {isLoading ? (
-        <span>Loading credits...</span>
-      ) : (
-        <span>
-          💳 Credits: <strong>{credits}</strong>
-        </span>
-      )}
-    </div>
-  );
-}
 
 function ErrorLogControls() {
   const [errorCount, setErrorCount] = useState(0);

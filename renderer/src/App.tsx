@@ -8,6 +8,7 @@ import Info from './components/Info';
 import Credits from './components/Credits';
 import Help from './components/Help';
 import StatusBar from './components/StatusBar';
+import { APIProvider, useAPI } from './contexts/APIContext';
 import './utils/errorLogger'; // Initialize global error handlers
 import appConfig from './config/appConfig.json';
 import packageInfo from '../../package.json';
@@ -20,16 +21,87 @@ interface AppConfig {
   lastUsedLanguage?: string;
   debugMode?: boolean;
   checkUpdatesOnStart?: boolean;
+  cacheExpirationHours?: number;
   credits?: {
     used: number;
     remaining: number;
   };
 }
 
+// Main App component wrapped with API context
 function App() {
   const [config, setConfig] = useState<AppConfig | null>(null);
-  const [currentScreen, setCurrentScreen] = useState<'login' | 'main' | 'batch' | 'preferences' | 'update' | 'info' | 'credits' | 'help'>('main');
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadConfig();
+  }, []);
+
+  const loadConfig = async () => {
+    try {
+      const loadedConfig = await window.electronAPI.getConfig();
+      setConfig(loadedConfig);
+    } catch (error) {
+      console.error('Failed to load config:', error);
+      setConfig({} as AppConfig); // Empty config will show login
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="app">
+        <div className="main-content">
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Determine if we have valid credentials
+  const hasCredentials = config?.username && config?.password && config?.apiKey;
+
+  return (
+    <APIProvider 
+      initialConfig={hasCredentials ? {
+        username: config.username,
+        password: config.password,
+        apiKey: config.apiKey
+      } : undefined}
+    >
+      <AppContent 
+        config={config} 
+        setConfig={setConfig}
+        hasCredentials={!!hasCredentials}
+        isLoading={isLoading}
+      />
+    </APIProvider>
+  );
+}
+
+// Inner component that uses the API context
+function AppContent({ 
+  config, 
+  setConfig, 
+  hasCredentials,
+  isLoading
+}: { 
+  config: AppConfig | null; 
+  setConfig: (config: AppConfig) => void;
+  hasCredentials: boolean;
+  isLoading: boolean;
+}) {
+  const { 
+    isAuthenticated, 
+    credits, 
+    isLoading: apiLoading, 
+    error: apiError,
+    login,
+    updateCredits
+  } = useAPI();
+
+  const [currentScreen, setCurrentScreen] = useState<'login' | 'main' | 'batch' | 'preferences' | 'update' | 'info' | 'credits' | 'help'>('main');
   const [pendingBatchFiles, setPendingBatchFiles] = useState<string[]>([]);
   const [pendingMainFile, setPendingMainFile] = useState<string | null>(null);
   
@@ -38,9 +110,16 @@ function App() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentTask, setCurrentTask] = useState<string | undefined>(undefined);
 
+  // Set initial screen based on authentication state
   useEffect(() => {
-    loadConfig();
-    
+    if (!hasCredentials || !isAuthenticated) {
+      setCurrentScreen('login');
+    } else {
+      setCurrentScreen('main');
+    }
+  }, [hasCredentials, isAuthenticated]);
+
+  useEffect(() => {
     // Set up keyboard shortcut listener
     const handleKeyboardShortcut = (event: any, shortcut: string) => {
       switch (shortcut) {
@@ -104,40 +183,17 @@ function App() {
     };
   }, []);
 
-  const loadConfig = async () => {
-    try {
-      const loadedConfig = await window.electronAPI.getConfig();
-      setConfig(loadedConfig);
-      
-      if (!loadedConfig.username || !loadedConfig.password || !loadedConfig.apiKey) {
-        setCurrentScreen('login');
-      } else {
-        setCurrentScreen('main');
-      }
-    } catch (error) {
-      console.error('Failed to load config:', error);
-      setCurrentScreen('login');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-
   const handleLogin = async (username: string, password: string, apiKey: string): Promise<boolean> => {
     try {
       setAppProcessing(true, 'Validating credentials...');
       
-      // Import the API class dynamically
-      const { OpenSubtitlesAPI } = await import('./services/api');
+      // Use centralized login from API context
+      const success = await login(username, password, apiKey);
       
-      // Create API instance and test login
-      const api = new OpenSubtitlesAPI(apiKey);
-      const loginResult = await api.login(username, password);
-      
-      if (loginResult.success) {
-        // Only save config if login was successful
-        const success = await window.electronAPI.saveConfig({ username, password, apiKey });
-        if (success) {
+      if (success) {
+        // Save config if login was successful
+        const configSuccess = await window.electronAPI.saveConfig({ username, password, apiKey });
+        if (configSuccess) {
           const updatedConfig = await window.electronAPI.getConfig();
           setConfig(updatedConfig);
           setCurrentScreen('main');
@@ -145,7 +201,6 @@ function App() {
         }
       }
       
-      console.error('Login failed:', loginResult.error);
       return false;
     } catch (error) {
       console.error('Login failed:', error);
@@ -155,12 +210,16 @@ function App() {
     }
   };
 
-  const handleCreditsUpdate = (credits: { used: number; remaining: number }) => {
+  const handleCreditsUpdate = (creditsData: { used: number; remaining: number }) => {
+    // Update credits in centralized context
+    updateCredits(creditsData);
+    
+    // Also update local config for backwards compatibility
     setConfig(prevConfig => {
       if (!prevConfig) return prevConfig;
       return {
         ...prevConfig,
-        credits: credits
+        credits: creditsData
       };
     });
   };
@@ -169,20 +228,17 @@ function App() {
     try {
       setAppProcessing(true, 'Validating credentials...');
       
-      // If username, password, or apiKey are being changed, validate them
+      // If username, password, or apiKey are being changed, validate them using centralized login
       if (newConfig.username || newConfig.password || newConfig.apiKey) {
-        const { OpenSubtitlesAPI } = await import('./services/api');
-        
         // Use the new values if provided, otherwise use current config values
         const username = newConfig.username || config?.username || '';
         const password = newConfig.password || config?.password || '';
         const apiKey = newConfig.apiKey || config?.apiKey || '';
         
-        const api = new OpenSubtitlesAPI(apiKey);
-        const loginResult = await api.login(username, password);
-        
-        if (!loginResult.success) {
-          console.error('Credential validation failed:', loginResult.error);
+        // Use centralized login for validation
+        const success = await login(username, password, apiKey);
+        if (!success) {
+          console.error('Credential validation failed');
           return false;
         }
       }
@@ -342,64 +398,74 @@ function App() {
             setAppProcessing={setAppProcessing}
           />
         )}
-        {currentScreen === 'main' && config && (
-          <MainScreen 
-            config={config} 
-            setAppProcessing={setAppProcessing}
-            onNavigateToCredits={() => setCurrentScreen('credits')}
-            onNavigateToBatch={(filePaths?: string[]) => {
-              if (filePaths) {
-                setPendingBatchFiles(filePaths);
-              }
-              setCurrentScreen('batch');
-            }}
-            pendingExternalFile={pendingMainFile}
-            onExternalFileProcessed={() => setPendingMainFile(null)}
-            onCreditsUpdate={handleCreditsUpdate}
-          />
-        )}
-        {currentScreen === 'batch' && config && (
-          <BatchScreen 
-            config={config} 
-            setAppProcessing={setAppProcessing}
-            pendingFiles={pendingBatchFiles}
-            onFilesPending={() => setPendingBatchFiles([])}
-          />
-        )}
-        {currentScreen === 'info' && config && (
-          <Info 
-            config={config} 
-            setAppProcessing={setAppProcessing}
-          />
-        )}
-        {currentScreen === 'credits' && config && (
-          <Credits 
-            config={config} 
-            setAppProcessing={setAppProcessing}
-          />
-        )}
-        {currentScreen === 'preferences' && config && (
-          <Preferences
-            config={config}
-            onSave={handlePreferencesSave}
-            onCancel={() => setCurrentScreen('main')}
-            setAppProcessing={setAppProcessing}
-          />
-        )}
-        {currentScreen === 'update' && (
+        <div style={{ display: currentScreen === 'main' ? 'block' : 'none' }}>
+          {config && (
+            <MainScreen 
+              config={config} 
+              setAppProcessing={setAppProcessing}
+              onNavigateToCredits={() => setCurrentScreen('credits')}
+              onNavigateToBatch={(filePaths?: string[]) => {
+                if (filePaths) {
+                  setPendingBatchFiles(filePaths);
+                }
+                setCurrentScreen('batch');
+              }}
+              pendingExternalFile={pendingMainFile}
+              onExternalFileProcessed={() => setPendingMainFile(null)}
+              onCreditsUpdate={handleCreditsUpdate}
+            />
+          )}
+        </div>
+        <div style={{ display: currentScreen === 'batch' ? 'block' : 'none' }}>
+          {config && (
+            <BatchScreen 
+              config={config} 
+              setAppProcessing={setAppProcessing}
+              pendingFiles={pendingBatchFiles}
+              onFilesPending={() => setPendingBatchFiles([])}
+            />
+          )}
+        </div>
+        <div style={{ display: currentScreen === 'info' ? 'block' : 'none' }}>
+          {config && (
+            <Info 
+              config={config} 
+              setAppProcessing={setAppProcessing}
+            />
+          )}
+        </div>
+        <div style={{ display: currentScreen === 'credits' ? 'block' : 'none' }}>
+          {config && (
+            <Credits 
+              config={config} 
+              setAppProcessing={setAppProcessing}
+            />
+          )}
+        </div>
+        <div style={{ display: currentScreen === 'preferences' ? 'block' : 'none' }}>
+          {config && (
+            <Preferences
+              config={config}
+              onSave={handlePreferencesSave}
+              onCancel={() => setCurrentScreen('main')}
+              setAppProcessing={setAppProcessing}
+            />
+          )}
+        </div>
+        <div style={{ display: currentScreen === 'update' ? 'block' : 'none' }}>
           <Update
             onCancel={() => setCurrentScreen('main')}
           />
-        )}
-        {currentScreen === 'help' && (
+        </div>
+        <div style={{ display: currentScreen === 'help' ? 'block' : 'none' }}>
           <Help
             onCancel={() => setCurrentScreen('main')}
           />
-        )}
+        </div>
       </div>
 
       {/* Floating Credits Display */}
-      {config?.credits && currentScreen !== 'login' && (
+      {credits && currentScreen !== 'login' && (
         <div style={{
           position: 'fixed',
           top: '20px',
@@ -414,7 +480,7 @@ function App() {
           zIndex: 1000,
           color: '#333'
         }}>
-          💳 Credits: <strong>{config.credits.remaining}</strong>
+          💳 Credits: <strong>{credits.remaining}</strong>
         </div>
       )}
 

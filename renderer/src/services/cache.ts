@@ -5,14 +5,29 @@ interface CacheItem<T> {
 }
 
 class CacheManager {
-  private static readonly CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+  private static readonly DEFAULT_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+  private static getCacheDuration(): number {
+    try {
+      const configStr = localStorage.getItem('ai_opensubtitles_config');
+      if (configStr) {
+        const config = JSON.parse(configStr);
+        const hours = config.cacheExpirationHours ?? 24;
+        return hours * 60 * 60 * 1000; // Convert hours to milliseconds
+      }
+    } catch (error) {
+      console.warn('Failed to get cache duration from config:', error);
+    }
+    return this.DEFAULT_CACHE_DURATION;
+  }
 
   static set<T>(key: string, data: T): void {
     const now = Date.now();
+    const cacheDuration = this.getCacheDuration();
     const item: CacheItem<T> = {
       data,
       timestamp: now,
-      expiresAt: now + this.CACHE_DURATION,
+      expiresAt: now + cacheDuration,
     };
 
     try {

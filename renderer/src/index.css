@@ -25,7 +25,7 @@ body {
 
 .app {
   display: flex;
-  height: 100vh;
+  height: calc(100vh - 26px); /* Subtract status bar height */
 }
 
 .sidebar {

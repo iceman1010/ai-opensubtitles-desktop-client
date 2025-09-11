@@ -47,6 +47,7 @@ interface BatchFile {
   progress?: number;
   error?: string;
   outputPath?: string;
+  creditsUsed?: number;
 }
 
 interface BatchSettings {
@@ -68,6 +69,7 @@ interface AppConfig {
   lastUsedLanguage?: string;
   debugMode?: boolean;
   checkUpdatesOnStart?: boolean;
+  autoRemoveCompletedFiles?: boolean;
 }
 
 interface BatchScreenProps {
@@ -96,6 +98,29 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
   const [currentFileIndex, setCurrentFileIndex] = useState(-1);
   const [overallProgress, setOverallProgress] = useState(0);
   const [isDetectingLanguages, setIsDetectingLanguages] = useState(false);
+  
+  // Credit tracking states
+  const [batchCreditStats, setBatchCreditStats] = useState({
+    totalCreditsUsed: 0,
+    creditsPerFile: new Map<string, number>()
+  });
+
+  // Batch processing tracking states
+  const [batchStats, setBatchStats] = useState<{
+    startTime: Date | null;
+    endTime: Date | null;
+    totalFilesProcessed: number;
+    successfulFiles: number;
+    outputFiles: string[];
+  }>({
+    startTime: null,
+    endTime: null,
+    totalFilesProcessed: 0,
+    successfulFiles: 0,
+    outputFiles: []
+  });
+
+  const [showCompletionSummary, setShowCompletionSummary] = useState(false);
   
   // API and data states
   const [transcriptionInfo, setTranscriptionInfo] = useState<TranscriptionInfo | null>(null);
@@ -350,9 +375,21 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
   };
 
   // Auto-select the first matching source language for a detected language
+  // If only one language remains after filtering, auto-select it regardless of detection status
   const autoSelectSourceLanguage = (detectedLanguageCode: string | null, apiLanguages: LanguageInfo[]): string | undefined => {
     const matching = getMatchingSourceLanguages(detectedLanguageCode, apiLanguages);
-    return matching.length > 0 ? matching[0].language_code : undefined;
+    
+    // Auto-select if there's exactly one matching language (the key improvement)
+    if (matching.length === 1) {
+      return matching[0].language_code;
+    }
+    
+    // Auto-select first match if we have detection results (existing behavior)
+    if (detectedLanguageCode && matching.length > 0) {
+      return matching[0].language_code;
+    }
+    
+    return undefined;
   };
 
   // Update source language selections when translation model changes
@@ -362,8 +399,9 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     const apiLanguages = translationInfo.languages[newModel];
     
     setQueue(prev => prev.map(file => {
-      if (file.detectedLanguage && file.type === 'translation') {
-        const selectedSource = autoSelectSourceLanguage(file.detectedLanguage.ISO_639_1, apiLanguages);
+      if (file.type === 'translation') {
+        const detectedCode = file.detectedLanguage?.ISO_639_1 || null;
+        const selectedSource = autoSelectSourceLanguage(detectedCode, apiLanguages);
         return { ...file, selectedSourceLanguage: selectedSource };
       }
       return file;
@@ -377,8 +415,9 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     const apiLanguages = transcriptionInfo.languages[newModel];
     
     setQueue(prev => prev.map(file => {
-      if (file.detectedLanguage && file.type === 'transcription') {
-        const selectedSource = autoSelectSourceLanguage(file.detectedLanguage.ISO_639_1, apiLanguages);
+      if (file.type === 'transcription') {
+        const detectedCode = file.detectedLanguage?.ISO_639_1 || null;
+        const selectedSource = autoSelectSourceLanguage(detectedCode, apiLanguages);
         return { ...file, selectedSourceLanguage: selectedSource };
       }
       return file;
@@ -838,6 +877,55 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     }
   }, [uiState.shouldDisableChaining, batchSettings.enableChaining]);
 
+  // Credit tracking helper functions
+  const updateFileCredits = (fileId: string, creditsUsed: number) => {
+    // Update file-level credit tracking
+    setQueue(prev => prev.map(f => 
+      f.id === fileId ? { ...f, creditsUsed } : f
+    ));
+
+    // Update batch-level credit tracking
+    setBatchCreditStats(prev => {
+      const newCreditsPerFile = new Map(prev.creditsPerFile);
+      const previousCredits = newCreditsPerFile.get(fileId) || 0;
+      newCreditsPerFile.set(fileId, creditsUsed);
+      
+      const totalCreditsUsed = Array.from(newCreditsPerFile.values()).reduce((sum, credits) => sum + credits, 0);
+      
+      return {
+        totalCreditsUsed,
+        creditsPerFile: newCreditsPerFile
+      };
+    });
+  };
+
+  const resetCreditTracking = () => {
+    setBatchCreditStats({
+      totalCreditsUsed: 0,
+      creditsPerFile: new Map()
+    });
+    
+    // Clear credits from all files
+    setQueue(prev => prev.map(f => ({ ...f, creditsUsed: undefined })));
+  };
+
+  const resetBatchStats = () => {
+    setBatchStats({
+      startTime: null,
+      endTime: null,
+      totalFilesProcessed: 0,
+      successfulFiles: 0,
+      outputFiles: []
+    });
+  };
+
+  const addOutputFile = (filePath: string) => {
+    setBatchStats(prev => ({
+      ...prev,
+      outputFiles: [...prev.outputFiles, filePath]
+    }));
+  };
+
   // Batch processing functions
   const startBatchProcessing = async () => {
     if (queue.length === 0 || !apiRef.current) return;
@@ -848,17 +936,29 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     setOverallProgress(0);
     processingRef.current = true;
     shouldStopRef.current = false;
-    setAppProcessing(true, `Starting batch processing of ${queue.length} files...`);
+    resetCreditTracking(); // Reset credit tracking for new batch
+    resetBatchStats(); // Reset batch statistics
+    const originalQueue = [...queue]; // Capture original queue to avoid issues with queue changes
+    const totalFiles = originalQueue.length; // Store original queue length for progress calculation
+    
+    // Initialize batch stats
+    setBatchStats(prev => ({
+      ...prev,
+      startTime: new Date(),
+      totalFilesProcessed: totalFiles
+    }));
+    
+    setAppProcessing(true, `Starting batch processing of ${totalFiles} files...`);
 
     logger.info('BatchScreen', 'Starting batch processing', {
-      queueLength: queue.length,
+      queueLength: totalFiles,
       transcriptionModel: batchSettings.transcriptionModel,
       translationModel: batchSettings.translationModel,
       enableChaining: batchSettings.enableChaining
     });
 
     try {
-      for (let i = 0; i < queue.length; i++) {
+      for (let i = 0; i < originalQueue.length; i++) {
         if (shouldStopRef.current) break;
 
         while (isPaused && !shouldStopRef.current) {
@@ -868,23 +968,38 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
         if (shouldStopRef.current) break;
 
         setCurrentFileIndex(i);
-        const file = queue[i];
+        const file = originalQueue[i];
 
         // Update file status to processing
-        setQueue(prev => prev.map((f, index) => 
-          index === i ? { ...f, status: 'processing' as const, progress: 0 } : f
+        setQueue(prev => prev.map(f => 
+          f.id === file.id ? { ...f, status: 'processing' as const, progress: 0 } : f
         ));
 
         await processFile(file, i);
 
         // Update overall progress
-        const progress = Math.round(((i + 1) / queue.length) * 100);
+        const progress = Math.round(((i + 1) / totalFiles) * 100);
         setOverallProgress(progress);
-        setAppProcessing(true, `Batch processing: ${i + 1}/${queue.length} files completed (${progress}%)`);
+        setAppProcessing(true, `Batch processing: ${i + 1}/${totalFiles} files completed (${progress}%)`);
       }
 
       logger.info('BatchScreen', 'Batch processing completed');
-      setAppProcessing(true, 'Batch processing completed successfully!');
+      
+      // Finalize batch stats
+      setBatchStats(prev => ({
+        ...prev,
+        endTime: new Date(),
+        successfulFiles: queue.filter(f => f.status === 'completed').length
+      }));
+      
+      const completionMessage = batchCreditStats.totalCreditsUsed > 0 
+        ? `Batch processing completed successfully! (${batchCreditStats.totalCreditsUsed} credits used)`
+        : 'Batch processing completed successfully!';
+      setAppProcessing(true, completionMessage);
+      
+      // Show completion summary popup
+      setShowCompletionSummary(true);
+      
       setTimeout(() => setAppProcessing(false), 3000);
     } catch (error) {
       logger.error('BatchScreen', 'Batch processing failed', error);
@@ -910,15 +1025,22 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
       }
 
       // Mark file as completed
-      setQueue(prev => prev.map((f, i) => 
-        i === index ? { ...f, status: 'completed' as const, progress: 100 } : f
+      setQueue(prev => prev.map(f => 
+        f.id === file.id ? { ...f, status: 'completed' as const, progress: 100 } : f
       ));
+
+      // Remove completed file after a short delay to let user see the completion (if enabled)
+      if (config.autoRemoveCompletedFiles) {
+        setTimeout(() => {
+          setQueue(prev => prev.filter(f => f.id !== file.id));
+        }, 2000); // 2 second delay
+      }
 
     } catch (error) {
       logger.error('BatchScreen', `Failed to process file: ${file.name}`, error);
       
-      setQueue(prev => prev.map((f, i) => 
-        i === index ? { 
+      setQueue(prev => prev.map(f => 
+        f.id === file.id ? { 
           ...f, 
           status: 'error' as const, 
           error: error instanceof Error ? error.message : 'Processing failed'
@@ -935,8 +1057,8 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     if (!apiRef.current) throw new Error('API not available');
 
     // Step 1: Initiate transcription
-    setQueue(prev => prev.map((f, i) => 
-      i === index ? { ...f, status: 'processing' as const, progress: 10 } : f
+    setQueue(prev => prev.map(f => 
+      f.id === file.id ? { ...f, status: 'processing' as const, progress: 10 } : f
     ));
     setAppProcessing(true, `Initiating transcription for ${file.name}...`);
 
@@ -954,17 +1076,22 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     // Step 2: Poll for transcription completion
     let transcriptionResult;
     if (transcriptionInitResult.status === 'COMPLETED' && transcriptionInitResult.translation) {
-      // Immediate completion
+      // Immediate completion - extract credits
+      if (transcriptionInitResult.data && typeof transcriptionInitResult.data.total_price === 'number' && transcriptionInitResult.data.total_price > 0) {
+        updateFileCredits(file.id, transcriptionInitResult.data.total_price);
+        logger.info('BatchScreen', `Credits used for immediate transcription of ${file.name}: ${transcriptionInitResult.data.total_price}`);
+      }
+      
       setAppProcessing(true, `Transcription completed instantly for ${file.name}`);
       transcriptionResult = transcriptionInitResult;
     } else if (transcriptionInitResult.correlation_id) {
       // Need to poll
-      setQueue(prev => prev.map((f, i) => 
-        i === index ? { ...f, progress: 25 } : f
+      setQueue(prev => prev.map(f => 
+        f.id === file.id ? { ...f, progress: 25 } : f
       ));
       setAppProcessing(true, `Transcription in progress for ${file.name}, polling for results...`);
       
-      transcriptionResult = await pollForCompletion(transcriptionInitResult.correlation_id, 'transcription', index);
+      transcriptionResult = await pollForCompletion(transcriptionInitResult.correlation_id, 'transcription', file);
     } else {
       throw new Error('No correlation ID received for transcription');
     }
@@ -973,8 +1100,8 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     
     // Step 3: Translation (if chaining enabled)
     if (batchSettings.enableChaining && outputContent) {
-      setQueue(prev => prev.map((f, i) => 
-        i === index ? { ...f, progress: 60 } : f
+      setQueue(prev => prev.map(f => 
+        f.id === file.id ? { ...f, progress: 60 } : f
       ));
       setAppProcessing(true, `Starting translation chain for ${file.name}...`);
 
@@ -998,15 +1125,23 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
       // Poll for translation completion
       let translationResult;
       if (translationInitResult.status === 'COMPLETED' && translationInitResult.translation) {
+        // Immediate completion - extract credits for translation
+        if (translationInitResult.data && typeof translationInitResult.data.total_price === 'number' && translationInitResult.data.total_price > 0) {
+          // For chained operations, add to existing credits rather than replace
+          const existingCredits = batchCreditStats.creditsPerFile.get(file.id) || 0;
+          updateFileCredits(file.id, existingCredits + translationInitResult.data.total_price);
+          logger.info('BatchScreen', `Credits used for immediate translation of ${file.name}: ${translationInitResult.data.total_price}`);
+        }
+        
         setAppProcessing(true, `Translation completed instantly for ${file.name}`);
         translationResult = translationInitResult;
       } else if (translationInitResult.correlation_id) {
-        setQueue(prev => prev.map((f, i) => 
-          i === index ? { ...f, progress: 80 } : f
+        setQueue(prev => prev.map(f => 
+          f.id === file.id ? { ...f, progress: 80 } : f
         ));
         setAppProcessing(true, `Translation in progress for ${file.name}, polling for results...`);
         
-        translationResult = await pollForCompletion(translationInitResult.correlation_id, 'translation', index);
+        translationResult = await pollForCompletion(translationInitResult.correlation_id, 'translation', file);
       } else {
         throw new Error('No correlation ID received for translation');
       }
@@ -1032,10 +1167,11 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
       const savedPath = await writeFileDirectly(outputContent, outputPath);
       
       logger.info('BatchScreen', `File saved: ${savedPath}`);
+      addOutputFile(savedPath); // Track output file for summary
       
       // Update file with final output path
-      setQueue(prev => prev.map((f, i) => 
-        i === index ? { ...f, outputPath: savedPath, progress: 100 } : f
+      setQueue(prev => prev.map(f => 
+        f.id === file.id ? { ...f, outputPath: savedPath, progress: 100 } : f
       ));
     }
   };
@@ -1044,8 +1180,8 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     if (!apiRef.current) throw new Error('API not available');
 
     // Step 1: Initiate translation
-    setQueue(prev => prev.map((f, i) => 
-      i === index ? { ...f, status: 'processing' as const, progress: 10 } : f
+    setQueue(prev => prev.map(f => 
+      f.id === file.id ? { ...f, status: 'processing' as const, progress: 10 } : f
     ));
     setAppProcessing(true, `Initiating translation for ${file.name}...`);
 
@@ -1064,17 +1200,22 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     // Step 2: Poll for completion or handle immediate result
     let translationResult;
     if (translationInitResult.status === 'COMPLETED' && translationInitResult.translation) {
-      // Immediate completion
+      // Immediate completion - extract credits
+      if (translationInitResult.data && typeof translationInitResult.data.total_price === 'number' && translationInitResult.data.total_price > 0) {
+        updateFileCredits(file.id, translationInitResult.data.total_price);
+        logger.info('BatchScreen', `Credits used for immediate standalone translation of ${file.name}: ${translationInitResult.data.total_price}`);
+      }
+      
       setAppProcessing(true, `Translation completed instantly for ${file.name}`);
       translationResult = translationInitResult;
     } else if (translationInitResult.correlation_id) {
       // Need to poll
-      setQueue(prev => prev.map((f, i) => 
-        i === index ? { ...f, progress: 50 } : f
+      setQueue(prev => prev.map(f => 
+        f.id === file.id ? { ...f, progress: 50 } : f
       ));
       setAppProcessing(true, `Translation in progress for ${file.name}, polling for results...`);
       
-      translationResult = await pollForCompletion(translationInitResult.correlation_id, 'translation', index);
+      translationResult = await pollForCompletion(translationInitResult.correlation_id, 'translation', file);
     } else {
       throw new Error('No correlation ID received for translation');
     }
@@ -1086,15 +1227,16 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
       const savedPath = await writeFileDirectly(outputContent, outputPath);
       
       logger.info('BatchScreen', `File saved: ${savedPath}`);
+      addOutputFile(savedPath); // Track output file for summary
       
       // Update file with output path
-      setQueue(prev => prev.map((f, i) => 
-        i === index ? { ...f, outputPath: savedPath, progress: 100 } : f
+      setQueue(prev => prev.map(f => 
+        f.id === file.id ? { ...f, outputPath: savedPath, progress: 100 } : f
       ));
     }
   };
 
-  const pollForCompletion = async (correlationId: string, type: 'transcription' | 'translation', fileIndex: number): Promise<any> => {
+  const pollForCompletion = async (correlationId: string, type: 'transcription' | 'translation', file: BatchFile): Promise<any> => {
     const maxAttempts = 60; // 5 minutes with 5-second intervals
     let attempts = 0;
     
@@ -1116,6 +1258,18 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
           setAppProcessing(true, `${type.charAt(0).toUpperCase() + type.slice(1)} in progress... (attempt ${attempts}/${maxAttempts})`);
           
           if (result.status === 'COMPLETED') {
+            // Extract credits used from the completed result
+            if (result.data && typeof result.data.total_price === 'number' && result.data.total_price > 0) {
+              // For chained operations (translation after transcription), add to existing credits
+              if (type === 'translation' && batchSettings.enableChaining) {
+                const existingCredits = batchCreditStats.creditsPerFile.get(file.id) || 0;
+                updateFileCredits(file.id, existingCredits + result.data.total_price);
+              } else {
+                updateFileCredits(file.id, result.data.total_price);
+              }
+              logger.info('BatchScreen', `Credits used for ${type} of ${file.name}: ${result.data.total_price}`);
+            }
+            
             setAppProcessing(true, `${type.charAt(0).toUpperCase() + type.slice(1)} completed successfully!`);
             resolve(result);
           } else if (result.status === 'ERROR') {
@@ -1131,8 +1285,8 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
             // Update progress during polling
             const progressBase = type === 'transcription' ? 25 : 50;
             const progressIncrement = (attempts / maxAttempts) * 30; // 30% of progress during polling
-            setQueue(prev => prev.map((f, i) => 
-              i === fileIndex ? { ...f, progress: Math.min(90, progressBase + progressIncrement) } : f
+            setQueue(prev => prev.map(f => 
+              f.id === file.id ? { ...f, progress: Math.min(90, progressBase + progressIncrement) } : f
             ));
             
             // Continue polling after 5 seconds
@@ -1145,10 +1299,6 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
       
       poll();
     });
-  };
-
-  const pauseBatchProcessing = () => {
-    setIsPaused(true);
   };
 
   const stopBatchProcessing = () => {
@@ -1255,6 +1405,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
                     Type: {file.type} | Status: {file.status}
                     {file.detectedLanguage && ` | Language: ${file.detectedLanguage.native || file.detectedLanguage.name}`}
                     {file.progress !== undefined && ` | Progress: ${file.progress}%`}
+                    {file.creditsUsed !== undefined && file.creditsUsed > 0 && ` | Credits: ${file.creditsUsed}`}
                   </div>
                   
                   {/* Source Language Selector for Translation Files */}
@@ -1616,6 +1767,11 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
         <div>
           <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '5px' }}>
             Overall Progress: {overallProgress}%
+            {batchCreditStats.totalCreditsUsed > 0 && (
+              <span style={{ marginLeft: '20px', fontSize: '16px', color: '#2196F3' }}>
+                Credits Used: {batchCreditStats.totalCreditsUsed}
+              </span>
+            )}
           </div>
           <div style={{ fontSize: '14px', color: '#666' }}>
             {isProcessing ? (
@@ -1629,53 +1785,22 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
         </div>
 
         <div style={{ display: 'flex', gap: '10px' }}>
-          {!isProcessing ? (
-            <button
-              onClick={startBatchProcessing}
-              disabled={queue.length === 0 || !isOnline() || (!batchSettings.transcriptionModel && !batchSettings.translationModel)}
-              style={{
-                padding: '10px 20px',
-                backgroundColor: '#28a745',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: (queue.length === 0 || !isOnline() || (!batchSettings.transcriptionModel && !batchSettings.translationModel)) ? 'not-allowed' : 'pointer',
-                fontSize: '16px'
-              }}
-            >
-              Start Batch Processing
-            </button>
-          ) : (
-            <>
-              <button
-                onClick={pauseBatchProcessing}
-                disabled={isPaused}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#ffc107',
-                  color: 'black',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: isPaused ? 'not-allowed' : 'pointer'
-                }}
-              >
-                {isPaused ? 'Paused' : 'Pause'}
-              </button>
-              <button
-                onClick={stopBatchProcessing}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#dc3545',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
-              >
-                Stop
-              </button>
-            </>
-          )}
+          <button
+            onClick={!isProcessing ? startBatchProcessing : stopBatchProcessing}
+            disabled={!isProcessing && (queue.length === 0 || !isOnline() || (!batchSettings.transcriptionModel && !batchSettings.translationModel))}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: isProcessing ? '#dc3545' : '#28a745',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: (!isProcessing && (queue.length === 0 || !isOnline() || (!batchSettings.transcriptionModel && !batchSettings.translationModel))) ? 'not-allowed' : 'pointer',
+              fontSize: '16px',
+              minWidth: '180px'
+            }}
+          >
+            {isProcessing ? 'Stop Batch Processing' : 'Start Batch Processing'}
+          </button>
         </div>
       </div>
 
@@ -1697,6 +1822,149 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
               transition: 'width 0.3s ease'
             }}
           />
+        </div>
+      )}
+
+      {/* Batch Completion Summary Popup */}
+      {showCompletionSummary && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '24px',
+            maxWidth: '600px',
+            maxHeight: '80vh',
+            overflow: 'auto',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+          }}>
+            <h2 style={{ 
+              margin: '0 0 20px 0', 
+              color: '#333',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <span style={{ fontSize: '24px' }}>🎉</span>
+              Batch Processing Complete
+            </h2>
+            
+            {/* Summary Stats */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: '16px',
+              marginBottom: '20px',
+              padding: '16px',
+              backgroundColor: '#f8f9fa',
+              borderRadius: '6px'
+            }}>
+              <div>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#28a745' }}>
+                  {batchStats.successfulFiles}
+                </div>
+                <div style={{ fontSize: '14px', color: '#666' }}>Files Processed</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#2196F3' }}>
+                  {batchCreditStats.totalCreditsUsed}
+                </div>
+                <div style={{ fontSize: '14px', color: '#666' }}>Credits Used</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ff6b35' }}>
+                  {batchStats.startTime && batchStats.endTime ? 
+                    Math.round((batchStats.endTime.getTime() - batchStats.startTime.getTime()) / 1000) : 0
+                  }s
+                </div>
+                <div style={{ fontSize: '14px', color: '#666' }}>Duration</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#6f42c1' }}>
+                  {batchStats.outputFiles.length}
+                </div>
+                <div style={{ fontSize: '14px', color: '#666' }}>Output Files</div>
+              </div>
+            </div>
+
+            {/* Output Files List */}
+            {batchStats.outputFiles.length > 0 && (
+              <div style={{ marginBottom: '20px' }}>
+                <h3 style={{ 
+                  margin: '0 0 12px 0', 
+                  fontSize: '16px', 
+                  color: '#333' 
+                }}>
+                  Output Files:
+                </h3>
+                <div style={{
+                  maxHeight: '200px',
+                  overflow: 'auto',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  backgroundColor: '#f8f9fa'
+                }}>
+                  {batchStats.outputFiles.map((filePath, index) => (
+                    <div 
+                      key={index}
+                      style={{
+                        padding: '8px 12px',
+                        borderBottom: index < batchStats.outputFiles.length - 1 ? '1px solid #eee' : 'none',
+                        fontSize: '13px',
+                        fontFamily: 'monospace',
+                        color: '#333',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => {
+                        // Copy to clipboard
+                        navigator.clipboard.writeText(filePath);
+                      }}
+                      title="Click to copy path"
+                    >
+                      {filePath}
+                    </div>
+                  ))}
+                </div>
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: '#666', 
+                  marginTop: '8px',
+                  fontStyle: 'italic'
+                }}>
+                  💡 Click any file path to copy it to clipboard
+                </div>
+              </div>
+            )}
+
+            {/* Close Button */}
+            <div style={{ textAlign: 'center' }}>
+              <button
+                onClick={() => setShowCompletionSummary(false)}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: '#007bff',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

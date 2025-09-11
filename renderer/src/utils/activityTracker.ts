@@ -3,13 +3,14 @@
  */
 
 interface ActivityListener {
-  onActivityStart: () => void;
+  onActivityStart: (context?: string) => void;
   onActivityEnd: () => void;
+  onContextUpdate?: (contexts: string[]) => void;
 }
 
 class ActivityTracker {
   private listeners: Set<ActivityListener> = new Set();
-  private activeRequests: Set<string> = new Set();
+  private activeRequests: Map<string, string> = new Map(); // requestId -> context
   private activityTimeout: NodeJS.Timeout | null = null;
 
   /**
@@ -23,9 +24,9 @@ class ActivityTracker {
   /**
    * Start tracking an API request
    */
-  startActivity(requestId: string): void {
+  startActivity(requestId: string, context?: string): void {
     const wasInactive = this.activeRequests.size === 0;
-    this.activeRequests.add(requestId);
+    this.activeRequests.set(requestId, context || 'API Request');
     
     if (wasInactive) {
       // Clear any pending end activity timeout
@@ -37,12 +38,15 @@ class ActivityTracker {
       // Notify all listeners that activity started
       this.listeners.forEach(listener => {
         try {
-          listener.onActivityStart();
+          listener.onActivityStart(context);
         } catch (error) {
           console.error('Error in activity listener:', error);
         }
       });
     }
+    
+    // Notify listeners of context update
+    this.notifyContextUpdate();
   }
 
   /**
@@ -50,6 +54,9 @@ class ActivityTracker {
    */
   endActivity(requestId: string): void {
     this.activeRequests.delete(requestId);
+    
+    // Notify listeners of context update
+    this.notifyContextUpdate();
     
     if (this.activeRequests.size === 0) {
       // Delay the end notification slightly to avoid flicker
@@ -89,6 +96,38 @@ class ActivityTracker {
    */
   generateRequestId(): string {
     return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
+   * Get all active request contexts
+   */
+  getActiveContexts(): string[] {
+    return Array.from(this.activeRequests.values());
+  }
+
+  /**
+   * Get the most recent active context
+   */
+  getCurrentContext(): string | null {
+    if (this.activeRequests.size === 0) return null;
+    const contexts = Array.from(this.activeRequests.values());
+    return contexts[contexts.length - 1]; // Return the most recent
+  }
+
+  /**
+   * Notify listeners of context updates
+   */
+  private notifyContextUpdate(): void {
+    const contexts = this.getActiveContexts();
+    this.listeners.forEach(listener => {
+      if (listener.onContextUpdate) {
+        try {
+          listener.onContextUpdate(contexts);
+        } catch (error) {
+          console.error('Error in context update listener:', error);
+        }
+      }
+    });
   }
 }
 
