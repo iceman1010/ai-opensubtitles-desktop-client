@@ -61,5 +61,8 @@ api_tests/
 test_scripts/
 test/
 
-# Scripts folder - contains sensitive deployment and release automation
+# Build and deployment automation
 scripts/
+
+# Claude AI configuration
+.claude/
