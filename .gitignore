@@ -60,3 +60,6 @@ api_tests/
 *_tests/
 test_scripts/
 test/
+
+# Scripts folder - contains sensitive deployment and release automation
+scripts/
