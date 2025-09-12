@@ -104,7 +104,27 @@ class MainApp {
       this.mainWindow.loadURL('http://localhost:5173');
       // this.mainWindow.webContents.openDevTools(); // Commented out for cleaner UI
     } else {
-      await this.mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+      // Smart path resolution for different packaging formats
+      const rendererPath = path.join(__dirname, '../renderer/index.html');
+      
+      console.log('=== RENDERER PATH DEBUG ===');
+      console.log('__dirname:', __dirname);
+      console.log('In app.asar:', __dirname.includes('app.asar'));
+      console.log('rendererPath:', rendererPath);
+      console.log('rendererPath exists:', require('fs').existsSync(rendererPath));
+      
+      // List directory contents for debugging
+      try {
+        const parentDir = path.dirname(rendererPath);
+        console.log('Parent dir:', parentDir);
+        console.log('Parent dir contents:', require('fs').readdirSync(parentDir));
+      } catch (err) {
+        console.log('Could not list parent dir:', err instanceof Error ? err.message : err);
+      }
+      
+      console.log('==========================');
+      
+      await this.mainWindow.loadFile(rendererPath);
     }
 
     // Force show the window and add error handling

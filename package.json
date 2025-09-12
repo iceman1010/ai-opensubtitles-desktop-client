@@ -22,7 +22,7 @@
     "dist:stable": "npm run generate-file-associations && electron-builder --linux appimage --publish never",
     "dist:dev": "npm run generate-file-associations && electron-builder --linux appimage --linux deb --publish never",
     "generate-file-associations": "node build-scripts/generate-file-associations.js",
-    "generate-update-metadata": "node scripts/generate-update-metadata.js",
+    "generate-update-metadata": "node build-scripts/generate-update-metadata.js",
     "dist:all": "electron-builder --mac --win --linux --publish never",
     "dist:win": "electron-builder --win --publish never",
     "dist:mac": "electron-builder --mac --publish never",

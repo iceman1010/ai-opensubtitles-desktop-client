@@ -195,7 +195,7 @@ function Preferences({ config, onSave, onCancel, setAppProcessing }: Preferences
         <div className="form-group">
           <label htmlFor="apiKey">API Key:</label>
           <input
-            type="password"
+            type="text"
             id="apiKey"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
@@ -604,7 +604,7 @@ function Preferences({ config, onSave, onCancel, setAppProcessing }: Preferences
           }}>
             <h3 style={{ marginBottom: '12px', fontSize: '16px', color: '#c53030', fontWeight: 'bold' }}>Reset Settings</h3>
             <p style={{ fontSize: '14px', color: '#742a2a', marginBottom: '18px', lineHeight: '1.4' }}>
-              This will permanently clear all your login credentials and preferences. Use this to test the fresh install experience.
+              This will permanently clear all your login credentials and preferences. Use this to test the fresh install experience or when switching to a different OpenSubtitles account.
             </p>
             <button
               type="button"
