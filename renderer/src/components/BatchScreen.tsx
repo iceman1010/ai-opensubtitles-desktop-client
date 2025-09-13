@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import FileSelector from './FileSelector';
-import { OpenSubtitlesAPI, LanguageInfo, TranscriptionInfo, TranslationInfo, DetectedLanguage } from '../services/api';
+import { LanguageInfo, TranscriptionInfo, TranslationInfo, DetectedLanguage } from '../services/api';
 import { logger } from '../utils/errorLogger';
 import { isOnline } from '../utils/networkUtils';
+import { useAPI } from '../contexts/APIContext';
 import * as fileFormatsConfig from '../../../shared/fileFormats.json';
 
 // Utility functions for file type checking using shared/fileFormats.json
@@ -122,31 +123,29 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
 
   const [showCompletionSummary, setShowCompletionSummary] = useState(false);
   
-  // API and data states
-  const [transcriptionInfo, setTranscriptionInfo] = useState<TranscriptionInfo | null>(null);
-  const [translationInfo, setTranslationInfo] = useState<TranslationInfo | null>(null);
+  // API and data states - now using centralized APIContext
+  const { 
+    isAuthenticated,
+    transcriptionInfo: contextTranscriptionInfo,
+    translationInfo: contextTranslationInfo,
+    detectLanguage,
+    checkLanguageDetectionStatus,
+    initiateTranscription,
+    initiateTranslation,
+    checkTranscriptionStatus,
+    checkTranslationStatus,
+    getTranscriptionLanguagesForApi,
+    getTranslationLanguagesForApi
+  } = useAPI();
+  
   const [availableTranslationLanguages, setAvailableTranslationLanguages] = useState<LanguageInfo[]>([]);
   const [isLoadingLanguages, setIsLoadingLanguages] = useState(false);
   
-  const apiRef = useRef<OpenSubtitlesAPI | null>(null);
   const processingRef = useRef<boolean>(false);
   const shouldStopRef = useRef<boolean>(false);
   const processedPendingFilesRef = useRef<string[]>([]);
 
-  // Initialize API
-  useEffect(() => {
-    if (config.apiKey) {
-      apiRef.current = new OpenSubtitlesAPI(config.apiKey);
-      
-      // Set API key first (like MainScreen does)
-      if (config.apiKey) {
-        apiRef.current.setApiKey(config.apiKey);
-        logger.info('BatchScreen', 'API Key set successfully');
-      }
-      
-      initializeAPI();
-    }
-  }, [config.apiKey]);
+  // API initialization now handled by APIContext
 
   // Handle pending files from MainScreen redirect
   useEffect(() => {
@@ -175,94 +174,32 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     }
   }, [pendingFiles]);
 
-  const initializeAPI = async () => {
-    if (!apiRef.current) return;
+  // Authentication now handled by APIContext
 
-    try {
-      setAppProcessing(true, 'Checking authentication...');
-      
-      // First try to load cached token (like MainScreen does)
-      const hasCachedToken = await apiRef.current.loadCachedToken();
-      if (hasCachedToken) {
-        logger.info('BatchScreen', 'Using cached authentication token, skipping login');
-        setAppProcessing(true, 'Using cached authentication token...');
-        // Proceed directly to loading API info
-        loadApiInfo();
-        return;
-      }
-      
-      // No valid cached token, proceed with fresh login (like MainScreen does)
-      logger.info('BatchScreen', 'No valid cached token, performing fresh login');
-      setAppProcessing(true, 'Logging in to OpenSubtitles API...');
-      const result = await apiRef.current.login(config.username, config.password);
-      if (!result.success) {
-        logger.error('BatchScreen', 'Login failed', result.error);
-        setAppProcessing(true, 'Login failed - please check credentials');
-        setTimeout(() => setAppProcessing(false), 3000);
-        return;
-      }
-      logger.info('BatchScreen', 'Fresh login successful');
-      setAppProcessing(true, 'Login successful!');
-      // Only load API info after successful login
-      loadApiInfo();
-      
-    } catch (error) {
-      logger.error('BatchScreen', 'API initialization failed:', error);
-      setAppProcessing(true, 'API initialization failed');
-      setTimeout(() => setAppProcessing(false), 3000);
+  // Initialize batch settings when API info is available from context
+  useEffect(() => {
+    if (contextTranscriptionInfo && contextTranscriptionInfo.apis.length > 0) {
+      const defaultModel = contextTranscriptionInfo.apis[0];
+      setBatchSettings(prev => ({ ...prev, transcriptionModel: defaultModel }));
+      loadLanguagesForTranscriptionModel(defaultModel, contextTranscriptionInfo);
     }
-  };
+  }, [contextTranscriptionInfo]);
 
-  const loadApiInfo = async () => {
-    if (!apiRef.current) return;
-
-    try {
-      setAppProcessing(true, 'Loading API information...');
-      
-      // Load transcription and translation info
-      const [transcriptionResult, translationResult] = await Promise.all([
-        apiRef.current.getTranscriptionInfo(),
-        apiRef.current.getTranslationInfo()
-      ]);
-
-      if (transcriptionResult.success && transcriptionResult.data) {
-        setTranscriptionInfo(transcriptionResult.data);
-        
-        // Set default transcription model and load its languages
-        if (transcriptionResult.data.apis && transcriptionResult.data.apis.length > 0) {
-          const defaultModel = transcriptionResult.data.apis[0];
-          setBatchSettings(prev => ({ ...prev, transcriptionModel: defaultModel }));
-          // Load languages for the default transcription model
-          loadLanguagesForTranscriptionModel(defaultModel, transcriptionResult.data);
-        }
-      }
-
-      if (translationResult.success && translationResult.data) {
-        setTranslationInfo(translationResult.data);
-        
-        // Set default translation model and load its languages
-        if (translationResult.data.apis && translationResult.data.apis.length > 0) {
-          const defaultModel = translationResult.data.apis[0];
-          setBatchSettings(prev => ({ ...prev, translationModel: defaultModel }));
-          // Load languages for the default translation model
-          loadLanguagesForTranslationModel(defaultModel, translationResult.data);
-        }
-      }
-
-    } catch (error) {
-      logger.error('BatchScreen', 'Failed to load API info', error);
-    } finally {
-      setAppProcessing(false);
+  useEffect(() => {
+    if (contextTranslationInfo && contextTranslationInfo.apis.length > 0) {
+      const defaultModel = contextTranslationInfo.apis[0];
+      setBatchSettings(prev => ({ ...prev, translationModel: defaultModel }));
+      loadLanguagesForTranslationModel(defaultModel, contextTranslationInfo);
     }
-  };
+  }, [contextTranslationInfo]);
 
   const loadLanguagesForTranscriptionModel = async (modelId: string, transcriptionData?: TranscriptionInfo) => {
     setIsLoadingLanguages(true);
     try {
       logger.info('BatchScreen', `Loading languages for transcription model: ${modelId}`);
       
-      // Use provided data or fall back to state
-      const dataToUse = transcriptionData || transcriptionInfo;
+      // Use provided data or fall back to context
+      const dataToUse = transcriptionData || contextTranscriptionInfo;
       
       // Check if we already have the languages data from the initial load
       if (dataToUse && dataToUse.languages && dataToUse.languages[modelId]) {
@@ -271,7 +208,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
       } else {
         // Fetch languages for this specific model
         logger.info('BatchScreen', `Fetching languages for transcription model: ${modelId}`);
-        const result = await apiRef.current?.getTranscriptionLanguagesForApi(modelId);
+        const result = await getTranscriptionLanguagesForApi(modelId);
         if (result?.success && result.data) {
           const languagesArray = Array.isArray(result.data) ? result.data : [];
         }
@@ -288,8 +225,8 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     try {
       logger.info('BatchScreen', `Loading languages for translation model: ${modelId}`);
       
-      // Use provided data or fall back to state
-      const dataToUse = translationData || translationInfo;
+      // Use provided data or fall back to context
+      const dataToUse = translationData || contextTranslationInfo;
       
       // Check if we already have the languages data from the initial load
       if (dataToUse && dataToUse.languages && dataToUse.languages[modelId]) {
@@ -309,7 +246,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
       } else {
         // Fetch languages for this specific model
         logger.info('BatchScreen', `Fetching languages for translation model: ${modelId}`);
-        const result = await apiRef.current?.getTranslationLanguagesForApi(modelId);
+        const result = await getTranslationLanguagesForApi(modelId);
         if (result?.success && result.data) {
           const languagesArray = Array.isArray(result.data) ? result.data : [];
           setAvailableTranslationLanguages(languagesArray);
@@ -396,7 +333,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
   const updateSourceLanguageSelectionsForModel = (newModel: string) => {
     if (!translationInfo?.languages[newModel]) return;
     
-    const apiLanguages = translationInfo.languages[newModel];
+    const apiLanguages = contextTranslationInfo?.languages[newModel];
     
     setQueue(prev => prev.map(file => {
       if (file.type === 'translation') {
@@ -412,7 +349,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
   const updateSourceLanguageSelectionsForTranscriptionModel = (newModel: string) => {
     if (!transcriptionInfo?.languages[newModel]) return;
     
-    const apiLanguages = transcriptionInfo.languages[newModel];
+    const apiLanguages = contextTranscriptionInfo?.languages[newModel];
     
     setQueue(prev => prev.map(file => {
       if (file.type === 'transcription') {
@@ -445,7 +382,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
         });
         
         if (file.type === 'translation' && translationInfo && batchSettings.translationModel) {
-          const apiLanguages = translationInfo.languages[batchSettings.translationModel];
+          const apiLanguages = contextTranslationInfo?.languages[batchSettings.translationModel];
           if (apiLanguages) {
             const languageCode = detectedLanguage.ISO_639_1;
             const matching = getMatchingSourceLanguages(languageCode, apiLanguages);
@@ -460,7 +397,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
             console.log('BatchScreen: No API languages found for translation model:', batchSettings.translationModel);
           }
         } else if (file.type === 'transcription' && transcriptionInfo && batchSettings.transcriptionModel) {
-          const apiLanguages = transcriptionInfo.languages[batchSettings.transcriptionModel];
+          const apiLanguages = contextTranscriptionInfo?.languages[batchSettings.transcriptionModel];
           if (apiLanguages) {
             const languageCode = detectedLanguage.ISO_639_1;
             const matching = getMatchingSourceLanguages(languageCode, apiLanguages);
@@ -498,12 +435,12 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
       const poll = async () => {
         try {
           attempts++;
-          if (!apiRef.current) {
+          if (!isAuthenticated) {
             resolve(null);
             return;
           }
 
-          const result = await apiRef.current.checkLanguageDetectionStatus(correlationId);
+          const result = await checkLanguageDetectionStatus(correlationId);
           logger.info('BatchScreen', `Polling attempt ${attempts} for correlation ${correlationId}:`, result);
           setAppProcessing(true, `Language detection in progress... (attempt ${attempts}/${maxAttempts})`);
           
@@ -580,7 +517,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     // Use the provided queue or get current queue from state
     const queueToProcess = currentQueue || queue;
     console.log('BatchScreen: queue length:', queueToProcess.length);
-    console.log('BatchScreen: apiRef.current exists:', !!apiRef.current);
+    console.log('BatchScreen: isAuthenticated:', isAuthenticated);
     
     if (isDetectingLanguages || isProcessing) {
       console.log('BatchScreen: Skipping language detection - already in progress');
@@ -610,7 +547,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
 
       // Process files one by one to avoid server overload
       for (const file of filesToDetect) {
-        if (!apiRef.current) break;
+        if (!isAuthenticated) break;
         
         logger.info('BatchScreen', `Detecting language for: ${file.name}`);
         setAppProcessing(true, `Detecting language for ${file.name}...`);
@@ -652,7 +589,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
             }
           }
           
-          const result = await apiRef.current.detectLanguage(fileToProcess);
+          const result = await detectLanguage(fileToProcess);
           logger.info('BatchScreen', `Detection result for ${file.name}:`, result);
           
           if (result.data?.language) {
@@ -928,7 +865,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
 
   // Batch processing functions
   const startBatchProcessing = async () => {
-    if (queue.length === 0 || !apiRef.current) return;
+    if (queue.length === 0 || !isAuthenticated) return;
 
     setIsProcessing(true);
     setIsPaused(false);
@@ -1054,7 +991,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
   };
 
   const processTranscriptionFile = async (file: BatchFile, index: number) => {
-    if (!apiRef.current) throw new Error('API not available');
+    if (!isAuthenticated) throw new Error('API not authenticated');
 
     // Step 1: Initiate transcription
     setQueue(prev => prev.map(f => 
@@ -1062,7 +999,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     ));
     setAppProcessing(true, `Initiating transcription for ${file.name}...`);
 
-    const transcriptionInitResult = await apiRef.current.initiateTranscription(file.path, {
+    const transcriptionInitResult = await initiateTranscription(file.path, {
       language: file.selectedSourceLanguage || file.detectedLanguage?.ISO_639_1 || 'auto',
       api: batchSettings.transcriptionModel,
       returnContent: true
@@ -1110,7 +1047,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
       await writeFileDirectly(outputContent, tempFileName);
       setAppProcessing(true, `Initiating translation for ${file.name}...`);
       
-      const translationInitResult = await apiRef.current.initiateTranslation(tempFileName, {
+      const translationInitResult = await initiateTranslation(tempFileName, {
         translateFrom: file.selectedSourceLanguage || file.detectedLanguage?.ISO_639_1 || 'auto',
         translateTo: batchSettings.targetLanguage,
         api: batchSettings.translationModel,
@@ -1177,7 +1114,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
   };
 
   const processTranslationFile = async (file: BatchFile, index: number) => {
-    if (!apiRef.current) throw new Error('API not available');
+    if (!isAuthenticated) throw new Error('API not authenticated');
 
     // Step 1: Initiate translation
     setQueue(prev => prev.map(f => 
@@ -1185,7 +1122,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     ));
     setAppProcessing(true, `Initiating translation for ${file.name}...`);
 
-    const translationInitResult = await apiRef.current.initiateTranslation(file.path, {
+    const translationInitResult = await initiateTranslation(file.path, {
       translateFrom: file.selectedSourceLanguage || file.detectedLanguage?.ISO_639_1 || 'auto',
       translateTo: batchSettings.targetLanguage,
       api: batchSettings.translationModel,
@@ -1251,8 +1188,8 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
         
         try {
           const result = type === 'transcription' 
-            ? await apiRef.current!.checkTranscriptionStatus(correlationId)
-            : await apiRef.current!.checkTranslationStatus(correlationId);
+            ? await checkTranscriptionStatus(correlationId)
+            : await checkTranslationStatus(correlationId);
             
           logger.info('BatchScreen', `${type} status check (attempt ${attempts}):`, result);
           setAppProcessing(true, `${type.charAt(0).toUpperCase() + type.slice(1)} in progress... (attempt ${attempts}/${maxAttempts})`);
@@ -1429,7 +1366,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
                       >
                         {!file.selectedSourceLanguage && <option value="">{file.detectedLanguage ? 'Select variant...' : 'Select language...'}</option>}
                         {(() => {
-                          const apiLanguages = translationInfo.languages[batchSettings.translationModel] || [];
+                          const apiLanguages = contextTranslationInfo?.languages[batchSettings.translationModel] || [];
                           const matching = getMatchingSourceLanguages(file.detectedLanguage?.ISO_639_1 || null, apiLanguages);
                           return matching.map(lang => (
                             <option key={lang.language_code} value={lang.language_code}>
@@ -1462,7 +1399,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
                       >
                         {!file.selectedSourceLanguage && <option value="">{file.detectedLanguage ? 'Select variant...' : 'Select language...'}</option>}
                         {(() => {
-                          const apiLanguages = transcriptionInfo.languages[batchSettings.transcriptionModel] || [];
+                          const apiLanguages = contextTranscriptionInfo?.languages[batchSettings.transcriptionModel] || [];
                           const matching = getMatchingSourceLanguages(file.detectedLanguage?.ISO_639_1 || null, apiLanguages);
                           return matching.map(lang => (
                             <option key={lang.language_code} value={lang.language_code}>
@@ -1571,7 +1508,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
               {!transcriptionInfo?.apis?.length ? (
                 <option value="">Loading models...</option>
               ) : (
-                transcriptionInfo.apis.map(api => (
+                contextTranscriptionInfo?.apis.map(api => (
                   <option key={api} value={api}>{api}</option>
                 ))
               )}
@@ -1595,7 +1532,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
               {!translationInfo?.apis?.length ? (
                 <option value="">Loading models...</option>
               ) : (
-                translationInfo.apis.map(api => (
+                contextTranslationInfo?.apis.map(api => (
                   <option key={api} value={api}>{api}</option>
                 ))
               )}

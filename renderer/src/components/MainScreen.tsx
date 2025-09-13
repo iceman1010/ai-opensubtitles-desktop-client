@@ -61,13 +61,22 @@ interface MainScreenProps {
 
 function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateToBatch, pendingExternalFile, onExternalFileProcessed, onCreditsUpdate }: MainScreenProps) {
   const { 
-    api, 
     isAuthenticated, 
     credits,
     transcriptionInfo, 
     translationInfo,
     refreshCredits,
-    updateCredits 
+    updateCredits,
+    getTranslationLanguagesForApi,
+    getTranscriptionLanguagesForApi,
+    getTranslationApisForLanguage,
+    detectLanguage,
+    checkLanguageDetectionStatus,
+    initiateTranscription,
+    initiateTranslation,
+    checkTranscriptionStatus,
+    checkTranslationStatus,
+    downloadFile
   } = useAPI();
 
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -212,167 +221,53 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
   }, [pendingExternalFile, onExternalFileProcessed]);
 
 
-  const attemptLogin = async () => {
-    try {
-      // First, try to load cached token
-      const hasCachedToken = await api.loadCachedToken();
-      if (hasCachedToken) {
-        logger.info('MainScreen', 'Using cached authentication token, skipping login');
-        // Proceed directly to loading API info
-        loadApiInfo();
-        return;
-      }
-
-      // No valid cached token, proceed with fresh login
-      logger.info('MainScreen', 'No valid cached token, performing fresh login');
-      const result = await api.login(config.username, config.password);
-      if (!result.success) {
-        logger.error('MainScreen', 'Login failed', result.error);
-        setStatusMessage({ type: 'error', message: `Login failed: ${result.error}` });
-        // Stop trying to load API info if login fails
-        return;
-      }
-      logger.info('MainScreen', 'Fresh login successful');
-      // Only load API info after successful login
-      loadApiInfo();
-    } catch (error) {
-      logger.error('MainScreen', 'Login exception', error);
-      setStatusMessage({ type: 'error', message: 'Login failed with exception' });
-      // Stop trying to load API info if login fails
-      return;
-    }
-  };
+  // Authentication is now handled by APIContext - no individual login needed
 
   // Remove automatic API info loading on component mount
   // API info should only be loaded after successful login
 
-  const loadApiInfo = async () => {
-    logger.info('MainScreen', 'Starting to load API info...');
-    setIsLoadingOptions(true);
-    try {
-      // Load both translation and transcription info
-      const [translationResult, transcriptionResult] = await Promise.all([
-        api.getTranslationInfo(),
-        api.getTranscriptionInfo()
-      ]);
-
-      logger.info('MainScreen', 'Translation result', translationResult);
-      logger.info('MainScreen', 'Transcription result', transcriptionResult);
-
-      if (translationResult.success && translationResult.data) {
-        logger.info('MainScreen', 'Setting translation info');
-        logger.info('MainScreen', 'Translation APIs:', translationResult.data.apis);
-        logger.info('MainScreen', 'Translation languages:', translationResult.data.languages);
-        setTranslationInfo(translationResult.data);
-        setAvailableTranslationApis(translationResult.data.apis);
-        
-        // Set default values
-        if (translationResult.data.apis.length > 0) {
-          const defaultModel = translationResult.data.apis[0];
-          logger.info('MainScreen', `Setting default translation model: ${defaultModel}`);
-          setTranslationOptions(prev => ({ ...prev, model: defaultModel }));
-          // Load languages for the default model
-          loadLanguagesForTranslationModel(defaultModel, translationResult.data);
-        }
-        // Languages will be set by loadLanguagesForTranslationModel call above
-        // No need to set initial languages here since they'll be loaded for the specific model
-      } else {
-        logger.error('MainScreen', 'Translation info failed', translationResult.error);
+  // Initialize options when API info is available from context
+  useEffect(() => {
+    if (translationInfo) {
+      setAvailableTranslationApis(translationInfo.apis);
+      if (translationInfo.apis.length > 0) {
+        const defaultModel = translationInfo.apis[0];
+        setTranslationOptions(prev => ({ ...prev, model: defaultModel }));
+        loadLanguagesForTranslationModel(defaultModel, translationInfo);
       }
-
-      if (transcriptionResult.success && transcriptionResult.data) {
-        logger.info('MainScreen', 'Setting transcription info');
-        setTranscriptionInfo(transcriptionResult.data);
-        // Set default values
-        if (transcriptionResult.data.apis.length > 0) {
-          logger.info('MainScreen', `Setting default transcription model: ${transcriptionResult.data.apis[0]}`);
-          setTranscriptionOptions(prev => ({ ...prev, model: transcriptionResult.data!.apis[0] }));
-        }
-        // Set default language - handle both array and grouped structures
-        let defaultLang = null;
-        if (Array.isArray(transcriptionResult.data.languages)) {
-          // Direct array of languages
-          if (transcriptionResult.data.languages.length > 0) {
-            defaultLang = transcriptionResult.data.languages.find(lang => lang.language_code === 'en') || transcriptionResult.data.languages[0];
-          }
-        } else if (typeof transcriptionResult.data.languages === 'object') {
-          // Grouped by API - get languages from the default model
-          const defaultModel = transcriptionResult.data.apis[0];
-          const modelLanguages = transcriptionResult.data.languages[defaultModel];
-          if (modelLanguages && Array.isArray(modelLanguages) && modelLanguages.length > 0) {
-            defaultLang = modelLanguages.find(lang => lang.language_code === 'en') || modelLanguages[0];
-          }
-        }
-        
-        if (defaultLang) {
-          logger.info('MainScreen', `Setting default transcription language: ${defaultLang.language_code}`);
-          setTranscriptionOptions(prev => ({ ...prev, language: defaultLang.language_code }));
-        } else {
-          // Fallback to auto-detect if no languages found
-          logger.info('MainScreen', 'No transcription languages found, setting to auto-detect');
-          setTranscriptionOptions(prev => ({ ...prev, language: 'auto' }));
-        }
-      } else {
-        logger.error('MainScreen', 'Transcription info failed', transcriptionResult.error);
-      }
-
-      if (!translationResult.success || !transcriptionResult.success) {
-        const errorMsg = translationResult.error || transcriptionResult.error || 'Failed to load API information';
-        logger.error('MainScreen', 'API loading failed', { error: errorMsg });
-        setStatusMessage({ type: 'error', message: errorMsg });
-      } else {
-        logger.info('MainScreen', 'API info loaded successfully');
-        // Load credits after successful API info loading
-        loadCredits();
-      }
-    } catch (error) {
-      logger.error('MainScreen', 'Exception while loading API info', error);
-      setStatusMessage({ type: 'error', message: 'Failed to load API information' });
-    } finally {
-      setIsLoadingOptions(false);
-      logger.info('MainScreen', 'Finished loading API info');
     }
-  };
+  }, [translationInfo]);
 
-  const loadCredits = async () => {
-    // Skip loading credits if we're offline
-    if (!isNetworkOnline) {
-      logger.info('MainScreen', 'Skipping credits loading - device is offline');
-      return;
-    }
-
-    setIsLoadingCredits(true);
-    try {
-      const result = await api.getCredits();
-      if (result.success && typeof result.credits === 'number') {
-        // Update centralized credits (no transaction info in credits check)
-        updateCredits({
-          used: 0, // Credits check doesn't include transaction details
-          remaining: result.credits
-        });
-        // Update global config with credits
-        onCreditsUpdate?.({
-          used: 0, // Credits check doesn't include transaction details
-          remaining: result.credits
-        });
-      } else {
-        logger.error('MainScreen', 'Failed to load credits:', result.error);
-        // Don't show error message for network issues when offline
-        if (isNetworkOnline) {
-          setStatusMessage({ type: 'error', message: `Failed to load credits: ${result.error}` });
+  useEffect(() => {
+    if (transcriptionInfo) {
+      if (transcriptionInfo.apis.length > 0) {
+        setTranscriptionOptions(prev => ({ ...prev, model: transcriptionInfo.apis[0] }));
+      }
+      // Set default language - handle both array and grouped structures
+      let defaultLang = null;
+      if (Array.isArray(transcriptionInfo.languages)) {
+        if (transcriptionInfo.languages.length > 0) {
+          defaultLang = transcriptionInfo.languages.find(lang => lang.language_code === 'en') || transcriptionInfo.languages[0];
+        }
+      } else if (typeof transcriptionInfo.languages === 'object') {
+        const defaultModel = transcriptionInfo.apis[0];
+        const modelLanguages = transcriptionInfo.languages[defaultModel];
+        if (modelLanguages && Array.isArray(modelLanguages) && modelLanguages.length > 0) {
+          defaultLang = modelLanguages.find(lang => lang.language_code === 'en') || modelLanguages[0];
         }
       }
-    } catch (error) {
-      logger.error('MainScreen', 'Credits loading exception:', error);
-      if (isNetworkOnline) {
-        setStatusMessage({ type: 'error', message: 'Failed to load credits due to network error' });
+      
+      if (defaultLang) {
+        setTranscriptionOptions(prev => ({ ...prev, language: defaultLang.language_code }));
+      } else {
+        setTranscriptionOptions(prev => ({ ...prev, language: 'auto' }));
       }
-    } finally {
-      setIsLoadingCredits(false);
     }
-  };
+  }, [transcriptionInfo]);
 
-  const detectLanguage = async () => {
+  // Credits loading now handled by APIContext
+
+  const detectLanguageForFile = async () => {
     if (!selectedFile || isDetectingLanguage) return;
 
     setIsDetectingLanguage(true);
@@ -432,7 +327,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         setAppProcessing(true, 'Detecting language...');
       }
       
-      const result = await api.detectLanguage(fileToProcess);
+      const result = await detectLanguage(fileToProcess);
       
       if (result.data?.language) {
         // Text file - immediate result with data wrapper
@@ -487,7 +382,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
     const poll = async () => {
       try {
         attempts++;
-        const result = await api.checkLanguageDetectionStatus(correlationId);
+        const result = await checkLanguageDetectionStatus(correlationId);
         
         if (result.status === 'COMPLETED' && result.data?.language) {
           await handleDetectedLanguage(result.data.language);
@@ -592,7 +487,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
     if (isSubtitle && translationInfo?.apis) {
       for (const apiName of translationInfo.apis) {
         try {
-          const result = await api.getTranslationLanguagesForApi(apiName);
+          const result = await getTranslationLanguagesForApi(apiName);
           if (result.success && result.data) {
             // The data structure is { data: { data: { apiName: [languages] } } }
             const apiLanguages = result.data.data?.[apiName] || result.data[apiName] || result.data;
@@ -634,7 +529,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       
       for (const apiName of transcriptionInfo.apis) {
         try {
-          const result = await api.getTranscriptionLanguagesForApi(apiName);
+          const result = await getTranscriptionLanguagesForApi(apiName);
           logger.info('MainScreen', `API ${apiName} result:`, { success: result.success, dataLength: result.data?.length });
           
           if (result.success && result.data) {
@@ -734,7 +629,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       }
       
       // Fallback to API call if not in cached data
-      const result = await api.getTranslationLanguagesForApi(modelId);
+      const result = await getTranslationLanguagesForApi(modelId);
       logger.info('MainScreen', 'Translation languages result:', result);
       
       if (result.success && result.data) {
@@ -772,7 +667,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
   const loadModelsForTranslationLanguage = async (sourceLanguage: string, targetLanguage: string) => {
     setIsLoadingDynamicOptions(true);
     try {
-      const result = await api.getTranslationApisForLanguage(sourceLanguage, targetLanguage);
+      const result = await getTranslationApisForLanguage(sourceLanguage, targetLanguage);
       if (result.success && result.data) {
         setAvailableTranslationApis(result.data);
         
@@ -994,7 +889,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           throw new Error('Please select both language and model for transcription');
         }
         
-        result = await api.initiateTranscription(fileToProcess, {
+        result = await initiateTranscription(fileToProcess, {
           language: transcriptionOptions.language,
           api: transcriptionOptions.model,
           returnContent: true
@@ -1006,7 +901,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           throw new Error('Please select source language, destination language, and model for translation');
         }
         
-        result = await api.initiateTranslation(selectedFile, {
+        result = await initiateTranslation(selectedFile, {
           translateFrom: translationOptions.sourceLanguage,
           translateTo: translationOptions.destinationLanguage,
           api: translationOptions.model,
@@ -1062,7 +957,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         // If we have content, show it in preview
         if (result.data.url) {
           // Download the result file content
-          const downloadResult = await api.downloadFile(result.data.url);
+          const downloadResult = await downloadFile(result.data.url);
           if (downloadResult.success && downloadResult.content) {
             setPreviewContent(downloadResult.content);
             setShowPreview(true);
@@ -1113,8 +1008,8 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       
       try {
         const result = type === 'transcription' 
-          ? await api.checkTranscriptionStatus(correlationId)
-          : await api.checkTranslationStatus(correlationId);
+          ? await checkTranscriptionStatus(correlationId)
+          : await checkTranslationStatus(correlationId);
           
         logger.info('MainScreen', `${type} status check:`, result);
         
@@ -1159,7 +1054,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           
           // Download the result file content
           if (result.data.url) {
-            const downloadResult = await api.downloadFile(result.data.url);
+            const downloadResult = await downloadFile(result.data.url);
             if (downloadResult.success && downloadResult.content) {
               setPreviewContent(downloadResult.content);
               setShowPreview(true);
@@ -1428,7 +1323,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '10px' }}>
             <h4 style={{ margin: 0 }}>Language Detection</h4>
             <button 
-              onClick={detectLanguage}
+              onClick={detectLanguageForFile}
               disabled={isDetectingLanguage || isProcessing}
               style={{
                 padding: '8px 16px',

@@ -21,24 +21,22 @@ interface InfoProps {
 }
 
 function Info({ config, setAppProcessing }: InfoProps) {
-  const { api, transcriptionInfo, translationInfo } = useAPI();
+  const { transcriptionInfo, translationInfo, getServicesInfo } = useAPI();
   
   const [servicesInfo, setServicesInfo] = useState<ServicesInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     loadModelInfo();
-  }, [api]);
+  }, []);
 
   const loadModelInfo = async () => {
-    if (!api) return;
-    
     setIsLoading(true);
     setAppProcessing(true, 'Loading model info...');
 
     try {
       // Load services info using centralized API
-      const servicesResult = await api.getServicesInfo();
+      const servicesResult = await getServicesInfo();
 
       if (servicesResult.success) {
         setServicesInfo(servicesResult.data || null);

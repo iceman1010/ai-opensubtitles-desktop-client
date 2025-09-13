@@ -17,6 +17,20 @@ interface APIContextType {
   logout: () => Promise<void>;
   refreshCredits: () => Promise<void>;
   updateCredits: (credits: { used: number; remaining: number }) => void;
+  
+  // Centralized API methods
+  getServicesInfo: () => Promise<{ success: boolean; data?: any; error?: string }>;
+  getCreditPackages: (email?: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+  getTranslationLanguagesForApi: (apiId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+  getTranscriptionLanguagesForApi: (apiId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+  getTranslationApisForLanguage: (sourceLanguage: string, targetLanguage: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+  detectLanguage: (file: File | string) => Promise<any>;
+  checkLanguageDetectionStatus: (correlationId: string) => Promise<any>;
+  initiateTranscription: (audioFile: File | string, options: any) => Promise<any>;
+  initiateTranslation: (subtitleFile: File | string, options: any) => Promise<any>;
+  checkTranscriptionStatus: (correlationId: string) => Promise<any>;
+  checkTranslationStatus: (correlationId: string) => Promise<any>;
+  downloadFile: (url: string) => Promise<{ success: boolean; content?: string; error?: string }>;
 }
 
 const APIContext = createContext<APIContextType | null>(null);
@@ -47,6 +61,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
   const [userInfo, setUserInfo] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [authenticationInProgress, setAuthenticationInProgress] = useState(false);
 
   // Initialize API instance when config is provided
   useEffect(() => {
@@ -62,6 +77,13 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
   }, [initialConfig]);
 
   const authenticateUser = async (apiInstance: OpenSubtitlesAPI, username: string, password: string) => {
+    // Prevent concurrent authentication attempts
+    if (authenticationInProgress) {
+      logger.warn('APIContext', 'Authentication already in progress, skipping duplicate attempt');
+      return false;
+    }
+    
+    setAuthenticationInProgress(true);
     setIsLoading(true);
     setError(null);
     
@@ -111,6 +133,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
       return false;
     } finally {
       setIsLoading(false);
+      setAuthenticationInProgress(false);
     }
   };
 
@@ -184,6 +207,67 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     logger.info('APIContext', `Credits updated: ${newCredits.remaining} remaining, ${newCredits.used} used`);
   }, []);
 
+  // Centralized API methods
+  const getServicesInfo = useCallback(async () => {
+    if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };
+    return await api.getServicesInfo();
+  }, [api, isAuthenticated]);
+
+  const getCreditPackages = useCallback(async (email?: string) => {
+    if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };
+    return await api.getCreditPackages(email);
+  }, [api, isAuthenticated]);
+
+  const getTranslationLanguagesForApi = useCallback(async (apiId: string) => {
+    if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };
+    return await api.getTranslationLanguagesForApi(apiId);
+  }, [api, isAuthenticated]);
+
+  const getTranscriptionLanguagesForApi = useCallback(async (apiId: string) => {
+    if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };
+    return await api.getTranscriptionLanguagesForApi(apiId);
+  }, [api, isAuthenticated]);
+
+  const getTranslationApisForLanguage = useCallback(async (sourceLanguage: string, targetLanguage: string) => {
+    if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };
+    return await api.getTranslationApisForLanguage(sourceLanguage, targetLanguage);
+  }, [api, isAuthenticated]);
+
+  const detectLanguage = useCallback(async (file: File | string) => {
+    if (!api || !isAuthenticated) return { status: 'ERROR', errors: ['API not authenticated'] };
+    return await api.detectLanguage(file);
+  }, [api, isAuthenticated]);
+
+  const checkLanguageDetectionStatus = useCallback(async (correlationId: string) => {
+    if (!api || !isAuthenticated) return { status: 'ERROR', errors: ['API not authenticated'] };
+    return await api.checkLanguageDetectionStatus(correlationId);
+  }, [api, isAuthenticated]);
+
+  const initiateTranscription = useCallback(async (audioFile: File | string, options: any) => {
+    if (!api || !isAuthenticated) return { status: 'ERROR', errors: ['API not authenticated'] };
+    return await api.initiateTranscription(audioFile, options);
+  }, [api, isAuthenticated]);
+
+  const initiateTranslation = useCallback(async (subtitleFile: File | string, options: any) => {
+    if (!api || !isAuthenticated) return { status: 'ERROR', errors: ['API not authenticated'] };
+    return await api.initiateTranslation(subtitleFile, options);
+  }, [api, isAuthenticated]);
+
+  const checkTranscriptionStatus = useCallback(async (correlationId: string) => {
+    if (!api || !isAuthenticated) return { status: 'ERROR', errors: ['API not authenticated'] };
+    return await api.checkTranscriptionStatus(correlationId);
+  }, [api, isAuthenticated]);
+
+  const checkTranslationStatus = useCallback(async (correlationId: string) => {
+    if (!api || !isAuthenticated) return { status: 'ERROR', errors: ['API not authenticated'] };
+    return await api.checkTranslationStatus(correlationId);
+  }, [api, isAuthenticated]);
+
+  const downloadFile = useCallback(async (url: string) => {
+    if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };
+    return await api.downloadFile(url);
+  }, [api, isAuthenticated]);
+
   const contextValue: APIContextType = {
     api,
     isAuthenticated,
@@ -196,7 +280,19 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     login,
     logout,
     refreshCredits,
-    updateCredits
+    updateCredits,
+    getServicesInfo,
+    getCreditPackages,
+    getTranslationLanguagesForApi,
+    getTranscriptionLanguagesForApi,
+    getTranslationApisForLanguage,
+    detectLanguage,
+    checkLanguageDetectionStatus,
+    initiateTranscription,
+    initiateTranslation,
+    checkTranscriptionStatus,
+    checkTranslationStatus,
+    downloadFile
   };
 
   return (
