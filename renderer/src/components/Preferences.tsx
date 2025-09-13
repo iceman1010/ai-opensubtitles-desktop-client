@@ -10,6 +10,7 @@ interface AppConfig {
   checkUpdatesOnStart?: boolean;
   autoRemoveCompletedFiles?: boolean;
   cacheExpirationHours?: number;
+  betaTest?: boolean;
   credits?: {
     used: number;
     remaining: number;
@@ -31,6 +32,7 @@ function Preferences({ config, onSave, onCancel, setAppProcessing }: Preferences
   const [checkUpdatesOnStart, setCheckUpdatesOnStart] = useState(config.checkUpdatesOnStart ?? true);
   const [autoRemoveCompletedFiles, setAutoRemoveCompletedFiles] = useState(config.autoRemoveCompletedFiles ?? false);
   const [cacheExpirationHours, setCacheExpirationHours] = useState(config.cacheExpirationHours ?? 24);
+  const [betaTest, setBetaTest] = useState(config.betaTest ?? false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [fileAssociationStatus, setFileAssociationStatus] = useState<{registered: boolean, associatedFormats: string[]}>({ registered: false, associatedFormats: [] });
@@ -124,7 +126,7 @@ function Preferences({ config, onSave, onCancel, setAppProcessing }: Preferences
     setError('');
     setAppProcessing(true, 'Validating credentials...');
     try {
-      const success = await onSave({ username, password, apiKey, debugMode, checkUpdatesOnStart, autoRemoveCompletedFiles, cacheExpirationHours });
+      const success = await onSave({ username, password, apiKey, debugMode, checkUpdatesOnStart, autoRemoveCompletedFiles, cacheExpirationHours, betaTest });
       if (!success) {
         setError('Failed to save preferences. Please check your credentials.');
       }
@@ -590,6 +592,33 @@ function Preferences({ config, onSave, onCancel, setAppProcessing }: Preferences
             letterSpacing: '1px'
           }}>
             Danger Zone
+          </div>
+        </div>
+
+        {/* Beta Test Section */}
+        <div className="form-group">
+          <div style={{
+            padding: '20px',
+            backgroundColor: '#fff8e1',
+            border: '2px solid #ffd54f',
+            borderRadius: '6px',
+            marginBottom: '15px'
+          }}>
+            <h3 style={{ marginBottom: '12px', fontSize: '16px', color: '#f57f17', fontWeight: 'bold' }}>Beta Testing</h3>
+            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={betaTest}
+                onChange={(e) => setBetaTest(e.target.checked)}
+                style={{ marginRight: '10px' }}
+              />
+              <span style={{ fontSize: '14px', color: '#e65100' }}>
+                Enable beta testing features and updates
+              </span>
+            </label>
+            <p style={{ fontSize: '12px', color: '#ef6c00', marginTop: '8px', lineHeight: '1.4' }}>
+              Receive prerelease versions and experimental features. May contain bugs.
+            </p>
           </div>
         </div>
 

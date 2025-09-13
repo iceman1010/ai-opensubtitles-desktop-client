@@ -490,6 +490,9 @@ class MainApp {
         repo: 'ai-opensubtitles-desktop-client'
       });
       
+      // Fix version comparison issues with missing releases
+      autoUpdater.allowPrerelease = false;
+      
       console.log('Auto-updater feed URL set successfully');
     } catch (error) {
       console.error('Failed to configure auto-updater:', error);
