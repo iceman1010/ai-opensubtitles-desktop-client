@@ -18,7 +18,7 @@
     "build:renderer": "vite build",
     "copy:shared": "cp -r shared dist/",
     "pack": "npm run generate-file-associations && electron-builder --dir",
-    "dist": "npm run generate-file-associations && electron-builder --mac --win --linux --publish never",
+    "dist": "npm run dist:stable",
     "dist:stable": "npm run generate-file-associations && electron-builder --linux appimage --publish never",
     "dist:dev": "npm run generate-file-associations && electron-builder --linux deb --publish never",
     "generate-file-associations": "node build-scripts/generate-file-associations.js",
@@ -436,8 +436,5 @@
     "fluent-ffmpeg": "^2.1.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
-  },
-  "optionalDependencies": {
-    "dmg-license": "^1.0.11"
   }
 }
