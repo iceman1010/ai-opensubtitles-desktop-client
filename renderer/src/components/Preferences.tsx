@@ -20,11 +20,10 @@ interface AppConfig {
 interface PreferencesProps {
   config: AppConfig;
   onSave: (config: Partial<AppConfig>) => Promise<boolean>;
-  onCancel: () => void;
   setAppProcessing: (processing: boolean, task?: string) => void;
 }
 
-function Preferences({ config, onSave, onCancel, setAppProcessing }: PreferencesProps) {
+function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
   const [username, setUsername] = useState(config.username || '');
   const [password, setPassword] = useState(config.password || '');
   const [apiKey, setApiKey] = useState(config.apiKey || '');
@@ -427,14 +426,6 @@ function Preferences({ config, onSave, onCancel, setAppProcessing }: Preferences
           >
             {isLoading ? 'Saving...' : 'Save'}
           </button>
-          <button
-            type="button"
-            className="button secondary"
-            onClick={onCancel}
-            disabled={isLoading}
-          >
-            Cancel
-          </button>
         </div>
         
         {/* File Associations Section */}
@@ -605,14 +596,24 @@ function Preferences({ config, onSave, onCancel, setAppProcessing }: Preferences
             marginBottom: '15px'
           }}>
             <h3 style={{ marginBottom: '12px', fontSize: '16px', color: '#f57f17', fontWeight: 'bold' }}>Beta Testing</h3>
-            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+            <label style={{ 
+              display: 'flex !important', 
+              alignItems: 'center', 
+              cursor: 'pointer',
+              justifyContent: 'flex-start',
+              textAlign: 'left'
+            }}>
               <input
                 type="checkbox"
                 checked={betaTest}
                 onChange={(e) => setBetaTest(e.target.checked)}
-                style={{ marginRight: '10px' }}
+                style={{ 
+                  marginRight: '10px',
+                  width: 'auto',
+                  flexShrink: 0
+                }}
               />
-              <span style={{ fontSize: '14px', color: '#e65100' }}>
+              <span style={{ fontSize: '14px', color: '#e65100', textAlign: 'left' }}>
                 Enable beta testing features and updates
               </span>
             </label>

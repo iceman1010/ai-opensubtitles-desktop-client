@@ -21,14 +21,16 @@ interface InfoProps {
 }
 
 function Info({ config, setAppProcessing }: InfoProps) {
-  const { transcriptionInfo, translationInfo, getServicesInfo } = useAPI();
+  const { transcriptionInfo: contextTranscriptionInfo, translationInfo, getServicesInfo, isAuthenticated } = useAPI();
   
   const [servicesInfo, setServicesInfo] = useState<ServicesInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadModelInfo();
-  }, []);
+    if (isAuthenticated) {
+      loadModelInfo();
+    }
+  }, [isAuthenticated]);
 
   const loadModelInfo = async () => {
     setIsLoading(true);

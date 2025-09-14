@@ -137,6 +137,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     getTranscriptionLanguagesForApi,
     getTranslationLanguagesForApi
   } = useAPI();
+
   
   const [availableTranslationLanguages, setAvailableTranslationLanguages] = useState<LanguageInfo[]>([]);
   const [isLoadingLanguages, setIsLoadingLanguages] = useState(false);
@@ -192,6 +193,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
       loadLanguagesForTranslationModel(defaultModel, contextTranslationInfo);
     }
   }, [contextTranslationInfo]);
+
 
   const loadLanguagesForTranscriptionModel = async (modelId: string, transcriptionData?: TranscriptionInfo) => {
     setIsLoadingLanguages(true);
@@ -331,7 +333,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
 
   // Update source language selections when translation model changes
   const updateSourceLanguageSelectionsForModel = (newModel: string) => {
-    if (!translationInfo?.languages[newModel]) return;
+    if (!contextTranslationInfo?.languages[newModel]) return;
     
     const apiLanguages = contextTranslationInfo?.languages[newModel];
     
@@ -347,7 +349,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
 
   // Update source language selections when transcription model changes
   const updateSourceLanguageSelectionsForTranscriptionModel = (newModel: string) => {
-    if (!transcriptionInfo?.languages[newModel]) return;
+    if (!contextTranscriptionInfo?.languages[newModel]) return;
     
     const apiLanguages = contextTranscriptionInfo?.languages[newModel];
     
@@ -376,12 +378,12 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
         let selectedSourceLanguage = file.selectedSourceLanguage;
         console.log('BatchScreen: Auto-selection check for file:', file.name, {
           fileType: file.type,
-          hasTranslationInfo: !!translationInfo,
+          hasTranslationInfo: !!contextTranslationInfo,
           translationModel: batchSettings.translationModel,
           detectedLanguage: detectedLanguage.ISO_639_1
         });
         
-        if (file.type === 'translation' && translationInfo && batchSettings.translationModel) {
+        if (file.type === 'translation' && contextTranslationInfo && batchSettings.translationModel) {
           const apiLanguages = contextTranslationInfo?.languages[batchSettings.translationModel];
           if (apiLanguages) {
             const languageCode = detectedLanguage.ISO_639_1;
@@ -396,7 +398,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
           } else {
             console.log('BatchScreen: No API languages found for translation model:', batchSettings.translationModel);
           }
-        } else if (file.type === 'transcription' && transcriptionInfo && batchSettings.transcriptionModel) {
+        } else if (file.type === 'transcription' && contextTranscriptionInfo && batchSettings.transcriptionModel) {
           const apiLanguages = contextTranscriptionInfo?.languages[batchSettings.transcriptionModel];
           if (apiLanguages) {
             const languageCode = detectedLanguage.ISO_639_1;
@@ -521,6 +523,11 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     
     if (isDetectingLanguages || isProcessing) {
       console.log('BatchScreen: Skipping language detection - already in progress');
+      return;
+    }
+
+    if (!isAuthenticated) {
+      console.log('BatchScreen: Skipping language detection - not authenticated');
       return;
     }
 
@@ -666,7 +673,19 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     } finally {
       setIsDetectingLanguages(false);
     }
-  }, [isDetectingLanguages, isProcessing]);
+  }, [isDetectingLanguages, isProcessing, isAuthenticated, detectLanguage, checkLanguageDetectionStatus, setAppProcessing]);
+
+  // Trigger language detection when authentication becomes available
+  useEffect(() => {
+    if (isAuthenticated && queue.length > 0) {
+      const filesToDetect = queue.filter(file => 
+        file.status === 'pending' && !file.detectedLanguage
+      );
+      if (filesToDetect.length > 0) {
+        processLanguageDetectionQueue();
+      }
+    }
+  }, [isAuthenticated, queue]);
 
   // File selection handlers
   const handleSingleFileSelect = async (filePath: string) => {
@@ -1346,7 +1365,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
                   </div>
                   
                   {/* Source Language Selector for Translation Files */}
-                  {file.type === 'translation' && translationInfo && batchSettings.translationModel && (
+                  {file.type === 'translation' && contextTranslationInfo && batchSettings.translationModel && (
                     <div style={{ marginTop: '8px' }}>
                       <label style={{ fontSize: '11px', color: '#666', display: 'block', marginBottom: '4px' }}>
                         Source Language:
@@ -1379,7 +1398,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
                   )}
                   
                   {/* Source Language Selector for Transcription Files */}
-                  {file.type === 'transcription' && transcriptionInfo && batchSettings.transcriptionModel && (
+                  {file.type === 'transcription' && contextTranscriptionInfo && batchSettings.transcriptionModel && (
                     <div style={{ marginTop: '8px' }}>
                       <label style={{ fontSize: '11px', color: '#666', display: 'block', marginBottom: '4px' }}>
                         Source Language:
@@ -1505,7 +1524,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
               disabled={isProcessing || !uiState.transcriptionEnabled}
               style={{ width: '100%', padding: '5px', opacity: uiState.transcriptionEnabled ? 1 : 0.5 }}
             >
-              {!transcriptionInfo?.apis?.length ? (
+              {!contextTranscriptionInfo?.apis?.length ? (
                 <option value="">Loading models...</option>
               ) : (
                 contextTranscriptionInfo?.apis.map(api => (
@@ -1529,7 +1548,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
               disabled={isProcessing || !uiState.translationEnabled}
               style={{ width: '100%', padding: '5px', opacity: uiState.translationEnabled ? 1 : 0.5 }}
             >
-              {!translationInfo?.apis?.length ? (
+              {!contextTranslationInfo?.apis?.length ? (
                 <option value="">Loading models...</option>
               ) : (
                 contextTranslationInfo?.apis.map(api => (

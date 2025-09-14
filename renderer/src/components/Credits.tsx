@@ -20,7 +20,7 @@ interface CreditsProps {
 }
 
 function Credits({ config, setAppProcessing }: CreditsProps) {
-  const { credits, refreshCredits, getCreditPackages } = useAPI();
+  const { credits, refreshCredits, getCreditPackages, isAuthenticated } = useAPI();
   
   const [creditPackages, setCreditPackages] = useState<CreditPackage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -28,8 +28,10 @@ function Credits({ config, setAppProcessing }: CreditsProps) {
   const [isLoadingCredits, setIsLoadingCredits] = useState(false);
 
   useEffect(() => {
-    loadCreditPackages();
-  }, []);
+    if (isAuthenticated) {
+      loadCreditPackages();
+    }
+  }, [isAuthenticated]);
 
   const loadCurrentCredits = async () => {
     if (refreshCredits) {

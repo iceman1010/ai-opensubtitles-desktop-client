@@ -248,7 +248,6 @@ function AppContent({
       if (success) {
         const updatedConfig = await window.electronAPI.getConfig();
         setConfig(updatedConfig);
-        setCurrentScreen('main');
         return true;
       }
       return false;
@@ -447,20 +446,15 @@ function AppContent({
             <Preferences
               config={config}
               onSave={handlePreferencesSave}
-              onCancel={() => setCurrentScreen('main')}
               setAppProcessing={setAppProcessing}
             />
           )}
         </div>
         <div style={{ display: currentScreen === 'update' ? 'block' : 'none' }}>
-          <Update
-            onCancel={() => setCurrentScreen('main')}
-          />
+          <Update />
         </div>
         <div style={{ display: currentScreen === 'help' ? 'block' : 'none' }}>
-          <Help
-            onCancel={() => setCurrentScreen('main')}
-          />
+          <Help />
         </div>
       </div>
 

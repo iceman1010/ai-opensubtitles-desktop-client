@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-interface UpdateProps {
-  onCancel: () => void;
-}
+interface UpdateProps {}
 
 interface ReleaseInfo {
   tag_name: string;
@@ -11,16 +9,16 @@ interface ReleaseInfo {
   body: string;
 }
 
-function Update({ onCancel }: UpdateProps) {
+function Update({}: UpdateProps) {
   const [updateStatus, setUpdateStatus] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [currentVersion, setCurrentVersion] = useState<string>('');
   const [releaseHistory, setReleaseHistory] = useState<ReleaseInfo[]>([]);
-  const [showHistory, setShowHistory] = useState(false);
+  const [showHistory, setShowHistory] = useState(true);
 
   useEffect(() => {
     // Get current version from package.json
-    setCurrentVersion('1.0.8'); // This should ideally be dynamic
+    setCurrentVersion('1.4.8');
 
     // Set up update status listener
     const handleUpdateStatus = (_event: any, status: { event: string, message: string }) => {
@@ -40,36 +38,21 @@ function Update({ onCancel }: UpdateProps) {
 
   const loadReleaseHistory = async () => {
     try {
-      // This would ideally fetch from GitHub API
-      // For now, we'll use some sample data
-      const sampleReleases: ReleaseInfo[] = [
-        {
-          tag_name: 'v1.0.8',
-          name: 'Version 1.0.8',
-          published_at: '2025-09-01T15:07:44Z',
-          body: '## What\'s New\n\n- Fixed SHA512 checksum validation for auto-updater\n- Improved cross-platform metadata generation\n- Enhanced update process reliability\n\n## Bug Fixes\n\n- Fixed filename mismatch issues between local builds and GitHub releases\n- Resolved 404 download errors in auto-updater\n- Fixed checksum verification errors'
-        },
-        {
-          tag_name: 'v1.0.7',
-          name: 'Version 1.0.7',
-          published_at: '2025-08-31T12:00:00Z',
-          body: '## Improvements\n\n- Enhanced auto-updater metadata generation\n- Added comprehensive logging for update process\n- Improved error handling for failed updates'
-        },
-        {
-          tag_name: 'v1.0.6',
-          name: 'Version 1.0.6',
-          published_at: '2025-08-30T10:30:00Z',
-          body: '## Features\n\n- Implemented automatic update checking\n- Added GitHub Actions CI/CD pipeline\n- Enhanced cross-platform build process'
-        },
-        {
-          tag_name: 'v1.0.5',
-          name: 'Version 1.0.5',
-          published_at: '2025-08-29T14:15:00Z',
-          body: '## New Features\n\n- Added credit balance warning modal\n- Implemented status bar text truncation\n- Enhanced user experience with better error messages\n\n## Bug Fixes\n\n- Fixed text overlap issues in status bar\n- Improved modal navigation flow'
-        }
-      ];
+      // Fetch real releases from GitHub API
+      const response = await fetch('https://api.github.com/repos/iceman1010/ai-opensubtitles-desktop-client/releases');
+      if (!response.ok) {
+        throw new Error(`GitHub API error: ${response.status}`);
+      }
       
-      setReleaseHistory(sampleReleases);
+      const releases = await response.json();
+      const formattedReleases: ReleaseInfo[] = releases.slice(0, 10).map((release: any) => ({
+        tag_name: release.tag_name,
+        name: release.name || release.tag_name,
+        published_at: release.published_at,
+        body: release.body || 'No release notes available.'
+      }));
+      
+      setReleaseHistory(formattedReleases);
     } catch (error) {
       console.error('Failed to load release history:', error);
     }
@@ -287,15 +270,6 @@ function Update({ onCancel }: UpdateProps) {
         </div>
       </div>
 
-      <div className="button-group">
-        <button
-          type="button"
-          className="button secondary"
-          onClick={onCancel}
-        >
-          Close
-        </button>
-      </div>
     </div>
   );
 }

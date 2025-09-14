@@ -63,7 +63,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
   const { 
     isAuthenticated, 
     credits,
-    transcriptionInfo, 
+    contextTranscriptionInfo: contextTranscriptionInfo, 
     translationInfo,
     refreshCredits,
     updateCredits,
@@ -135,12 +135,12 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
 
   // Initialize API info when context provides data
   useEffect(() => {
-    if (transcriptionInfo) {
-      setAvailableTranscriptionApis(transcriptionInfo.apis);
+    if (contextTranscriptionInfo) {
+      setAvailableTranscriptionApis(contextTranscriptionInfo.apis);
       
       // Set default transcription model and language
-      if (transcriptionInfo.apis.length > 0) {
-        const defaultModel = transcriptionInfo.apis[0];
+      if (contextTranscriptionInfo.apis.length > 0) {
+        const defaultModel = contextTranscriptionInfo.apis[0];
         logger.info('MainScreen', `Setting default transcription model: ${defaultModel}`);
         setTranscriptionOptions(prev => ({ ...prev, model: defaultModel }));
         
@@ -148,7 +148,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         loadTranscriptionLanguages(defaultModel);
       }
     }
-  }, [transcriptionInfo]);
+  }, [contextTranscriptionInfo]);
 
   useEffect(() => {
     if (translationInfo) {
@@ -168,17 +168,17 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
 
   // Language loading functions
   const loadTranscriptionLanguages = async (model: string) => {
-    if (!transcriptionInfo) return;
+    if (!contextTranscriptionInfo) return;
     
     try {
       let languages: LanguageInfo[] = [];
       
-      if (Array.isArray(transcriptionInfo.languages)) {
+      if (Array.isArray(contextTranscriptionInfo.languages)) {
         // Simple array format - use all languages
-        languages = transcriptionInfo.languages;
-      } else if (typeof transcriptionInfo.languages === 'object' && transcriptionInfo.languages[model]) {
+        languages = contextTranscriptionInfo.languages;
+      } else if (typeof contextTranscriptionInfo.languages === 'object' && contextTranscriptionInfo.languages[model]) {
         // Grouped by API - get languages for specific model
-        languages = transcriptionInfo.languages[model];
+        languages = contextTranscriptionInfo.languages[model];
       }
       
       setAvailableTranscriptionLanguages(languages);
@@ -239,19 +239,19 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
   }, [translationInfo]);
 
   useEffect(() => {
-    if (transcriptionInfo) {
-      if (transcriptionInfo.apis.length > 0) {
-        setTranscriptionOptions(prev => ({ ...prev, model: transcriptionInfo.apis[0] }));
+    if (contextTranscriptionInfo) {
+      if (contextTranscriptionInfo.apis.length > 0) {
+        setTranscriptionOptions(prev => ({ ...prev, model: contextTranscriptionInfo.apis[0] }));
       }
       // Set default language - handle both array and grouped structures
       let defaultLang = null;
-      if (Array.isArray(transcriptionInfo.languages)) {
-        if (transcriptionInfo.languages.length > 0) {
-          defaultLang = transcriptionInfo.languages.find(lang => lang.language_code === 'en') || transcriptionInfo.languages[0];
+      if (Array.isArray(contextTranscriptionInfo.languages)) {
+        if (contextTranscriptionInfo.languages.length > 0) {
+          defaultLang = contextTranscriptionInfo.languages.find(lang => lang.language_code === 'en') || contextTranscriptionInfo.languages[0];
         }
-      } else if (typeof transcriptionInfo.languages === 'object') {
-        const defaultModel = transcriptionInfo.apis[0];
-        const modelLanguages = transcriptionInfo.languages[defaultModel];
+      } else if (typeof contextTranscriptionInfo.languages === 'object') {
+        const defaultModel = contextTranscriptionInfo.apis[0];
+        const modelLanguages = contextTranscriptionInfo.languages[defaultModel];
         if (modelLanguages && Array.isArray(modelLanguages) && modelLanguages.length > 0) {
           defaultLang = modelLanguages.find(lang => lang.language_code === 'en') || modelLanguages[0];
         }
@@ -263,7 +263,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         setTranscriptionOptions(prev => ({ ...prev, language: 'auto' }));
       }
     }
-  }, [transcriptionInfo]);
+  }, [contextTranscriptionInfo]);
 
   // Credits loading now handled by APIContext
 
@@ -479,7 +479,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       selectedFile,
       isSubtitle,
       isAudioVideo,
-      transcriptionInfoApis: transcriptionInfo?.apis,
+      contextTranscriptionInfoApis: contextTranscriptionInfo?.apis,
       translationInfoApis: translationInfo?.apis
     });
     
@@ -524,10 +524,10 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
     }
     
     // Only check transcription models for audio/video files
-    if (isAudioVideo && transcriptionInfo?.apis) {
-      logger.info('MainScreen', `Checking ${transcriptionInfo.apis.length} transcription APIs for language: ${languageCode}`);
+    if (isAudioVideo && contextTranscriptionInfo?.apis) {
+      logger.info('MainScreen', `Checking ${contextTranscriptionInfo.apis.length} transcription APIs for language: ${languageCode}`);
       
-      for (const apiName of transcriptionInfo.apis) {
+      for (const apiName of contextTranscriptionInfo.apis) {
         try {
           const result = await getTranscriptionLanguagesForApi(apiName);
           logger.info('MainScreen', `API ${apiName} result:`, { success: result.success, dataLength: result.data?.length });
@@ -586,8 +586,8 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
     } else {
       logger.info('MainScreen', 'Skipping transcription check:', { 
         isAudioVideo, 
-        hasTranscriptionInfo: !!transcriptionInfo,
-        hasApis: !!transcriptionInfo?.apis 
+        hasTranscriptionInfo: !!contextTranscriptionInfo,
+        hasApis: !!contextTranscriptionInfo?.apis 
       });
     }
     
@@ -1474,7 +1474,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
             <ImprovedTranscriptionOptions 
               options={transcriptionOptions}
               setOptions={setTranscriptionOptions}
-              transcriptionInfo={transcriptionInfo}
+              contextTranscriptionInfo={contextTranscriptionInfo}
               disabled={isProcessing || isDetectingLanguage}
             />
           ) : (

@@ -74,7 +74,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
         authenticateUser(apiInstance, initialConfig.username, initialConfig.password);
       }
     }
-  }, [initialConfig]);
+  }, [initialConfig?.apiKey, initialConfig?.username, initialConfig?.password]);
 
   const authenticateUser = async (apiInstance: OpenSubtitlesAPI, username: string, password: string) => {
     // Prevent concurrent authentication attempts

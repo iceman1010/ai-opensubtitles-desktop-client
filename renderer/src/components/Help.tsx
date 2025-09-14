@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import * as fileFormatsConfig from '../../../shared/fileFormats.json';
 
-interface HelpProps {
-  onCancel: () => void;
-}
+interface HelpProps {}
 
-const Help: React.FC<HelpProps> = ({ onCancel }) => {
+const Help: React.FC<HelpProps> = ({}) => {
   const [activeSection, setActiveSection] = useState<'getting-started' | 'command-line' | 'file-associations' | 'file-formats' | 'transcription' | 'translation' | 'batch-processing' | 'troubleshooting' | 'shortcuts'>('getting-started');
 
   const sections = {
