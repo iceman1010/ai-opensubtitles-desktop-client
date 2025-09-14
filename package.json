@@ -425,7 +425,6 @@
     "@types/react-dom": "^18.2.18",
     "@vitejs/plugin-react": "^4.2.1",
     "concurrently": "^8.2.2",
-    "dmg-license": "^1.0.11",
     "electron": "^28.0.0",
     "electron-builder": "^24.8.1",
     "typescript": "^5.3.3",
@@ -437,5 +436,8 @@
     "fluent-ffmpeg": "^2.1.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
+  },
+  "optionalDependencies": {
+    "dmg-license": "^1.0.11"
   }
 }
