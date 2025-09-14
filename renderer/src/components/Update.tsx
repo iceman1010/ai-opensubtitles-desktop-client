@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import packageJson from '../../../package.json';
 
 interface UpdateProps {}
 
@@ -18,7 +19,7 @@ function Update({}: UpdateProps) {
 
   useEffect(() => {
     // Get current version from package.json
-    setCurrentVersion('1.4.8');
+    setCurrentVersion(packageJson.version);
 
     // Set up update status listener
     const handleUpdateStatus = (_event: any, status: { event: string, message: string }) => {

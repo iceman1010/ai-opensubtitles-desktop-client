@@ -9,6 +9,10 @@ export interface AppConfig {
   lastUsedLanguage?: string;
   debugMode?: boolean;
   checkUpdatesOnStart?: boolean;
+  autoRemoveCompletedFiles?: boolean;
+  cacheExpirationHours?: number;
+  betaTest?: boolean;
+  ffmpegPath?: string;
   credits?: {
     used: number;
     remaining: number;
@@ -41,6 +45,10 @@ export class ConfigManager {
       apiKey: '',
       debugMode: false,
       checkUpdatesOnStart: true,
+      autoRemoveCompletedFiles: false,
+      cacheExpirationHours: 24,
+      betaTest: false,
+      ffmpegPath: '',
     };
   }
 

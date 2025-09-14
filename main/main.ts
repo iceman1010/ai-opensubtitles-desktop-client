@@ -50,7 +50,7 @@ class MainApp {
     await app.whenReady();
     
     // Get user-agent from config, fallback to hardcoded value
-    const config = await this.configManager.getConfig();
+    const userConfig = await this.configManager.getConfig();
     let customUserAgent = 'API_Test_AI.OS'; // fallback
     
     try {
@@ -74,13 +74,14 @@ class MainApp {
     await this.createWindow();
     await this.setupIPC();
     await this.setupAutoUpdater();
-    await this.ffmpegManager.initialize();
+    const appConfig = this.configManager.getConfig();
+    await this.ffmpegManager.initialize(appConfig.ffmpegPath);
   }
 
   private async createWindow() {
     // Check if debug mode is enabled
-    const config = await this.configManager.getConfig();
-    const isDebugMode = config.debugMode || false;
+    const windowConfig = await this.configManager.getConfig();
+    const isDebugMode = windowConfig.debugMode || false;
     
     this.mainWindow = new BrowserWindow({
       width: 1200,
@@ -531,8 +532,8 @@ class MainApp {
     });
 
     // Check for updates on startup if enabled
-    const config = await this.configManager.getConfig();
-    if (config.checkUpdatesOnStart) {
+    const updateConfig = await this.configManager.getConfig();
+    if (updateConfig.checkUpdatesOnStart) {
       setTimeout(() => {
         this.checkForUpdates();
       }, 3000); // Wait 3 seconds after startup
@@ -614,7 +615,13 @@ class MainApp {
     });
 
     ipcMain.handle('save-config', async (_, config) => {
-      return this.configManager.saveConfig(config);
+      const result = this.configManager.saveConfig(config);
+      // Reinitialize FFmpeg if the path changed
+      if (config.ffmpegPath !== undefined) {
+        this.ffmpegManager = new (require('./ffmpeg').FFmpegManager)();
+        await this.ffmpegManager.initialize(config.ffmpegPath);
+      }
+      return result;
     });
 
     ipcMain.handle('select-file', async () => {
@@ -902,6 +909,15 @@ class MainApp {
     ipcMain.handle('register-file-associations', async () => {
       return this.registerFileAssociations();
     });
+
+    // FFmpeg handlers
+    ipcMain.handle('test-ffmpeg-path', async (_, path: string) => {
+      return this.testFfmpegPath(path);
+    });
+
+    ipcMain.handle('open-ffmpeg-dialog', async () => {
+      return this.openFfmpegDialog();
+    });
   }
 
   private async checkFileAssociations(): Promise<{registered: boolean, associatedFormats: string[]}> {
@@ -1183,6 +1199,99 @@ MimeType=`;
       // Multiple files - send to Batch screen
       console.log(`Sending ${filePaths.length} files to Batch screen:`, filePaths);
       this.mainWindow.webContents.send('open-files-from-external', filePaths);
+    }
+  }
+
+  private async testFfmpegPath(path: string): Promise<{success: boolean, message: string}> {
+    if (!path.trim()) {
+      return { success: false, message: 'Path is empty. Use auto-detection instead.' };
+    }
+
+    console.log(`Testing FFmpeg path: ${path}`);
+    
+    return new Promise((resolve) => {
+      const { spawn } = require('child_process');
+      const child = spawn(path, ['-version'], { stdio: 'pipe' });
+      
+      let output = '';
+      child.stdout.on('data', (data: any) => {
+        output += data.toString();
+      });
+
+      child.on('close', (code: number) => {
+        const success = code === 0;
+        const message = success 
+          ? `FFmpeg path is valid and working: ${path}`
+          : `FFmpeg path failed to execute. Exit code: ${code}`;
+        
+        console.log(`FFmpeg test result: ${success ? 'SUCCESS' : 'FAILED'} - ${message}`);
+        resolve({ success, message });
+      });
+
+      child.on('error', (error: any) => {
+        const message = `FFmpeg path not found or not executable: ${error.message}`;
+        console.log(`FFmpeg test error: ${message}`);
+        resolve({ success: false, message });
+      });
+
+      // Timeout after 5 seconds
+      setTimeout(() => {
+        child.kill();
+        const message = 'FFmpeg test timed out after 5 seconds';
+        console.log(message);
+        resolve({ success: false, message });
+      }, 5000);
+    });
+  }
+
+  private async openFfmpegDialog(): Promise<{filePath?: string, cancelled: boolean}> {
+    if (!this.mainWindow) {
+      return { cancelled: true };
+    }
+
+    try {
+      const { dialog } = require('electron');
+      const os = require('os');
+      
+      // Platform-specific default paths and filters
+      let defaultPath = '';
+      let filters: any[] = [];
+      
+      if (os.platform() === 'win32') {
+        // Windows
+        filters = [
+          { name: 'Executable Files', extensions: ['exe'] },
+          { name: 'All Files', extensions: ['*'] }
+        ];
+      } else {
+        // macOS/Linux - no extension needed
+        filters = [{ name: 'All Files', extensions: ['*'] }];
+        
+        // Suggest common paths based on platform
+        if (os.platform() === 'darwin') {
+          defaultPath = '/usr/local/bin'; // Start in common macOS location
+        } else {
+          defaultPath = '/usr/bin'; // Start in common Linux location
+        }
+      }
+      
+      const result = await dialog.showOpenDialog(this.mainWindow, {
+        title: 'Select FFmpeg Executable',
+        defaultPath,
+        filters,
+        properties: ['openFile']
+      });
+
+      console.log('FFmpeg file dialog result:', result);
+      
+      if (result.canceled || !result.filePaths.length) {
+        return { cancelled: true };
+      }
+
+      return { filePath: result.filePaths[0], cancelled: false };
+    } catch (error) {
+      console.error('Error opening FFmpeg dialog:', error);
+      return { cancelled: true };
     }
   }
 }

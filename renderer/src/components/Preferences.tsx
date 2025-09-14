@@ -11,6 +11,7 @@ interface AppConfig {
   autoRemoveCompletedFiles?: boolean;
   cacheExpirationHours?: number;
   betaTest?: boolean;
+  ffmpegPath?: string;
   credits?: {
     used: number;
     remaining: number;
@@ -32,8 +33,11 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
   const [autoRemoveCompletedFiles, setAutoRemoveCompletedFiles] = useState(config.autoRemoveCompletedFiles ?? false);
   const [cacheExpirationHours, setCacheExpirationHours] = useState(config.cacheExpirationHours ?? 24);
   const [betaTest, setBetaTest] = useState(config.betaTest ?? false);
+  const [ffmpegPath, setFfmpegPath] = useState(config.ffmpegPath || '');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isTestingFfmpeg, setIsTestingFfmpeg] = useState(false);
+  const [ffmpegTestResult, setFfmpegTestResult] = useState<{success: boolean, message: string} | null>(null);
   const [fileAssociationStatus, setFileAssociationStatus] = useState<{registered: boolean, associatedFormats: string[]}>({ registered: false, associatedFormats: [] });
   const [isCheckingAssociations, setIsCheckingAssociations] = useState(false);
   const [isRegisteringAssociations, setIsRegisteringAssociations] = useState(false);
@@ -59,6 +63,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
           setDebugMode(false);
           setCheckUpdatesOnStart(true);
           setAutoRemoveCompletedFiles(false);
+          setFfmpegPath('');
           setError('');
           alert('All settings have been reset successfully.');
         } else {
@@ -125,7 +130,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
     setError('');
     setAppProcessing(true, 'Validating credentials...');
     try {
-      const success = await onSave({ username, password, apiKey, debugMode, checkUpdatesOnStart, autoRemoveCompletedFiles, cacheExpirationHours, betaTest });
+      const success = await onSave({ username, password, apiKey, debugMode, checkUpdatesOnStart, autoRemoveCompletedFiles, cacheExpirationHours, betaTest, ffmpegPath });
       if (!success) {
         setError('Failed to save preferences. Please check your credentials.');
       }
@@ -149,6 +154,34 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
       } finally {
         setIsClearingCache(false);
       }
+    }
+  };
+
+  const handleTestFfmpeg = async () => {
+    setIsTestingFfmpeg(true);
+    setFfmpegTestResult(null);
+    
+    try {
+      const result = await window.electronAPI.testFfmpegPath(ffmpegPath);
+      setFfmpegTestResult(result);
+      console.log('FFmpeg test result:', result);
+    } catch (error) {
+      console.error('Failed to test FFmpeg path:', error);
+      setFfmpegTestResult({ success: false, message: 'Failed to test FFmpeg path' });
+    } finally {
+      setIsTestingFfmpeg(false);
+    }
+  };
+
+  const handleBrowseForFfmpeg = async () => {
+    try {
+      const result = await window.electronAPI.openFfmpegDialog();
+      if (result.filePath) {
+        setFfmpegPath(result.filePath);
+        setFfmpegTestResult(null);
+      }
+    } catch (error) {
+      console.error('Failed to open FFmpeg dialog:', error);
     }
   };
 
@@ -414,6 +447,151 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
                   {isClearingCache ? 'Clearing...' : 'Clear Cache Now'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* FFmpeg Configuration */}
+        <div className="form-group">
+          <div style={{
+            padding: '20px',
+            backgroundColor: '#f8f9fa',
+            border: '2px solid #e9ecef',
+            borderRadius: '6px',
+            marginBottom: '15px'
+          }}>
+            <h3 style={{ marginBottom: '12px', fontSize: '16px', color: '#495057', fontWeight: 'bold' }}>FFmpeg Configuration</h3>
+            <p style={{ fontSize: '14px', color: '#6c757d', marginBottom: '18px', lineHeight: '1.4' }}>
+              FFmpeg is required for media processing. Leave blank to use automatic detection, or specify a custom path if auto-detection fails.
+            </p>
+            
+            <div style={{ marginBottom: '15px' }}>
+              <label 
+                htmlFor="ffmpeg-path"
+                style={{ 
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#495057'
+                }}
+              >
+                Custom FFmpeg Path (optional)
+              </label>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                  <input
+                    type="text"
+                    id="ffmpeg-path"
+                    value={ffmpegPath}
+                    onChange={(e) => {
+                      setFfmpegPath(e.target.value);
+                      setFfmpegTestResult(null);
+                    }}
+                    disabled={isLoading}
+                    placeholder="e.g., /usr/local/bin/ffmpeg or /opt/homebrew/bin/ffmpeg"
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      fontSize: '14px',
+                      fontFamily: 'monospace'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleBrowseForFfmpeg}
+                    disabled={isLoading}
+                    style={{
+                      padding: '8px 12px',
+                      backgroundColor: '#6c757d',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      cursor: isLoading ? 'not-allowed' : 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    Browse
+                  </button>
+                </div>
+                
+                <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                  <button
+                    type="button"
+                    onClick={handleTestFfmpeg}
+                    disabled={isTestingFfmpeg || isLoading}
+                    style={{
+                      padding: '8px 12px',
+                      backgroundColor: '#007bff',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      cursor: (isTestingFfmpeg || isLoading) ? 'not-allowed' : 'pointer',
+                      opacity: (isTestingFfmpeg || isLoading) ? 0.6 : 1
+                    }}
+                  >
+                    {isTestingFfmpeg ? 'Testing...' : 'Test FFmpeg'}
+                  </button>
+                  
+                  {ffmpegPath && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFfmpegPath('');
+                        setFfmpegTestResult(null);
+                      }}
+                      disabled={isLoading}
+                      style={{
+                        padding: '8px 12px',
+                        backgroundColor: '#dc3545',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        cursor: isLoading ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+              
+              {ffmpegTestResult && (
+                <div style={{
+                  marginTop: '10px',
+                  padding: '8px 12px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  backgroundColor: ffmpegTestResult.success ? '#d4edda' : '#f8d7da',
+                  color: ffmpegTestResult.success ? '#155724' : '#721c24',
+                  border: `1px solid ${ffmpegTestResult.success ? '#c3e6cb' : '#f5c6cb'}`
+                }}>
+                  {ffmpegTestResult.success ? '✅' : '❌'} {ffmpegTestResult.message}
+                </div>
+              )}
+            </div>
+            
+            <div style={{
+              fontSize: '12px',
+              color: '#6c757d',
+              lineHeight: '1.4'
+            }}>
+              <strong>macOS users:</strong> If FFmpeg is not found automatically, try installing it with:
+              <div style={{
+                backgroundColor: '#e9ecef',
+                padding: '8px',
+                borderRadius: '4px',
+                fontFamily: 'monospace',
+                margin: '8px 0'
+              }}>
+                brew install ffmpeg
+              </div>
+              Then restart the application or specify the path manually.
             </div>
           </div>
         </div>

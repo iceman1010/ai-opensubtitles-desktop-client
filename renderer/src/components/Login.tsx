@@ -320,7 +320,7 @@ function Login({ onLogin, setAppProcessing }: LoginProps) {
                     <strong>Create New API Consumer</strong><br/>
                     Click the <strong>"NEW CONSUMER"</strong> button and fill in:
                     <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
-                      <li><strong>Name:</strong> AI.OpenSubtitles Desktop Client</li>
+                      <li><strong>Name:</strong> AIOpenSubtitlesClient <em>(or any alphanumeric name)</em></li>
                       <li><strong>Description:</strong> Desktop application for subtitle processing</li>
                     </ul>
                   </div>

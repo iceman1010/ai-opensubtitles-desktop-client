@@ -163,12 +163,27 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
   };
 
   const login = useCallback(async (username: string, password: string, apiKey: string): Promise<boolean> => {
-    // Create new API instance with the provided key
-    const apiInstance = new OpenSubtitlesAPI(apiKey);
-    setApi(apiInstance);
+    // Prevent multiple simultaneous login attempts
+    if (authenticationInProgress) {
+      logger.warn('APIContext', 'Authentication already in progress, skipping duplicate login attempt');
+      return false;
+    }
     
-    return await authenticateUser(apiInstance, username, password);
-  }, []);
+    logger.info('APIContext', `Starting login for user: ${username}`);
+    setAuthenticationInProgress(true);
+    
+    try {
+      // Create new API instance with the provided key
+      const apiInstance = new OpenSubtitlesAPI(apiKey);
+      setApi(apiInstance);
+      
+      const result = await authenticateUser(apiInstance, username, password);
+      logger.info('APIContext', `Login completed for user: ${username}, success: ${result}`);
+      return result;
+    } finally {
+      setAuthenticationInProgress(false);
+    }
+  }, [authenticationInProgress]);
 
   const logout = useCallback(async (): Promise<void> => {
     try {

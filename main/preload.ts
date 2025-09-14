@@ -47,6 +47,8 @@ const electronAPI = {
     ipcRenderer.removeListener('keyboard-shortcut', callback),
   checkFileAssociations: () => ipcRenderer.invoke('check-file-associations'),
   registerFileAssociations: () => ipcRenderer.invoke('register-file-associations'),
+  testFfmpegPath: (path: string) => ipcRenderer.invoke('test-ffmpeg-path', path),
+  openFfmpegDialog: () => ipcRenderer.invoke('open-ffmpeg-dialog'),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);

@@ -7,12 +7,26 @@ export class FFmpegManager {
   private ffmpegPath: string | null = null;
   private isInitialized = false;
 
-  async initialize(): Promise<boolean> {
+  async initialize(customPath?: string): Promise<boolean> {
     if (this.isInitialized) {
       return true;
     }
 
     try {
+      // Try custom path first if provided
+      if (customPath && customPath.trim()) {
+        console.log(`Trying custom FFmpeg path: ${customPath}`);
+        if (await this.testFFmpegPath(customPath)) {
+          this.ffmpegPath = customPath;
+          ffmpeg.setFfmpegPath(this.ffmpegPath);
+          this.isInitialized = true;
+          console.log(`FFmpeg using custom path: ${this.ffmpegPath}`);
+          return true;
+        } else {
+          console.warn(`Custom FFmpeg path failed, falling back to auto-detection: ${customPath}`);
+        }
+      }
+
       this.ffmpegPath = await this.findFFmpeg();
       
       if (this.ffmpegPath) {
@@ -33,15 +47,80 @@ export class FFmpegManager {
         return true;
       }
 
-      console.error('Failed to initialize FFmpeg');
+      console.error('=== FFmpeg INITIALIZATION FAILED ===');
+      console.error('FFmpeg could not be found or downloaded.');
+      console.error('This will prevent media file processing and language detection.');
+      console.error('Possible solutions:');
+      console.error('1. Install FFmpeg using your package manager (brew install ffmpeg, apt install ffmpeg, etc.)');
+      console.error('2. Set a custom FFmpeg path in Preferences');
+      console.error('3. Ensure FFmpeg is in your system PATH');
+      console.error('=== END FFmpeg ERROR ===');
       return false;
     } catch (error) {
+      console.error('=== FFmpeg INITIALIZATION ERROR ===');
       console.error('Error initializing FFmpeg:', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace',
+        customPath: customPath || 'none provided'
+      });
+      console.error('=== END FFmpeg ERROR ===');
       return false;
     }
   }
 
   private async findFFmpeg(): Promise<string | null> {
+    // Try multiple approaches for better macOS compatibility
+    const possiblePaths = [
+      'ffmpeg', // System PATH
+      '/usr/local/bin/ffmpeg', // Homebrew default (Intel)
+      '/opt/homebrew/bin/ffmpeg', // Homebrew default (Apple Silicon)
+      '/usr/bin/ffmpeg', // System default
+      '/usr/local/Cellar/ffmpeg', // Alternative Homebrew location
+      process.env.FFMPEG_PATH // User-defined environment variable
+    ].filter(Boolean); // Remove any undefined values
+
+    console.log('=== FFmpeg PATH DETECTION START ===');
+    console.log('Searching for FFmpeg in multiple locations...');
+    console.log('Possible paths to check:', possiblePaths);
+
+    // First try the traditional 'which' command
+    console.log('Step 1: Trying which/where command...');
+    const whichResult = await this.tryWhichCommand();
+    if (whichResult) {
+      console.log(`✅ FFmpeg found via 'which' command: ${whichResult}`);
+      return whichResult;
+    }
+    console.log('❌ which/where command failed or returned no result');
+
+    // Then try each possible path
+    console.log('Step 2: Testing predefined paths...');
+    for (const testPath of possiblePaths) {
+      if (testPath) {
+        console.log(`  Testing: ${testPath}`);
+        if (await this.testFFmpegPath(testPath)) {
+          console.log(`  ✅ FFmpeg found at: ${testPath}`);
+          return testPath;
+        }
+        console.log(`  ❌ Failed: ${testPath}`);
+      }
+    }
+
+    // If all else fails, try to find it via Homebrew
+    console.log('Step 3: Trying Homebrew detection...');
+    const brewResult = await this.tryHomebrewPath();
+    if (brewResult) {
+      console.log(`✅ FFmpeg found via Homebrew: ${brewResult}`);
+      return brewResult;
+    }
+    console.log('❌ Homebrew detection failed');
+
+    console.log('=== FFmpeg PATH DETECTION END ===');
+    console.warn('⚠️  FFmpeg not found in any standard locations');
+    return null;
+  }
+
+  private async tryWhichCommand(): Promise<string | null> {
     return new Promise((resolve) => {
       const child = spawn('which', ['ffmpeg'], { stdio: 'pipe' });
       
@@ -53,6 +132,52 @@ export class FFmpegManager {
       child.on('close', (code) => {
         if (code === 0 && output.trim()) {
           resolve(output.trim());
+        } else {
+          resolve(null);
+        }
+      });
+
+      child.on('error', () => {
+        resolve(null);
+      });
+    });
+  }
+
+  private async testFFmpegPath(path: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      const child = spawn(path, ['-version'], { stdio: 'pipe' });
+      
+      child.on('close', (code) => {
+        resolve(code === 0);
+      });
+
+      child.on('error', () => {
+        resolve(false);
+      });
+
+      // Timeout after 5 seconds
+      setTimeout(() => {
+        child.kill();
+        resolve(false);
+      }, 5000);
+    });
+  }
+
+  private async tryHomebrewPath(): Promise<string | null> {
+    return new Promise((resolve) => {
+      const child = spawn('brew', ['--prefix', 'ffmpeg'], { stdio: 'pipe' });
+      
+      let output = '';
+      child.stdout.on('data', (data) => {
+        output += data.toString();
+      });
+
+      child.on('close', (code) => {
+        if (code === 0 && output.trim()) {
+          const brewPath = path.join(output.trim(), 'bin', 'ffmpeg');
+          this.testFFmpegPath(brewPath).then((isValid) => {
+            resolve(isValid ? brewPath : null);
+          });
         } else {
           resolve(null);
         }
