@@ -8,6 +8,7 @@ import Info from './components/Info';
 import Credits from './components/Credits';
 import Help from './components/Help';
 import StatusBar from './components/StatusBar';
+import ErrorLogControls from './components/ErrorLogControls';
 import { APIProvider, useAPI } from './contexts/APIContext';
 import './utils/errorLogger'; // Initialize global error handlers
 import appConfig from './config/appConfig.json';
@@ -479,11 +480,14 @@ function AppContent({
       )}
 
       {/* Centralized StatusBar - always full width */}
-      <StatusBar 
+      <StatusBar
         onNetworkChange={handleNetworkChange}
         isProcessing={isProcessing}
         currentTask={currentTask}
       />
+
+      {/* Global Error Log Controls */}
+      <ErrorLogControls />
     </div>
   );
 }

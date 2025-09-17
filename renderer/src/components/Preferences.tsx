@@ -12,6 +12,7 @@ interface AppConfig {
   cacheExpirationHours?: number;
   betaTest?: boolean;
   ffmpegPath?: string;
+  audio_language_detection_time?: number;
   credits?: {
     used: number;
     remaining: number;
@@ -34,6 +35,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
   const [cacheExpirationHours, setCacheExpirationHours] = useState(config.cacheExpirationHours ?? 24);
   const [betaTest, setBetaTest] = useState(config.betaTest ?? false);
   const [ffmpegPath, setFfmpegPath] = useState(config.ffmpegPath || '');
+  const [audioLanguageDetectionTime, setAudioLanguageDetectionTime] = useState(config.audio_language_detection_time ?? 240);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [isTestingFfmpeg, setIsTestingFfmpeg] = useState(false);
@@ -64,6 +66,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
           setCheckUpdatesOnStart(true);
           setAutoRemoveCompletedFiles(false);
           setFfmpegPath('');
+          setAudioLanguageDetectionTime(240);
           setError('');
           alert('All settings have been reset successfully.');
         } else {
@@ -130,7 +133,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
     setError('');
     setAppProcessing(true, 'Validating credentials...');
     try {
-      const success = await onSave({ username, password, apiKey, debugMode, checkUpdatesOnStart, autoRemoveCompletedFiles, cacheExpirationHours, betaTest, ffmpegPath });
+      const success = await onSave({ username, password, apiKey, debugMode, checkUpdatesOnStart, autoRemoveCompletedFiles, cacheExpirationHours, betaTest, ffmpegPath, audio_language_detection_time: audioLanguageDetectionTime });
       if (!success) {
         setError('Failed to save preferences. Please check your credentials.');
       }
@@ -182,6 +185,17 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
       }
     } catch (error) {
       console.error('Failed to open FFmpeg dialog:', error);
+    }
+  };
+
+  const handleAudioLanguageDetectionTimeChange = async (newValue: number) => {
+    setAudioLanguageDetectionTime(newValue);
+
+    // Immediately save only this setting
+    try {
+      await onSave({ audio_language_detection_time: newValue });
+    } catch (error) {
+      console.error('Failed to save audio language detection time:', error);
     }
   };
 
@@ -446,6 +460,92 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
                 >
                   {isClearingCache ? 'Clearing...' : 'Clear Cache Now'}
                 </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Audio Language Detection Time Setting */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '12px',
+            padding: '8px 0'
+          }}>
+            <div style={{ flex: 1 }}>
+              <label
+                htmlFor="audio-language-detection-time"
+                style={{
+                  margin: 0,
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  display: 'block',
+                  marginBottom: '4px'
+                }}
+              >
+                Audio Language Detection Duration
+              </label>
+              <div style={{
+                fontSize: '12px',
+                color: '#666',
+                lineHeight: '1.4',
+                maxWidth: '400px',
+                marginBottom: '12px'
+              }}>
+                Time span used for detecting the language of spoken audio. Longer durations provide more accurate detection but require more processing time.
+              </div>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                marginBottom: '8px'
+              }}>
+                <div style={{
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  color: '#2c3e50',
+                  minWidth: '80px'
+                }}>
+                  {Math.floor(audioLanguageDetectionTime / 60)}:{(audioLanguageDetectionTime % 60).toString().padStart(2, '0')}
+                </div>
+                <div style={{
+                  fontSize: '12px',
+                  color: '#666'
+                }}>
+                  ({audioLanguageDetectionTime} seconds)
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontSize: '12px', color: '#666', minWidth: '30px' }}>1:00</span>
+                <input
+                  type="range"
+                  id="audio-language-detection-time"
+                  min="60"
+                  max="300"
+                  step="30"
+                  value={audioLanguageDetectionTime}
+                  onChange={(e) => handleAudioLanguageDetectionTimeChange(Number(e.target.value))}
+                  disabled={isLoading}
+                  style={{
+                    flex: 1,
+                    height: '6px',
+                    borderRadius: '3px',
+                    background: `linear-gradient(to right, #007bff 0%, #007bff ${((audioLanguageDetectionTime - 60) / (300 - 60)) * 100}%, #ddd ${((audioLanguageDetectionTime - 60) / (300 - 60)) * 100}%, #ddd 100%)`,
+                    outline: 'none',
+                    cursor: isLoading ? 'not-allowed' : 'pointer'
+                  }}
+                />
+                <span style={{ fontSize: '12px', color: '#666', minWidth: '30px' }}>5:00</span>
+              </div>
+
+              <div style={{
+                fontSize: '11px',
+                color: '#999',
+                marginTop: '6px',
+                fontStyle: 'italic'
+              }}>
+                Default: 4:00 (240 seconds) • Range: 1:00 - 5:00
               </div>
             </div>
           </div>

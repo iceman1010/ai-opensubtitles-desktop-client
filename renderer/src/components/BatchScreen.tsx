@@ -71,6 +71,7 @@ interface AppConfig {
   debugMode?: boolean;
   checkUpdatesOnStart?: boolean;
   autoRemoveCompletedFiles?: boolean;
+  audio_language_detection_time?: number;
 }
 
 interface BatchScreenProps {
@@ -578,12 +579,13 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
             logger.info('BatchScreen', `Extracting audio for ${file.name}`);
             setAppProcessing(true, `Extracting audio from ${file.name} for language detection...`);
             
-            // Extract first 3 minutes (180 seconds) as MP3
+            // Extract audio for language detection using configured duration
+            const durationSeconds = config.audio_language_detection_time ?? 240;
             const extractedPath = await window.electronAPI.extractAudio(
               file.path,
               undefined, // Let system choose temp path
               undefined, // No progress callback for now
-              180        // Duration: first 3 minutes
+              durationSeconds
             );
             
             if (extractedPath) {
@@ -596,7 +598,8 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
             }
           }
           
-          const result = await detectLanguage(fileToProcess);
+          const durationSeconds = config.audio_language_detection_time ?? 240;
+          const result = await detectLanguage(fileToProcess, durationSeconds);
           logger.info('BatchScreen', `Detection result for ${file.name}:`, result);
           
           if (result.data?.language) {

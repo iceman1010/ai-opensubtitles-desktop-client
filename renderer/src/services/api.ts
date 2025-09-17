@@ -612,7 +612,7 @@ export class OpenSubtitlesAPI {
     }
   }
 
-  async detectLanguage(file: File | string): Promise<APIResponse<LanguageDetectionResult>> {
+  async detectLanguage(file: File | string, duration?: number): Promise<APIResponse<LanguageDetectionResult>> {
     try {
       const formData = new FormData();
       
@@ -623,6 +623,11 @@ export class OpenSubtitlesAPI {
         formData.append('file', new Blob([buffer]), fileData.fileName);
       } else {
         formData.append('file', file);
+      }
+
+      // Add duration parameter if provided
+      if (duration) {
+        formData.append('duration', duration.toString());
       }
 
       const headers = {

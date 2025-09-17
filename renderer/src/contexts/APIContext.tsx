@@ -24,7 +24,7 @@ interface APIContextType {
   getTranslationLanguagesForApi: (apiId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
   getTranscriptionLanguagesForApi: (apiId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
   getTranslationApisForLanguage: (sourceLanguage: string, targetLanguage: string) => Promise<{ success: boolean; data?: any; error?: string }>;
-  detectLanguage: (file: File | string) => Promise<any>;
+  detectLanguage: (file: File | string, duration?: number) => Promise<any>;
   checkLanguageDetectionStatus: (correlationId: string) => Promise<any>;
   initiateTranscription: (audioFile: File | string, options: any) => Promise<any>;
   initiateTranslation: (subtitleFile: File | string, options: any) => Promise<any>;
@@ -248,9 +248,9 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     return await api.getTranslationApisForLanguage(sourceLanguage, targetLanguage);
   }, [api, isAuthenticated]);
 
-  const detectLanguage = useCallback(async (file: File | string) => {
+  const detectLanguage = useCallback(async (file: File | string, duration?: number) => {
     if (!api || !isAuthenticated) return { status: 'ERROR', errors: ['API not authenticated'] };
-    return await api.detectLanguage(file);
+    return await api.detectLanguage(file, duration);
   }, [api, isAuthenticated]);
 
   const checkLanguageDetectionStatus = useCallback(async (correlationId: string) => {
