@@ -1015,17 +1015,65 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
   const processTranscriptionFile = async (file: BatchFile, index: number) => {
     if (!isAuthenticated) throw new Error('API not authenticated');
 
-    // Step 1: Initiate transcription
-    setQueue(prev => prev.map(f => 
-      f.id === file.id ? { ...f, status: 'processing' as const, progress: 10 } : f
-    ));
-    setAppProcessing(true, `Initiating transcription for ${file.name}...`);
+    let fileToProcess = file.path;
+    let tempAudioFile: string | null = null;
 
-    const transcriptionInitResult = await initiateTranscription(file.path, {
-      language: file.selectedSourceLanguage || file.detectedLanguage?.ISO_639_1 || 'auto',
-      api: batchSettings.transcriptionModel,
-      returnContent: true
-    });
+    try {
+      // Step 1: Extract/convert audio if needed (same logic as MainScreen)
+      setQueue(prev => prev.map(f =>
+        f.id === file.id ? { ...f, status: 'processing' as const, progress: 5 } : f
+      ));
+
+      // Check if the file is a video and needs audio extraction
+      const mediaInfo = await window.electronAPI.getMediaInfo(file.path);
+
+      if (mediaInfo.hasVideo && mediaInfo.hasAudio) {
+        setAppProcessing(true, `Extracting audio from video for ${file.name}...`);
+
+        // Extract audio from video
+        try {
+          tempAudioFile = await window.electronAPI.extractAudio(file.path);
+          fileToProcess = tempAudioFile;
+          setAppProcessing(true, `Audio extraction completed for ${file.name}. Starting transcription...`);
+        } catch (error) {
+          throw new Error(`Audio extraction failed: ${error.message}`);
+        }
+      } else if (mediaInfo.hasAudio && !mediaInfo.hasVideo) {
+        // It's already an audio file, but may need conversion
+        const needsConversion = (fileName: string): boolean => {
+          const ext = fileName.toLowerCase().split('.').pop();
+          const supportedAudioFormats = ['mp3', 'wav', 'flac', 'm4a'];
+          return ext ? !supportedAudioFormats.includes(ext) : false;
+        };
+
+        if (needsConversion(file.path)) {
+          setAppProcessing(true, `Converting audio format for ${file.name}...`);
+
+          try {
+            tempAudioFile = await window.electronAPI.convertAudio(file.path);
+            fileToProcess = tempAudioFile;
+            setAppProcessing(true, `Audio conversion completed for ${file.name}. Starting transcription...`);
+          } catch (error) {
+            throw new Error(`Audio conversion failed: ${error.message}`);
+          }
+        } else {
+          setAppProcessing(true, `Starting transcription for ${file.name}...`);
+        }
+      } else {
+        setAppProcessing(true, `Starting transcription for ${file.name}...`);
+      }
+
+      // Step 2: Initiate transcription with processed file
+      setQueue(prev => prev.map(f =>
+        f.id === file.id ? { ...f, status: 'processing' as const, progress: 10 } : f
+      ));
+      setAppProcessing(true, `Initiating transcription for ${file.name}...`);
+
+      const transcriptionInitResult = await initiateTranscription(fileToProcess, {
+        language: file.selectedSourceLanguage || file.detectedLanguage?.ISO_639_1 || 'auto',
+        api: batchSettings.transcriptionModel,
+        returnContent: true
+      });
 
     if (transcriptionInitResult.status === 'ERROR') {
       setAppProcessing(true, `Transcription initiation failed for ${file.name}`);
@@ -1124,14 +1172,28 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
       const targetLang = batchSettings.enableChaining ? batchSettings.targetLanguage : undefined;
       const outputPath = await generateOutputFileName(file.path, suffix, targetLang);
       const savedPath = await writeFileDirectly(outputContent, outputPath);
-      
+
       logger.info('BatchScreen', `File saved: ${savedPath}`);
       addOutputFile(savedPath); // Track output file for summary
-      
+
       // Update file with final output path
-      setQueue(prev => prev.map(f => 
+      setQueue(prev => prev.map(f =>
         f.id === file.id ? { ...f, outputPath: savedPath, progress: 100 } : f
       ));
+    }
+
+    } catch (error) {
+      throw error;
+    } finally {
+      // Clean up temporary audio file after all processing is complete (matches MainScreen pattern)
+      if (tempAudioFile && tempAudioFile !== file.path) {
+        try {
+          await window.electronAPI.deleteFile(tempAudioFile);
+          logger.info('BatchScreen', `Cleaned up temporary audio file: ${tempAudioFile}`);
+        } catch (cleanupError) {
+          logger.warn('BatchScreen', 'Failed to cleanup temporary audio file', cleanupError);
+        }
+      }
     }
   };
 
