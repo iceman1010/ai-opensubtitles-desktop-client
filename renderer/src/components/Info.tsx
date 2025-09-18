@@ -9,6 +9,7 @@ interface AppConfig {
   apiKey?: string;
   lastUsedLanguage?: string;
   debugMode?: boolean;
+  autoLanguageDetection?: boolean;
   credits?: {
     used: number;
     remaining: number;

@@ -43,7 +43,14 @@ interface AppConfig {
   apiKey?: string;
   lastUsedLanguage?: string;
   debugMode?: boolean;
+  checkUpdatesOnStart?: boolean;
+  autoRemoveCompletedFiles?: boolean;
+  cacheExpirationHours?: number;
+  betaTest?: boolean;
+  ffmpegPath?: string;
   audio_language_detection_time?: number;
+  apiBaseUrl?: string;
+  autoLanguageDetection?: boolean;
   credits?: {
     used: number;
     remaining: number;
@@ -61,10 +68,10 @@ interface MainScreenProps {
 }
 
 function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateToBatch, pendingExternalFile, onExternalFileProcessed, onCreditsUpdate }: MainScreenProps) {
-  const { 
-    isAuthenticated, 
+  const {
+    isAuthenticated,
     credits,
-    contextTranscriptionInfo: contextTranscriptionInfo, 
+    transcriptionInfo: contextTranscriptionInfo,
     translationInfo,
     refreshCredits,
     updateCredits,
@@ -79,6 +86,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
     checkTranslationStatus,
     downloadFile
   } = useAPI();
+
 
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileType, setFileType] = useState<'transcription' | 'translation' | null>(null);
@@ -138,13 +146,13 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
   useEffect(() => {
     if (contextTranscriptionInfo) {
       setAvailableTranscriptionApis(contextTranscriptionInfo.apis);
-      
+
       // Set default transcription model and language
       if (contextTranscriptionInfo.apis.length > 0) {
         const defaultModel = contextTranscriptionInfo.apis[0];
         logger.info('MainScreen', `Setting default transcription model: ${defaultModel}`);
         setTranscriptionOptions(prev => ({ ...prev, model: defaultModel }));
-        
+
         // Load languages for default model
         loadTranscriptionLanguages(defaultModel);
       }
@@ -1474,10 +1482,10 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
               <p>Loading options...</p>
             </div>
           ) : fileType === 'transcription' ? (
-            <ImprovedTranscriptionOptions 
+            <ImprovedTranscriptionOptions
               options={transcriptionOptions}
               setOptions={setTranscriptionOptions}
-              contextTranscriptionInfo={contextTranscriptionInfo}
+              transcriptionInfo={contextTranscriptionInfo}
               disabled={isProcessing || isDetectingLanguage}
             />
           ) : (

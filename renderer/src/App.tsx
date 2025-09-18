@@ -22,7 +22,13 @@ interface AppConfig {
   lastUsedLanguage?: string;
   debugMode?: boolean;
   checkUpdatesOnStart?: boolean;
+  autoRemoveCompletedFiles?: boolean;
   cacheExpirationHours?: number;
+  betaTest?: boolean;
+  ffmpegPath?: string;
+  audio_language_detection_time?: number;
+  apiBaseUrl?: string;
+  autoLanguageDetection?: boolean;
   credits?: {
     used: number;
     remaining: number;

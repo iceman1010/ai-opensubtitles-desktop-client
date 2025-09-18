@@ -72,6 +72,7 @@ interface AppConfig {
   checkUpdatesOnStart?: boolean;
   autoRemoveCompletedFiles?: boolean;
   audio_language_detection_time?: number;
+  autoLanguageDetection?: boolean;
 }
 
 interface BatchScreenProps {
@@ -678,17 +679,20 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     }
   }, [isDetectingLanguages, isProcessing, isAuthenticated, detectLanguage, checkLanguageDetectionStatus, setAppProcessing]);
 
-  // Trigger language detection when authentication becomes available
+  // Trigger language detection when authentication becomes available (only if auto-detection is enabled)
   useEffect(() => {
-    if (isAuthenticated && queue.length > 0) {
-      const filesToDetect = queue.filter(file => 
+    if (isAuthenticated && queue.length > 0 && (config.autoLanguageDetection ?? true)) {
+      const filesToDetect = queue.filter(file =>
         file.status === 'pending' && !file.detectedLanguage
       );
       if (filesToDetect.length > 0) {
+        console.log('BatchScreen: Authentication available and auto-detection enabled, triggering language detection for existing files');
         processLanguageDetectionQueue();
       }
+    } else if (isAuthenticated && queue.length > 0) {
+      console.log('BatchScreen: Authentication available but auto-detection disabled, skipping automatic language detection');
     }
-  }, [isAuthenticated, queue]);
+  }, [isAuthenticated, queue, config.autoLanguageDetection]);
 
   // File selection handlers
   const handleSingleFileSelect = async (filePath: string) => {
@@ -769,11 +773,15 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
       console.log('BatchScreen: File added to queue:', newFile);
       console.log('BatchScreen: Updated queue length:', updatedQueue.length);
       
-      // Trigger sequential language detection after a short delay, passing the current queue
-      setTimeout(() => {
-        console.log('BatchScreen: Triggering language detection queue processing');
-        processLanguageDetectionQueue(updatedQueue);
-      }, 100);
+      // Trigger sequential language detection after a short delay, only if auto-detection is enabled
+      if (config.autoLanguageDetection ?? true) {
+        setTimeout(() => {
+          console.log('BatchScreen: Auto-detection enabled, triggering language detection queue processing');
+          processLanguageDetectionQueue(updatedQueue);
+        }, 100);
+      } else {
+        console.log('BatchScreen: Auto-detection disabled, skipping automatic language detection for new file');
+      }
       return updatedQueue;
     });
   };
@@ -1806,6 +1814,45 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
         </div>
 
         <div style={{ display: 'flex', gap: '10px' }}>
+          {/* Manual Language Detection Button - only show when auto-detection is disabled */}
+          {!(config.autoLanguageDetection ?? true) && !isProcessing && queue.length > 0 && (
+            <button
+              onClick={() => processLanguageDetectionQueue()}
+              disabled={isDetectingLanguages || !isAuthenticated || !isOnline()}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: isDetectingLanguages ? '#6c757d' : '#17a2b8',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: (isDetectingLanguages || !isAuthenticated || !isOnline()) ? 'not-allowed' : 'pointer',
+                fontSize: '16px',
+                minWidth: '160px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              {isDetectingLanguages ? (
+                <>
+                  <span style={{
+                    display: 'inline-block',
+                    width: '16px',
+                    height: '16px',
+                    border: '2px solid #ffffff',
+                    borderTop: '2px solid transparent',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }}></span>
+                  Detecting...
+                </>
+              ) : (
+                'Detect Languages'
+              )}
+            </button>
+          )}
+
           <button
             onClick={!isProcessing ? startBatchProcessing : stopBatchProcessing}
             disabled={!isProcessing && (queue.length === 0 || !isOnline() || (!batchSettings.transcriptionModel && !batchSettings.translationModel))}

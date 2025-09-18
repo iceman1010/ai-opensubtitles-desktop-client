@@ -14,6 +14,7 @@ export interface AppConfig {
   betaTest?: boolean;
   ffmpegPath?: string;
   apiBaseUrl?: string;
+  autoLanguageDetection?: boolean;
   credits?: {
     used: number;
     remaining: number;
@@ -51,6 +52,7 @@ export class ConfigManager {
       betaTest: false,
       ffmpegPath: '',
       apiBaseUrl: 'https://api.opensubtitles.com/api/v1',
+      autoLanguageDetection: true,
     };
   }
 
@@ -170,6 +172,7 @@ export class ConfigManager {
         debugMode: false,
         checkUpdatesOnStart: true,
         apiBaseUrl: 'https://api.opensubtitles.com/api/v1',
+        autoLanguageDetection: true,
       };
       console.log('In-memory config reset successfully');
       

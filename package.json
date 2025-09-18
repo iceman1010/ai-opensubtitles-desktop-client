@@ -1,6 +1,6 @@
 {
   "name": "ai-opensubtitles-client",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "Cross-platform desktop client for AI.Opensubtitles.com",
   "main": "dist/main/main.js",
   "homepage": "./",

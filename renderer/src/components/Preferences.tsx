@@ -14,6 +14,7 @@ interface AppConfig {
   ffmpegPath?: string;
   audio_language_detection_time?: number;
   apiBaseUrl?: string;
+  autoLanguageDetection?: boolean;
   credits?: {
     used: number;
     remaining: number;
@@ -38,6 +39,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
   const [ffmpegPath, setFfmpegPath] = useState(config.ffmpegPath || '');
   const [audioLanguageDetectionTime, setAudioLanguageDetectionTime] = useState(config.audio_language_detection_time ?? 240);
   const [apiBaseUrl, setApiBaseUrl] = useState(config.apiBaseUrl || 'https://api.opensubtitles.com/api/v1');
+  const [autoLanguageDetection, setAutoLanguageDetection] = useState(config.autoLanguageDetection ?? true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [isTestingFfmpeg, setIsTestingFfmpeg] = useState(false);
@@ -69,6 +71,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
           setAutoRemoveCompletedFiles(false);
           setFfmpegPath('');
           setAudioLanguageDetectionTime(240);
+          setAutoLanguageDetection(true);
           setError('');
           alert('All settings have been reset successfully.');
         } else {
@@ -135,7 +138,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
     setError('');
     setAppProcessing(true, 'Validating credentials...');
     try {
-      const success = await onSave({ username, password, apiKey, debugMode, checkUpdatesOnStart, autoRemoveCompletedFiles, cacheExpirationHours, betaTest, ffmpegPath, audio_language_detection_time: audioLanguageDetectionTime, apiBaseUrl });
+      const success = await onSave({ username, password, apiKey, debugMode, checkUpdatesOnStart, autoRemoveCompletedFiles, cacheExpirationHours, betaTest, ffmpegPath, audio_language_detection_time: audioLanguageDetectionTime, apiBaseUrl, autoLanguageDetection });
       if (!success) {
         setError('Failed to save preferences. Please check your credentials.');
       }
@@ -592,6 +595,73 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
                 fontStyle: 'italic'
               }}>
                 Default: 4:00 (240 seconds) • Range: 1:00 - 5:00
+              </div>
+            </div>
+          </div>
+
+          {/* Auto Language Detection Setting */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '12px',
+            padding: '8px 0'
+          }}>
+            <div style={{ flex: 1 }}>
+              <label
+                htmlFor="auto-language-detection"
+                style={{
+                  margin: 0,
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  display: 'block',
+                  marginBottom: '4px'
+                }}
+              >
+                Auto Language Detection in Batch Processing
+              </label>
+              <div style={{
+                fontSize: '12px',
+                color: '#666',
+                lineHeight: '1.4',
+                maxWidth: '400px',
+                marginBottom: '12px'
+              }}>
+                Automatically detect the language of files when added to the batch processing queue. When disabled, you can manually trigger language detection or process files without detection.
+              </div>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <input
+                  type="checkbox"
+                  id="auto-language-detection"
+                  checked={autoLanguageDetection}
+                  onChange={(e) => setAutoLanguageDetection(e.target.checked)}
+                  disabled={isLoading}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    cursor: isLoading ? 'not-allowed' : 'pointer'
+                  }}
+                />
+                <span style={{
+                  fontSize: '14px',
+                  color: autoLanguageDetection ? '#28a745' : '#6c757d',
+                  fontWeight: '500'
+                }}>
+                  {autoLanguageDetection ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+
+              <div style={{
+                fontSize: '11px',
+                color: '#999',
+                marginTop: '6px',
+                fontStyle: 'italic'
+              }}>
+                Default: Enabled • Note: This setting only affects batch processing, not single file processing
               </div>
             </div>
           </div>
