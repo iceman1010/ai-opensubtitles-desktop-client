@@ -60,6 +60,7 @@ api_tests/
 *_tests/
 test_scripts/
 test/
+tests/
 
 # Build and deployment automation
 scripts/

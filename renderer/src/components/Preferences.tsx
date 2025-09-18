@@ -13,6 +13,7 @@ interface AppConfig {
   betaTest?: boolean;
   ffmpegPath?: string;
   audio_language_detection_time?: number;
+  apiBaseUrl?: string;
   credits?: {
     used: number;
     remaining: number;
@@ -36,6 +37,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
   const [betaTest, setBetaTest] = useState(config.betaTest ?? false);
   const [ffmpegPath, setFfmpegPath] = useState(config.ffmpegPath || '');
   const [audioLanguageDetectionTime, setAudioLanguageDetectionTime] = useState(config.audio_language_detection_time ?? 240);
+  const [apiBaseUrl, setApiBaseUrl] = useState(config.apiBaseUrl || 'https://api.opensubtitles.com/api/v1');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [isTestingFfmpeg, setIsTestingFfmpeg] = useState(false);
@@ -133,7 +135,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
     setError('');
     setAppProcessing(true, 'Validating credentials...');
     try {
-      const success = await onSave({ username, password, apiKey, debugMode, checkUpdatesOnStart, autoRemoveCompletedFiles, cacheExpirationHours, betaTest, ffmpegPath, audio_language_detection_time: audioLanguageDetectionTime });
+      const success = await onSave({ username, password, apiKey, debugMode, checkUpdatesOnStart, autoRemoveCompletedFiles, cacheExpirationHours, betaTest, ffmpegPath, audio_language_detection_time: audioLanguageDetectionTime, apiBaseUrl });
       if (!success) {
         setError('Failed to save preferences. Please check your credentials.');
       }
@@ -298,6 +300,50 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
             </div>
           </div>
         </div>
+
+        {debugMode && (
+          <div className="form-group">
+            <label htmlFor="api-base-url" style={{
+              display: 'block',
+              marginBottom: '8px',
+              fontSize: '14px',
+              fontWeight: '500'
+            }}>
+              API Base URL
+            </label>
+            <input
+              id="api-base-url"
+              type="text"
+              value={apiBaseUrl}
+              onChange={(e) => setApiBaseUrl(e.target.value)}
+              disabled={isLoading}
+              placeholder="https://api.opensubtitles.com/api/v1"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                fontSize: '14px',
+                border: '2px solid #e0e0e0',
+                borderRadius: '6px',
+                backgroundColor: isLoading ? '#f9f9f9' : '#fff',
+                transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+                boxSizing: 'border-box',
+                outline: 'none',
+                fontFamily: 'monospace'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#007acc'}
+              onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+            />
+            <div style={{
+              fontSize: '12px',
+              color: '#666',
+              lineHeight: '1.4',
+              marginTop: '6px',
+              maxWidth: '500px'
+            }}>
+              Base URL for API calls. Only visible in debug mode. Use this to point to a test server for automated testing. Default: https://api.opensubtitles.com/api/v1
+            </div>
+          </div>
+        )}
 
         <div className="form-group">
           <div style={{ 

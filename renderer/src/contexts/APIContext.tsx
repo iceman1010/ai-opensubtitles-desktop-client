@@ -66,7 +66,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
   // Initialize API instance when config is provided
   useEffect(() => {
     if (initialConfig?.apiKey) {
-      const apiInstance = new OpenSubtitlesAPI(initialConfig.apiKey);
+      const apiInstance = new OpenSubtitlesAPI(initialConfig.apiKey, initialConfig.apiBaseUrl);
       setApi(apiInstance);
       
       // Try to authenticate immediately if we have credentials
@@ -74,7 +74,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
         authenticateUser(apiInstance, initialConfig.username, initialConfig.password);
       }
     }
-  }, [initialConfig?.apiKey, initialConfig?.username, initialConfig?.password]);
+  }, [initialConfig?.apiKey, initialConfig?.username, initialConfig?.password, initialConfig?.apiBaseUrl]);
 
   const authenticateUser = async (apiInstance: OpenSubtitlesAPI, username: string, password: string) => {
     // Prevent concurrent authentication attempts
@@ -174,7 +174,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     
     try {
       // Create new API instance with the provided key
-      const apiInstance = new OpenSubtitlesAPI(apiKey);
+      const apiInstance = new OpenSubtitlesAPI(apiKey, initialConfig?.apiBaseUrl);
       setApi(apiInstance);
       
       const result = await authenticateUser(apiInstance, username, password);

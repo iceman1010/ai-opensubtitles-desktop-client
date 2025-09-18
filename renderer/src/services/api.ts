@@ -106,14 +106,30 @@ export interface LanguageDetectionResult {
 }
 
 export class OpenSubtitlesAPI {
-  private baseURL = 'https://api.opensubtitles.com/api/v1/ai';
+  private baseURL = 'https://api.opensubtitles.com/api/v1';
   private apiKey: string = '';
   private token: string = '';
 
-  constructor(apiKey?: string) {
+  constructor(apiKey?: string, baseUrl?: string) {
     if (apiKey) {
       this.setApiKey(apiKey);
     }
+    if (baseUrl) {
+      this.setBaseUrl(baseUrl);
+    }
+  }
+
+  setBaseUrl(baseUrl: string): void {
+    // baseUrl should be like 'https://api.opensubtitles.com/api/v1'
+    this.baseURL = baseUrl;
+  }
+
+  private getAIUrl(endpoint: string): string {
+    return `${this.baseURL}/ai${endpoint}`;
+  }
+
+  private getLoginUrl(endpoint: string): string {
+    return `${this.baseURL}${endpoint}`;
   }
 
   setApiKey(apiKey: string): void {
@@ -197,7 +213,7 @@ export class OpenSubtitlesAPI {
         logger.info('API', `Request headers:`, headers);
         
         // Use the main API login endpoint, not the /ai one
-        const response = await fetch('https://api.opensubtitles.com/api/v1/login', {
+        const response = await fetch(this.getLoginUrl('/login'), {
           method: 'POST',
           headers,
           body: JSON.stringify({
@@ -279,11 +295,11 @@ export class OpenSubtitlesAPI {
       }
       
       const [apisResponse, languagesResponse] = await Promise.all([
-        fetch(`${this.baseURL}/info/transcription_apis`, {
+        fetch(this.getAIUrl('/info/transcription_apis'), {
           method: 'POST',
           headers,
         }),
-        fetch(`${this.baseURL}/info/transcription_languages`, {
+        fetch(this.getAIUrl('/info/transcription_languages'), {
           method: 'POST',
           headers,
         }),
@@ -361,11 +377,11 @@ export class OpenSubtitlesAPI {
       }
       
       const [apisResponse, languagesResponse] = await Promise.all([
-        fetch(`${this.baseURL}/info/translation_apis`, {
+        fetch(this.getAIUrl('/info/translation_apis'), {
           method: 'POST',
           headers,
         }),
-        fetch(`${this.baseURL}/info/translation_languages`, {
+        fetch(this.getAIUrl('/info/translation_languages'), {
           method: 'POST',
           headers,
         }),
@@ -450,14 +466,14 @@ export class OpenSubtitlesAPI {
       // DO NOT set Content-Type for FormData - let browser set it automatically with boundary
       
       logger.info('API', 'Sending transcription request:', {
-        url: `${this.baseURL}/transcribe`,
+        url: this.getAIUrl('/transcribe'),
         headers: headers,
         language: options.language,
         api: options.api,
         returnContent: options.returnContent
       });
 
-      const response = await fetch(`${this.baseURL}/transcribe`, {
+      const response = await fetch(this.getAIUrl('/transcribe'), {
         method: 'POST',
         headers,
         body: formData,
@@ -520,7 +536,7 @@ export class OpenSubtitlesAPI {
         headers['Authorization'] = `Bearer ${this.token}`;
       }
 
-      const response = await fetch(`${this.baseURL}/translate`, {
+      const response = await fetch(this.getAIUrl('/translate'), {
         method: 'POST',
         headers,
         body: formData,
@@ -556,7 +572,7 @@ export class OpenSubtitlesAPI {
           headers['Authorization'] = `Bearer ${this.token}`;
         }
         
-        const response = await fetch(`${this.baseURL}/transcribe/${correlationId}`, {
+        const response = await fetch(this.getAIUrl(`/transcribe/${correlationId}`), {
           method: 'POST',
           headers,
         });
@@ -591,7 +607,7 @@ export class OpenSubtitlesAPI {
           headers['Authorization'] = `Bearer ${this.token}`;
         }
         
-        const response = await fetch(`${this.baseURL}/translation/${correlationId}`, {
+        const response = await fetch(this.getAIUrl(`/translation/${correlationId}`), {
           method: 'POST',
           headers,
         });
@@ -644,7 +660,7 @@ export class OpenSubtitlesAPI {
         fileName: typeof file === 'string' ? file : file.name
       });
 
-      const response = await fetch(`${this.baseURL}/detect_language`, {
+      const response = await fetch(this.getAIUrl('/detect_language'), {
         method: 'POST',
         headers,
         body: formData,
@@ -687,7 +703,7 @@ export class OpenSubtitlesAPI {
 
       logger.info('API', `Checking language detection status for correlation ID: ${correlationId}`);
 
-      const response = await fetch(`${this.baseURL}/detectLanguage/${correlationId}`, {
+      const response = await fetch(this.getAIUrl(`/detectLanguage/${correlationId}`), {
         method: 'POST',
         headers,
       });
@@ -727,7 +743,7 @@ export class OpenSubtitlesAPI {
         headers['Authorization'] = `Bearer ${this.token}`;
       }
       
-      const response = await fetch(`${this.baseURL}/info/transcription_languages`, {
+      const response = await fetch(this.getAIUrl('/info/transcription_languages'), {
         method: 'POST',
         headers,
         body: JSON.stringify({ api: apiId }),
@@ -775,7 +791,7 @@ export class OpenSubtitlesAPI {
       
       logger.info('API', `Fetching translation languages for API: ${apiId}`);
       
-      const response = await fetch(`${this.baseURL}/info/translation_languages`, {
+      const response = await fetch(this.getAIUrl('/info/translation_languages'), {
         method: 'POST',
         headers,
         body: JSON.stringify({ api: apiId }),
@@ -850,7 +866,7 @@ export class OpenSubtitlesAPI {
         headers['Authorization'] = `Bearer ${this.token}`;
       }
       
-      const response = await fetch(`${this.baseURL}/info/translation_apis`, {
+      const response = await fetch(this.getAIUrl('/info/translation_apis'), {
         method: 'POST',
         headers,
       });
@@ -927,7 +943,7 @@ export class OpenSubtitlesAPI {
           headers['Authorization'] = `Bearer ${this.token}`;
         }
         
-        const response = await fetch(`${this.baseURL}/credits`, {
+        const response = await fetch(this.getAIUrl('/credits'), {
           method: 'POST',
           headers,
         });
@@ -993,7 +1009,7 @@ export class OpenSubtitlesAPI {
           headers['Authorization'] = `Bearer ${this.token}`;
         }
         
-        const response = await fetch(`${this.baseURL}/info/services`, {
+        const response = await fetch(this.getAIUrl('/info/services'), {
           method: 'GET',
           headers,
         });
@@ -1052,7 +1068,7 @@ export class OpenSubtitlesAPI {
           body.append('email', email);
         }
         
-        const response = await fetch(`${this.baseURL}/credits/buy`, {
+        const response = await fetch(this.getAIUrl('/credits/buy'), {
           method: 'POST',
           headers,
           body: body.toString()

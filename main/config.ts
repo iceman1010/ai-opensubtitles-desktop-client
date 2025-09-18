@@ -13,6 +13,7 @@ export interface AppConfig {
   cacheExpirationHours?: number;
   betaTest?: boolean;
   ffmpegPath?: string;
+  apiBaseUrl?: string;
   credits?: {
     used: number;
     remaining: number;
@@ -49,6 +50,7 @@ export class ConfigManager {
       cacheExpirationHours: 24,
       betaTest: false,
       ffmpegPath: '',
+      apiBaseUrl: 'https://api.opensubtitles.com/api/v1',
     };
   }
 
@@ -167,6 +169,7 @@ export class ConfigManager {
         apiKey: '',
         debugMode: false,
         checkUpdatesOnStart: true,
+        apiBaseUrl: 'https://api.opensubtitles.com/api/v1',
       };
       console.log('In-memory config reset successfully');
       
