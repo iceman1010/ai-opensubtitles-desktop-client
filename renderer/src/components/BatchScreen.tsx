@@ -6,34 +6,51 @@ import { isOnline } from '../utils/networkUtils';
 import { useAPI } from '../contexts/APIContext';
 import * as fileFormatsConfig from '../../../shared/fileFormats.json';
 
-// Utility functions for file type checking using shared/fileFormats.json
-const isVideoFile = (fileName: string): boolean => {
+// Cache for file type checks to avoid repeated calculations
+const fileTypeCache = new Map<string, { isVideo: boolean; isAudio: boolean; isSubtitle: boolean; timestamp: number }>();
+const CACHE_DURATION = 5000; // 5 seconds
+
+const getFileType = (fileName: string) => {
+  const cacheKey = fileName.toLowerCase();
+  const cached = fileTypeCache.get(cacheKey);
+  const now = Date.now();
+
+  if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+    return cached;
+  }
+
   const ext = fileName.toLowerCase().split('.').pop();
-  const result = ext ? fileFormatsConfig.video.includes(ext) : false;
-  console.log('BatchScreen: isVideoFile check:', { fileName, ext, result, videoFormats: fileFormatsConfig.video });
+  const result = {
+    isVideo: ext ? fileFormatsConfig.video.includes(ext) : false,
+    isAudio: ext ? fileFormatsConfig.audio.includes(ext) : false,
+    isSubtitle: ext ? fileFormatsConfig.subtitle.includes(ext) : false,
+    timestamp: now
+  };
+
+  fileTypeCache.set(cacheKey, result);
   return result;
+};
+
+const isVideoFile = (fileName: string): boolean => {
+  return getFileType(fileName).isVideo;
 };
 
 const isAudioFile = (fileName: string): boolean => {
-  const ext = fileName.toLowerCase().split('.').pop();
-  const result = ext ? fileFormatsConfig.audio.includes(ext) : false;
-  console.log('BatchScreen: isAudioFile check:', { fileName, ext, result, audioFormats: fileFormatsConfig.audio });
-  return result;
+  return getFileType(fileName).isAudio;
 };
 
 const isSubtitleFile = (fileName: string): boolean => {
-  const ext = fileName.toLowerCase().split('.').pop();
-  const result = ext ? fileFormatsConfig.subtitle.includes(ext) : false;
-  console.log('BatchScreen: isSubtitleFile check:', { fileName, ext, result, subtitleFormats: fileFormatsConfig.subtitle });
-  return result;
+  return getFileType(fileName).isSubtitle;
 };
 
 const isAudioVideoFile = (fileName: string): boolean => {
-  return isVideoFile(fileName) || isAudioFile(fileName);
+  const type = getFileType(fileName);
+  return type.isVideo || type.isAudio;
 };
 
 const isSupportedFile = (fileName: string): boolean => {
-  return isAudioVideoFile(fileName) || isSubtitleFile(fileName);
+  const type = getFileType(fileName);
+  return type.isVideo || type.isAudio || type.isSubtitle;
 };
 
 
@@ -67,12 +84,15 @@ interface AppConfig {
   username: string;
   password: string;
   apiKey?: string;
+  apiUrlParameter?: string;
   lastUsedLanguage?: string;
   debugMode?: boolean;
+  debugLevel?: number;
   checkUpdatesOnStart?: boolean;
   autoRemoveCompletedFiles?: boolean;
   audio_language_detection_time?: number;
   autoLanguageDetection?: boolean;
+  darkMode?: boolean;
 }
 
 interface BatchScreenProps {
@@ -84,6 +104,8 @@ interface BatchScreenProps {
 
 const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pendingFiles, onFilesPending }) => {
   const [queue, setQueue] = useState<BatchFile[]>([]);
+  const detectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const detectionInProgressRef = useRef<Set<string>>(new Set());
   const [batchSettings, setBatchSettings] = useState<BatchSettings>({
     transcriptionModel: '',
     translationModel: '',
@@ -374,11 +396,12 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
 
   // Helper function to set detected language and auto-select source language
   const setDetectedLanguageForFile = (fileId: string, detectedLanguage: DetectedLanguage) => {
+    logger.debug(3, 'BatchScreen', `🔍 setDetectedLanguageForFile called for: ${fileId} language: ${detectedLanguage.name}`);
     setQueue(prev => prev.map(file => {
       if (file.id === fileId) {
         // Auto-select source language if this is a translation file and we have translation model info
         let selectedSourceLanguage = file.selectedSourceLanguage;
-        console.log('BatchScreen: Auto-selection check for file:', file.name, {
+        logger.debug(2, 'BatchScreen', `Auto-selection check for file: ${file.name}`, {
           fileType: file.type,
           hasTranslationInfo: !!contextTranslationInfo,
           translationModel: batchSettings.translationModel,
@@ -391,14 +414,14 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
             const languageCode = detectedLanguage.ISO_639_1;
             const matching = getMatchingSourceLanguages(languageCode, apiLanguages);
             selectedSourceLanguage = autoSelectSourceLanguage(languageCode, apiLanguages);
-            console.log('BatchScreen: Auto-selection result (translation):', {
+            logger.debug(1, 'BatchScreen', 'Auto-selection result (translation):', {
               detectedLanguage: languageCode,
               matchingCount: matching.length,
               selectedSourceLanguage,
               matchingLanguages: matching.map(l => l.language_code)
             });
           } else {
-            console.log('BatchScreen: No API languages found for translation model:', batchSettings.translationModel);
+            logger.debug(1, 'BatchScreen', `No API languages found for translation model: ${batchSettings.translationModel}`);
           }
         } else if (file.type === 'transcription' && contextTranscriptionInfo && batchSettings.transcriptionModel) {
           const apiLanguages = contextTranscriptionInfo?.languages[batchSettings.transcriptionModel];
@@ -406,17 +429,17 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
             const languageCode = detectedLanguage.ISO_639_1;
             const matching = getMatchingSourceLanguages(languageCode, apiLanguages);
             selectedSourceLanguage = autoSelectSourceLanguage(languageCode, apiLanguages);
-            console.log('BatchScreen: Auto-selection result (transcription):', {
+            logger.debug(1, 'BatchScreen', 'Auto-selection result (transcription):', {
               detectedLanguage: languageCode,
               matchingCount: matching.length,
               selectedSourceLanguage,
               matchingLanguages: matching.map(l => l.language_code)
             });
           } else {
-            console.log('BatchScreen: No API languages found for transcription model:', batchSettings.transcriptionModel);
+            logger.debug(1, 'BatchScreen', `No API languages found for transcription model: ${batchSettings.transcriptionModel}`);
           }
         } else {
-          console.log('BatchScreen: Auto-selection conditions not met');
+          logger.debug(2, 'BatchScreen', 'Auto-selection conditions not met');
         }
         
         return {
@@ -461,16 +484,19 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
               }
             }
             
+            logger.debug(3, 'BatchScreen', `🔍 pollLanguageDetection resolved with language for fileId: ${fileId}`);
             resolve(result.data.language);
           } else if (result.status === 'ERROR') {
+            logger.debug(2, 'BatchScreen', `🔍 pollLanguageDetection error for fileId: ${fileId}`, result.errors);
             logger.error('BatchScreen', 'Language detection error:', result.errors);
-            setQueue(prev => prev.map(f => 
-              f.id === fileId ? { 
-                ...f, 
+            setQueue(prev => prev.map(f =>
+              f.id === fileId ? {
+                ...f,
                 status: 'pending' as const,
                 error: result.errors?.join(', ') || 'Language detection failed'
               } : f
             ));
+            logger.debug(2, 'BatchScreen', `🔍 pollLanguageDetection resolved with null (error) for fileId: ${fileId}`);
             resolve(null);
           } else if (result.status === 'TIMEOUT') {
             logger.error('BatchScreen', 'Language detection timed out');
@@ -515,38 +541,53 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
 
   // Sequential language detection to avoid server overload
   const processLanguageDetectionQueue = useCallback(async (currentQueue?: BatchFile[]) => {
-    console.log('BatchScreen: processLanguageDetectionQueue called');
-    console.log('BatchScreen: isDetectingLanguages:', isDetectingLanguages, 'isProcessing:', isProcessing);
-    
+    logger.debug(3, 'BatchScreen', '🔍 processLanguageDetectionQueue called');
+    logger.debug(3, 'BatchScreen', `🔍 isDetectingLanguages: ${isDetectingLanguages} isProcessing: ${isProcessing}`);
+
     // Use the provided queue or get current queue from state
     const queueToProcess = currentQueue || queue;
-    console.log('BatchScreen: queue length:', queueToProcess.length);
-    console.log('BatchScreen: isAuthenticated:', isAuthenticated);
-    
+    logger.debug(3, 'BatchScreen', `🔍 queue length: ${queueToProcess.length}`);
+    logger.debug(3, 'BatchScreen', `🔍 isAuthenticated: ${isAuthenticated}`);
+    logger.debug(3, 'BatchScreen', '🔍 BatchScreen: queue files:', queueToProcess.map(f => ({
+      id: f.id,
+      name: f.name,
+      status: f.status,
+      hasDetectedLanguage: !!f.detectedLanguage
+    })));
+
     if (isDetectingLanguages || isProcessing) {
-      console.log('BatchScreen: Skipping language detection - already in progress');
+      logger.debug(2, 'BatchScreen', '🔍 Skipping language detection - already in progress');
       return;
     }
 
     if (!isAuthenticated) {
-      console.log('BatchScreen: Skipping language detection - not authenticated');
+      logger.debug(2, 'BatchScreen', '🔍 Skipping language detection - not authenticated');
       return;
     }
 
+    logger.debug(3, 'BatchScreen', '🔍 Setting isDetectingLanguages to true');
     setIsDetectingLanguages(true);
     
     try {
-      // Get ALL files that need language detection - just like main panel
-      const filesToDetect = queueToProcess.filter(file => 
-        file.status === 'pending' && !file.detectedLanguage
+      // Get files that need language detection based on type and settings
+      const filesToDetect = queueToProcess.filter(file =>
+        file.status === 'pending' && !file.detectedLanguage &&
+        (isAudioVideoFile(file.name) ? (config.autoLanguageDetection ?? false) : true)
       );
 
-      console.log('BatchScreen: Files that need detection:', filesToDetect.length);
+      logger.debug(3, 'BatchScreen', `🔍 Files that need detection: ${filesToDetect.length}`);
+      logger.debug(3, 'BatchScreen', '🔍 BatchScreen: Files needing detection:', filesToDetect.map(f => ({
+        id: f.id,
+        name: f.name,
+        status: f.status,
+        hasDetectedLanguage: !!f.detectedLanguage
+      })));
 
       if (filesToDetect.length === 0) {
-        console.log('BatchScreen: No files need language detection');
+        logger.debug(3, 'BatchScreen', '🔍 BatchScreen: No files need language detection - stopping detection process');
         setAppProcessing(true, 'All files already have language detection complete');
         setTimeout(() => setAppProcessing(false), 2000);
+        logger.debug(3, 'BatchScreen', '🔍 BatchScreen: Setting isDetectingLanguages to false (no files to detect)');
         setIsDetectingLanguages(false);
         return;
       }
@@ -555,18 +596,43 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
       setAppProcessing(true, `Detecting languages for ${filesToDetect.length} files...`);
 
       // Process files one by one to avoid server overload
-      for (const file of filesToDetect) {
-        if (!isAuthenticated) break;
-        
+      for (let i = 0; i < filesToDetect.length; i++) {
+        const file = filesToDetect[i];
+        logger.debug(3, 'BatchScreen', `🔍 BatchScreen: Processing file ${i + 1}/${filesToDetect.length}: ${file.name}`);
+
+        // Skip if already being processed
+        if (detectionInProgressRef.current.has(file.id)) {
+          logger.debug(3, 'BatchScreen', `🔍 BatchScreen: File ${file.name} already being processed, skipping`);
+          continue;
+        }
+
+        // Mark as being processed
+        detectionInProgressRef.current.add(file.id);
+
+        if (!isAuthenticated) {
+          logger.debug(3, 'BatchScreen', '🔍 BatchScreen: Lost authentication, breaking loop');
+          break;
+        }
+
         logger.info('BatchScreen', `Detecting language for: ${file.name}`);
         setAppProcessing(true, `Detecting language for ${file.name}...`);
-        
+
+        logger.debug(3, 'BatchScreen', '🔍 BatchScreen: Setting file status to "detecting" for:', file.name);
         // Update file status to detecting
-        setQueue(prev => prev.map(f => 
+        setQueue(prev => prev.map(f =>
           f.id === file.id ? { ...f, status: 'detecting' as const } : f
         ));
 
         try {
+          // Check if file still exists in queue before processing
+          logger.debug(3, 'BatchScreen', '🔍 BatchScreen: Checking if file still exists in queue before processing:', file.name);
+          const currentQueue = queueToProcess; // Use the queue passed to function, not stale state
+          const fileStillInQueue = currentQueue.find(f => f.id === file.id);
+          if (!fileStillInQueue) {
+            logger.debug(3, 'BatchScreen', '🔍 BatchScreen: File was removed from queue during processing, skipping:', file.name);
+            continue;
+          }
+
           // Implement full MainScreen logic: audio extraction + polling
           logger.info('BatchScreen', `Starting language detection for ${file.name} at path: ${file.path}`);
           
@@ -622,10 +688,15 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
             logger.info('BatchScreen', `Language detection needs polling for ${file.name}, correlation ID: ${result.correlation_id}`);
             setAppProcessing(true, `Processing audio for ${file.name}, please wait...`);
             
+            logger.debug(3, 'BatchScreen', '🔍 BatchScreen: Calling pollLanguageDetection for file:', file.name, 'correlation_id:', result.correlation_id);
             const detectedLanguage = await pollLanguageDetection(result.correlation_id, file.id, tempAudioFile);
-            
+            logger.debug(3, 'BatchScreen', '🔍 BatchScreen: pollLanguageDetection returned for file:', file.name, 'result:', detectedLanguage ? detectedLanguage.name : 'null');
+
             if (detectedLanguage) {
+              logger.debug(3, 'BatchScreen', '🔍 BatchScreen: Setting detected language for file:', file.name);
               setDetectedLanguageForFile(file.id, detectedLanguage);
+            } else {
+              logger.debug(3, 'BatchScreen', '🔍 BatchScreen: No language detected for file:', file.name);
             }
           } else if (result.status === 'ERROR') {
             logger.warn('BatchScreen', `Language detection failed for ${file.name}:`, result.errors);
@@ -664,35 +735,57 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
+      logger.debug(3, 'BatchScreen', '🔍 BatchScreen: Completed processing all files in detection loop');
       logger.info('BatchScreen', 'Sequential language detection completed');
       setAppProcessing(true, 'Language detection completed for all files');
-      
+
       // Clear status after a brief moment
       setTimeout(() => setAppProcessing(false), 1500);
-      
+
+      // Clear all processing flags
+      detectionInProgressRef.current.clear();
+
     } catch (error) {
+      logger.debug(3, 'BatchScreen', '🔍 BatchScreen: Error in language detection queue processing:', error);
       logger.error('BatchScreen', 'Error in language detection queue processing:', error);
       setAppProcessing(true, 'Language detection failed');
       setTimeout(() => setAppProcessing(false), 3000);
     } finally {
+      logger.debug(3, 'BatchScreen', '🔍 BatchScreen: Setting isDetectingLanguages to false (finally block)');
       setIsDetectingLanguages(false);
     }
   }, [isDetectingLanguages, isProcessing, isAuthenticated, detectLanguage, checkLanguageDetectionStatus, setAppProcessing]);
 
   // Trigger language detection when authentication becomes available (only if auto-detection is enabled)
   useEffect(() => {
-    if (isAuthenticated && queue.length > 0 && (config.autoLanguageDetection ?? true)) {
+    logger.debug(3, 'BatchScreen', '🔍 useEffect for auth/queue changes triggered');
+    logger.debug(3, 'BatchScreen', `🔍 isAuthenticated: ${isAuthenticated} queue.length: ${queue.length} autoDetection: ${config.autoLanguageDetection}`);
+
+    if (isAuthenticated && queue.length > 0) {
       const filesToDetect = queue.filter(file =>
-        file.status === 'pending' && !file.detectedLanguage
+        file.status === 'pending' && !file.detectedLanguage &&
+        (isAudioVideoFile(file.name) ? (config.autoLanguageDetection ?? false) : true)
       );
+      logger.debug(3, 'BatchScreen', '🔍 BatchScreen: filesToDetect in useEffect:', filesToDetect.length);
       if (filesToDetect.length > 0) {
-        console.log('BatchScreen: Authentication available and auto-detection enabled, triggering language detection for existing files');
+        logger.debug(3, 'BatchScreen', '🔍 BatchScreen: Authentication available and auto-detection enabled, triggering language detection for existing files');
         processLanguageDetectionQueue();
+      } else {
+        logger.debug(3, 'BatchScreen', '🔍 BatchScreen: No files need detection in useEffect');
       }
-    } else if (isAuthenticated && queue.length > 0) {
-      console.log('BatchScreen: Authentication available but auto-detection disabled, skipping automatic language detection');
+    } else {
+      logger.debug(3, 'BatchScreen', '🔍 useEffect conditions not met - not triggering detection');
     }
   }, [isAuthenticated, queue, config.autoLanguageDetection]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (detectionTimeoutRef.current) {
+        clearTimeout(detectionTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // File selection handlers
   const handleSingleFileSelect = async (filePath: string) => {
@@ -709,19 +802,19 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
 
   const handleFileSelect = async () => {
     try {
-      console.log('BatchScreen: Attempting multiple file selection...');
-      console.log('BatchScreen: selectMultipleFiles method exists:', typeof window.electronAPI.selectMultipleFiles);
+      logger.debug(3, 'BatchScreen', 'BatchScreen: Attempting multiple file selection...');
+      logger.debug(3, 'BatchScreen', 'BatchScreen: selectMultipleFiles method exists:', typeof window.electronAPI.selectMultipleFiles);
       
       const filePaths = await window.electronAPI.selectMultipleFiles();
-      console.log('BatchScreen: Selected file paths:', filePaths);
+      logger.debug(3, 'BatchScreen', 'BatchScreen: Selected file paths:', filePaths);
       
       if (filePaths && filePaths.length > 0) {
-        console.log(`BatchScreen: Adding ${filePaths.length} files to queue`);
+        logger.debug(3, 'BatchScreen', `BatchScreen: Adding ${filePaths.length} files to queue`);
         for (const filePath of filePaths) {
           await addFileToQueue(filePath);
         }
       } else {
-        console.log('BatchScreen: No files selected');
+        logger.debug(3, 'BatchScreen', 'BatchScreen: No files selected');
       }
     } catch (error) {
       logger.error('BatchScreen', 'Multiple file selection failed, falling back to single file', error);
@@ -729,9 +822,9 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
       
       // Fallback to single file selection
       try {
-        console.log('BatchScreen: Falling back to single file selection');
+        logger.debug(3, 'BatchScreen', 'BatchScreen: Falling back to single file selection');
         const filePath = await window.electronAPI.selectFile();
-        console.log('BatchScreen: Single file selected:', filePath);
+        logger.debug(3, 'BatchScreen', 'BatchScreen: Single file selected:', filePath);
         
         if (filePath) {
           await addFileToQueue(filePath);
@@ -753,7 +846,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     }
 
     const fileType = isSubtitleFile(fileName) ? 'translation' : 'transcription';
-    console.log('BatchScreen: File type detection:', {
+    logger.debug(3, 'BatchScreen', 'BatchScreen: File type detection:', {
       fileName,
       isSubtitle: isSubtitleFile(fileName),
       isAudioVideo: isAudioVideoFile(fileName),
@@ -770,17 +863,28 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
 
     setQueue(prev => {
       const updatedQueue = [...prev, newFile];
-      console.log('BatchScreen: File added to queue:', newFile);
-      console.log('BatchScreen: Updated queue length:', updatedQueue.length);
+      logger.debug(3, 'BatchScreen', 'BatchScreen: File added to queue:', newFile);
+      logger.debug(3, 'BatchScreen', 'BatchScreen: Updated queue length:', updatedQueue.length);
       
-      // Trigger sequential language detection after a short delay, only if auto-detection is enabled
-      if (config.autoLanguageDetection ?? true) {
-        setTimeout(() => {
-          console.log('BatchScreen: Auto-detection enabled, triggering language detection queue processing');
-          processLanguageDetectionQueue(updatedQueue);
-        }, 100);
+      // Trigger sequential language detection after a short delay
+      // For audio/video files: only if auto-detection is enabled
+      // For subtitle files: always detect language
+      const shouldDetect = isAudioVideoFile(newFile.name)
+        ? (config.autoLanguageDetection ?? false)
+        : true;
+
+      if (shouldDetect) {
+        // Debounce detection triggers to prevent duplicate calls
+        if (detectionTimeoutRef.current) {
+          clearTimeout(detectionTimeoutRef.current);
+        }
+        detectionTimeoutRef.current = setTimeout(() => {
+          logger.debug(3, 'BatchScreen', 'BatchScreen: Triggering language detection queue processing for', isAudioVideoFile(newFile.name) ? 'audio/video' : 'subtitle', 'file');
+          // Use setTimeout to avoid setState during render and pass the updated queue
+          setTimeout(() => processLanguageDetectionQueue(updatedQueue), 0);
+        }, 200);
       } else {
-        console.log('BatchScreen: Auto-detection disabled, skipping automatic language detection for new file');
+        logger.debug(3, 'BatchScreen', 'BatchScreen: Auto-detection disabled for audio/video files, skipping automatic language detection for new file');
       }
       return updatedQueue;
     });
@@ -789,7 +893,13 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
 
   // Queue management
   const removeFromQueue = (fileId: string) => {
-    setQueue(prev => prev.filter(file => file.id !== fileId));
+    logger.debug(3, 'BatchScreen', '🔍 BatchScreen: removeFromQueue called for fileId:', fileId);
+    setQueue(prev => {
+      const beforeLength = prev.length;
+      const filtered = prev.filter(file => file.id !== fileId);
+      logger.debug(3, 'BatchScreen', '🔍 BatchScreen: Queue length before removal:', beforeLength, 'after removal:', filtered.length);
+      return filtered;
+    });
   };
 
   const clearQueue = () => {
@@ -1369,7 +1479,6 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
-      padding: '20px',
       gap: '20px'
     }}>
       <h1>Batch Processing</h1>
@@ -1384,10 +1493,10 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
       {/* File Queue Display - Only show when there are files */}
       {queue.length > 0 && (
         <div style={{
-          border: '1px solid #ddd',
+          border: '1px solid var(--border-color)',
           borderRadius: '4px',
           padding: '15px',
-          backgroundColor: '#ffffff'
+          backgroundColor: 'var(--bg-secondary)'
         }}>
           <div style={{ textAlign: 'center', marginBottom: '15px' }}>
             <h3>File Queue ({queue.length} files)</h3>
@@ -1416,21 +1525,21 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
           <div style={{
             maxHeight: '300px',
             overflowY: 'auto',
-            border: '1px solid #ddd',
+            border: '1px solid var(--border-color)',
             borderRadius: '4px',
-            backgroundColor: 'white'
+            backgroundColor: 'var(--bg-secondary)'
           }}>
             {queue.map((file, index) => (
               <div key={file.id} style={{
                 display: 'flex',
                 alignItems: 'center',
                 padding: '10px',
-                borderBottom: index < queue.length - 1 ? '1px solid #eee' : 'none',
-                backgroundColor: index === currentFileIndex ? '#e3f2fd' : 'transparent'
+                borderBottom: index < queue.length - 1 ? '1px solid var(--border-color)' : 'none',
+                backgroundColor: index === currentFileIndex ? 'var(--info-color)' : 'transparent'
               }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 'bold' }}>{file.name}</div>
-                  <div style={{ fontSize: '12px', color: '#666' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                     Type: {file.type} | Status: {file.status}
                     {file.detectedLanguage && ` | Language: ${file.detectedLanguage.native || file.detectedLanguage.name}`}
                     {file.progress !== undefined && ` | Progress: ${file.progress}%`}
@@ -1440,7 +1549,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
                   {/* Source Language Selector for Translation Files */}
                   {file.type === 'translation' && contextTranslationInfo && batchSettings.translationModel && (
                     <div style={{ marginTop: '8px' }}>
-                      <label style={{ fontSize: '11px', color: '#666', display: 'block', marginBottom: '4px' }}>
+                      <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                         Source Language:
                       </label>
                       <select
@@ -1450,7 +1559,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
                         style={{
                           fontSize: '11px',
                           padding: '2px 4px',
-                          border: '1px solid #ddd',
+                          border: '1px solid var(--border-color)',
                           borderRadius: '3px',
                           backgroundColor: 'white',
                           maxWidth: '200px'
@@ -1473,7 +1582,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
                   {/* Source Language Selector for Transcription Files */}
                   {file.type === 'transcription' && contextTranscriptionInfo && batchSettings.transcriptionModel && (
                     <div style={{ marginTop: '8px' }}>
-                      <label style={{ fontSize: '11px', color: '#666', display: 'block', marginBottom: '4px' }}>
+                      <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                         Source Language:
                       </label>
                       <select
@@ -1483,7 +1592,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
                         style={{
                           fontSize: '11px',
                           padding: '2px 4px',
-                          border: '1px solid #ddd',
+                          border: '1px solid var(--border-color)',
                           borderRadius: '3px',
                           backgroundColor: 'white',
                           maxWidth: '200px'
@@ -1508,9 +1617,9 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
                 
                 {!isProcessing && (
                   <div style={{ display: 'flex', gap: '5px' }}>
-                    <button onClick={() => moveFileUp(index)} disabled={index === 0} title="Move Up">↑</button>
-                    <button onClick={() => moveFileDown(index)} disabled={index === queue.length - 1} title="Move Down">↓</button>
-                    <button onClick={() => removeFromQueue(file.id)} title="Remove">×</button>
+                    <button onClick={() => moveFileUp(index)} disabled={index === 0} title="Move Up"><i className="fas fa-arrow-up"></i></button>
+                    <button onClick={() => moveFileDown(index)} disabled={index === queue.length - 1} title="Move Down"><i className="fas fa-arrow-down"></i></button>
+                    <button onClick={() => removeFromQueue(file.id)} title="Remove"><i className="fas fa-times"></i></button>
                   </div>
                 )}
               </div>
@@ -1521,11 +1630,11 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
 
       {/* Welcome message when no files are selected */}
       {queue.length === 0 && (
-        <div 
+        <div
           style={{
             textAlign: 'center',
             padding: '60px 20px',
-            backgroundColor: '#f8f9fa',
+            backgroundColor: 'var(--bg-tertiary)',
             borderRadius: '12px',
             border: '2px dashed #dee2e6',
             margin: '20px 0',
@@ -1535,7 +1644,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
           }}
         >
           <div style={{ fontSize: '48px', marginBottom: '20px' }}>
-            ⚡
+            <i className="fas fa-layer-group" style={{color: '#495057'}}></i>
           </div>
           <div style={{ fontSize: '28px', color: '#495057', marginBottom: '15px', fontWeight: '500' }}>
             Batch Processing Power
@@ -1574,9 +1683,9 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
           gridTemplateColumns: '1fr 1fr',
           gap: '20px',
           padding: '20px',
-          backgroundColor: '#f8f9fa',
+          backgroundColor: 'var(--bg-tertiary)',
           borderRadius: '8px',
-          border: '1px solid #dee2e6',
+          border: '1px solid var(--border-color)',
           opacity: queue.length > 0 ? 1 : 0,
           transform: queue.length > 0 ? 'translateY(0)' : 'translateY(-10px)',
           transition: 'opacity 0.3s ease-in-out, transform 0.3s ease-in-out',
@@ -1693,7 +1802,14 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
                   onChange={(e) => setBatchSettings(prev => ({ ...prev, outputDirectory: e.target.value }))}
                   disabled={isProcessing}
                   placeholder="Select output directory"
-                  style={{ flex: 1, padding: '5px' }}
+                  style={{
+                    flex: 1,
+                    padding: '5px',
+                    backgroundColor: 'var(--input-bg)',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--input-border)',
+                    borderRadius: '4px'
+                  }}
                 />
                 <button
                   onClick={async () => {
@@ -1707,7 +1823,14 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
                     }
                   }}
                   disabled={isProcessing}
-                  style={{ padding: '5px 10px' }}
+                  style={{
+                    padding: '5px 10px',
+                    backgroundColor: 'var(--button-bg)',
+                    color: 'var(--button-text)',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: isProcessing ? 'not-allowed' : 'pointer'
+                  }}
                 >
                   Browse
                 </button>
@@ -1716,7 +1839,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
             {!batchSettings.useCustomOutputDirectory && (
               <div style={{ 
                 fontSize: '12px', 
-                color: '#666', 
+                color: 'var(--text-secondary)', 
                 fontStyle: 'italic',
                 marginLeft: '25px'
               }}>
@@ -1741,7 +1864,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
                 onChange={(e) => setBatchSettings(prev => ({ ...prev, enableChaining: e.target.checked }))}
                 disabled={isProcessing || !uiState.chainingEnabled}
               />
-              Enable Transcription → Translation Chaining
+              Enable Transcription <i className="fas fa-arrow-right"></i> Translation Chaining
               {!uiState.chainingEnabled && <span style={{ fontSize: '12px', fontStyle: 'italic' }}>(No audio/video files)</span>}
             </label>
           </div>
@@ -1783,7 +1906,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
           justifyContent: 'space-between',
           alignItems: 'center',
           padding: '20px',
-          backgroundColor: '#e9ecef',
+          backgroundColor: 'var(--bg-tertiary)',
           borderRadius: '8px',
           border: '1px solid #ced4da',
           opacity: queue.length > 0 ? 1 : 0,
@@ -1802,7 +1925,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
               </span>
             )}
           </div>
-          <div style={{ fontSize: '14px', color: '#666' }}>
+          <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
             {isProcessing ? (
               currentFileIndex >= 0 ? 
                 `Processing: ${queue[currentFileIndex]?.name} (${currentFileIndex + 1}/${queue.length})` :
@@ -1814,8 +1937,9 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
         </div>
 
         <div style={{ display: 'flex', gap: '10px' }}>
-          {/* Manual Language Detection Button - only show when auto-detection is disabled */}
-          {!(config.autoLanguageDetection ?? true) && !isProcessing && queue.length > 0 && (
+          {/* Manual Language Detection Button - only show when auto-detection is disabled for audio/video files */}
+          {!(config.autoLanguageDetection ?? false) && !isProcessing && queue.length > 0 &&
+           queue.some(file => isAudioVideoFile(file.name) && !file.detectedLanguage) && (
             <button
               onClick={() => processLanguageDetectionQueue()}
               disabled={isDetectingLanguages || !isAuthenticated || !isOnline()}
@@ -1877,7 +2001,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
         <div style={{
           width: '100%',
           height: '10px',
-          backgroundColor: '#e9ecef',
+          backgroundColor: 'var(--bg-tertiary)',
           borderRadius: '5px',
           overflow: 'hidden',
           border: '1px solid #ced4da'
@@ -1908,22 +2032,22 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
           zIndex: 1000
         }}>
           <div style={{
-            backgroundColor: 'white',
+            backgroundColor: 'var(--bg-secondary)',
             borderRadius: '8px',
             padding: '24px',
             maxWidth: '600px',
             maxHeight: '80vh',
             overflow: 'auto',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+            boxShadow: '0 4px 12px var(--shadow-color)'
           }}>
-            <h2 style={{ 
-              margin: '0 0 20px 0', 
-              color: '#333',
+            <h2 style={{
+              margin: '0 0 20px 0',
+              color: 'var(--text-primary)',
               display: 'flex',
               alignItems: 'center',
               gap: '8px'
             }}>
-              <span style={{ fontSize: '24px' }}>🎉</span>
+              <i className="fas fa-trophy" style={{ fontSize: '24px', color: '#FFD700' }}></i>
               Batch Processing Complete
             </h2>
             
@@ -1934,20 +2058,20 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
               gap: '16px',
               marginBottom: '20px',
               padding: '16px',
-              backgroundColor: '#f8f9fa',
+              backgroundColor: 'var(--bg-tertiary)',
               borderRadius: '6px'
             }}>
               <div>
                 <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#28a745' }}>
                   {batchStats.successfulFiles}
                 </div>
-                <div style={{ fontSize: '14px', color: '#666' }}>Files Processed</div>
+                <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Files Processed</div>
               </div>
               <div>
                 <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#2196F3' }}>
                   {batchCreditStats.totalCreditsUsed}
                 </div>
-                <div style={{ fontSize: '14px', color: '#666' }}>Credits Used</div>
+                <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Credits Used</div>
               </div>
               <div>
                 <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ff6b35' }}>
@@ -1955,13 +2079,13 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
                     Math.round((batchStats.endTime.getTime() - batchStats.startTime.getTime()) / 1000) : 0
                   }s
                 </div>
-                <div style={{ fontSize: '14px', color: '#666' }}>Duration</div>
+                <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Duration</div>
               </div>
               <div>
                 <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#6f42c1' }}>
                   {batchStats.outputFiles.length}
                 </div>
-                <div style={{ fontSize: '14px', color: '#666' }}>Output Files</div>
+                <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Output Files</div>
               </div>
             </div>
 
@@ -1978,7 +2102,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
                 <div style={{
                   maxHeight: '200px',
                   overflow: 'auto',
-                  border: '1px solid #ddd',
+                  border: '1px solid var(--border-color)',
                   borderRadius: '4px',
                   backgroundColor: '#f8f9fa'
                 }}>
@@ -2005,11 +2129,11 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
                 </div>
                 <div style={{ 
                   fontSize: '12px', 
-                  color: '#666', 
+                  color: 'var(--text-secondary)', 
                   marginTop: '8px',
                   fontStyle: 'italic'
                 }}>
-                  💡 Click any file path to copy it to clipboard
+                  <i className="fas fa-lightbulb" style={{marginRight: '6px', color: '#ffc107'}}></i>Click any file path to copy it to clipboard
                 </div>
               </div>
             )}

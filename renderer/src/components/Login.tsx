@@ -163,10 +163,10 @@ function Login({ onLogin, setAppProcessing }: LoginProps) {
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              backgroundColor: '#f8f9fa',
+              backgroundColor: 'var(--bg-tertiary)',
               borderRadius: '10px 10px 0 0'
             }}>
-              <h2 style={{ margin: 0, color: '#2c3e50' }}>🔑 How to Obtain Your OpenSubtitles API Key</h2>
+              <h2 style={{ margin: 0, color: '#2c3e50' }}><i className="fas fa-key" style={{marginRight: '8px', color: '#f39c12'}}></i>How to Obtain Your OpenSubtitles API Key</h2>
               <button
                 onClick={() => setShowHelpModal(false)}
                 style={{
@@ -183,7 +183,7 @@ function Login({ onLogin, setAppProcessing }: LoginProps) {
                   justifyContent: 'center'
                 }}
               >
-                ×
+                <i className="fas fa-times"></i>
               </button>
             </div>
             
@@ -201,11 +201,11 @@ function Login({ onLogin, setAppProcessing }: LoginProps) {
                 borderRadius: '5px',
                 marginBottom: '20px'
               }}>
-                <strong>ℹ️ What is an API Key?</strong><br/>
+                <strong><i className="fas fa-info-circle" style={{marginRight: '6px', color: '#0c5460'}}></i>What is an API Key?</strong><br/>
                 An API Key is a unique identifier that authenticates your application when making requests to the OpenSubtitles service. It's required to use this desktop client.
               </div>
 
-              <h3 style={{ color: '#3498db', marginTop: '20px', marginBottom: '15px' }}>📋 Step-by-Step Instructions</h3>
+              <h3 style={{ color: '#3498db', marginTop: '20px', marginBottom: '15px' }}><i className="fas fa-list-ol" style={{marginRight: '8px'}}></i>Step-by-Step Instructions</h3>
               
               <div style={{
                 backgroundColor: '#ecf0f1',
@@ -364,7 +364,7 @@ function Login({ onLogin, setAppProcessing }: LoginProps) {
                 borderRadius: '5px',
                 margin: '20px 0'
               }}>
-                <strong>🔐 Keep Your API Key Secure</strong><br/>
+                <strong><i className="fas fa-lock"></i> Keep Your API Key Secure</strong><br/>
                 Treat your API Key like a password - never share it publicly or store it in unsecured locations.
               </div>
             </div>
@@ -372,7 +372,7 @@ function Login({ onLogin, setAppProcessing }: LoginProps) {
             <div style={{
               padding: '15px 20px',
               borderTop: '1px solid #ddd',
-              backgroundColor: '#f8f9fa',
+              backgroundColor: 'var(--bg-tertiary)',
               borderRadius: '0 0 10px 10px',
               textAlign: 'center'
             }}>

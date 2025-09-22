@@ -43,6 +43,7 @@ interface AppConfig {
   apiKey?: string;
   lastUsedLanguage?: string;
   debugMode?: boolean;
+  debugLevel?: number;
   checkUpdatesOnStart?: boolean;
   autoRemoveCompletedFiles?: boolean;
   cacheExpirationHours?: number;
@@ -51,6 +52,7 @@ interface AppConfig {
   audio_language_detection_time?: number;
   apiBaseUrl?: string;
   autoLanguageDetection?: boolean;
+  darkMode?: boolean;
   credits?: {
     used: number;
     remaining: number;
@@ -223,7 +225,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
   // Handle external file from App.tsx (command line or file association)
   useEffect(() => {
     if (pendingExternalFile) {
-      console.log('MainScreen: Processing external file:', pendingExternalFile);
+      logger.debug(1, 'MainScreen', `Processing external file: ${pendingExternalFile}`);
       handleFileSelect(pendingExternalFile);
       onExternalFileProcessed?.();
     }
@@ -1181,7 +1183,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           style={{
             textAlign: 'center',
             padding: '60px 20px',
-            backgroundColor: '#f8f9fa',
+            backgroundColor: 'var(--bg-secondary)',
             borderRadius: '12px',
             border: '2px dashed #dee2e6',
             margin: '20px 0',
@@ -1191,7 +1193,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           }}
         >
           <div style={{ fontSize: '48px', marginBottom: '20px' }}>
-            🎬
+            <i className="fas fa-file-audio" style={{color: '#495057'}}></i>
           </div>
           <div style={{ fontSize: '28px', color: '#495057', marginBottom: '15px', fontWeight: '500' }}>
             Ready to Process Your Media
@@ -1257,10 +1259,10 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
                 
                 {fileInfo.hasAudio !== undefined && (
                   <div>
-                    <strong>Audio:</strong> {fileInfo.hasAudio ? '✓' : '✗'}
+                    <strong>Audio:</strong> <i className={`fas ${fileInfo.hasAudio ? 'fa-check text-success' : 'fa-times text-danger'}`}></i>
                     {fileInfo.hasVideo !== undefined && (
                       <span style={{ marginLeft: '10px' }}>
-                        <strong>Video:</strong> {fileInfo.hasVideo ? '✓' : '✗'}
+                        <strong>Video:</strong> <i className={`fas ${fileInfo.hasVideo ? 'fa-check text-success' : 'fa-times text-danger'}`}></i>
                       </span>
                     )}
                   </div>
@@ -1289,7 +1291,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
             <div style={{ 
               marginTop: '12px', 
               padding: '8px 12px', 
-              backgroundColor: '#e3f2fd', 
+              backgroundColor: 'var(--info-color)', 
               borderRadius: '4px',
               fontSize: '14px'
             }}>
@@ -1305,7 +1307,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
             <div style={{ 
               marginTop: '12px', 
               padding: '8px 12px', 
-              backgroundColor: '#fff3e0', 
+              backgroundColor: 'var(--bg-tertiary)', 
               borderRadius: '4px',
               fontSize: '14px'
             }}>
@@ -1325,7 +1327,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           padding: '15px', 
           border: '1px solid #ddd', 
           borderRadius: '6px',
-          backgroundColor: '#f9f9f9',
+          backgroundColor: 'var(--bg-tertiary)',
           opacity: selectedFile ? 1 : 0,
           transform: selectedFile ? 'translateY(0)' : 'translateY(-10px)',
           transition: 'opacity 0.4s ease-in-out, transform 0.4s ease-in-out',
@@ -1364,7 +1366,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
                 </>
               ) : (
                 <>
-                  🔍 Detect Language
+                  <i className="fas fa-search" style={{marginRight: '6px'}}></i>Detect Language
                 </>
               )}
             </button>
@@ -1383,7 +1385,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
             <div style={{
               marginTop: '15px',
               padding: '12px',
-              backgroundColor: '#e8f5e8',
+              backgroundColor: 'var(--success-color)',
               border: '1px solid #4CAF50',
               borderRadius: '4px'
             }}>
@@ -1454,12 +1456,12 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
                 <div style={{
                   marginTop: '10px',
                   padding: '8px',
-                  backgroundColor: '#e8f5e8',
+                  backgroundColor: 'var(--success-color)',
                   borderRadius: '3px',
                   fontSize: '12px',
                   color: '#2e7d32'
                 }}>
-                  ✅ Language selection has been automatically updated below
+                  <i className="fas fa-check-circle text-success"></i> Language selection has been automatically updated below
                 </div>
               )}
             </div>
@@ -1567,7 +1569,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
               color: 'white',
               textAlign: 'center'
             }}>
-              <div style={{ fontSize: '48px', marginBottom: '12px' }}>⚠️</div>
+              <div style={{ fontSize: '48px', marginBottom: '12px' }}><i className="fas fa-exclamation-triangle" style={{color: 'white'}}></i></div>
               <h2 style={{ margin: 0, fontSize: '24px' }}>Insufficient Credits</h2>
             </div>
             
@@ -1583,7 +1585,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
               </p>
               
               <div style={{
-                backgroundColor: '#f8f9fa',
+                backgroundColor: 'var(--bg-secondary)',
                 padding: '16px',
                 borderRadius: '8px',
                 marginBottom: '20px',
@@ -1606,7 +1608,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
 
             <div style={{
               padding: '16px 24px',
-              backgroundColor: '#f8f9fa',
+              backgroundColor: 'var(--bg-secondary)',
               display: 'flex',
               gap: '12px',
               justifyContent: 'center'
@@ -1698,7 +1700,7 @@ function PreviewDialog({ content, onClose, onSave }: PreviewDialogProps) {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
           <h3>Result Preview</h3>
-          <button onClick={onClose} style={{ fontSize: '18px', padding: '5px 10px' }}>×</button>
+          <button onClick={onClose} style={{ fontSize: '18px', padding: '5px 10px' }}><i className="fas fa-times"></i></button>
         </div>
         
         <textarea

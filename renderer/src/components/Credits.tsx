@@ -8,7 +8,9 @@ interface AppConfig {
   apiKey?: string;
   lastUsedLanguage?: string;
   debugMode?: boolean;
+  debugLevel?: number;
   autoLanguageDetection?: boolean;
+  darkMode?: boolean;
   credits?: {
     used: number;
     remaining: number;
@@ -80,19 +82,19 @@ function Credits({ config, setAppProcessing }: CreditsProps) {
       
       {/* Current Credits Section */}
       <div style={{
-        background: '#f8f9fa',
+        background: 'var(--bg-tertiary)',
         padding: '20px',
         borderRadius: '8px',
         marginBottom: '30px',
-        border: '1px solid #e9ecef'
+        border: '1px solid var(--border-color)'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h2 style={{ margin: '0 0 10px 0', color: '#495057' }}>Current Balance</h2>
+            <h2 style={{ margin: '0 0 10px 0', color: 'var(--text-primary)' }}>Current Balance</h2>
             {isLoadingCredits ? (
               <p>Loading current credits...</p>
             ) : (
-              <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0', color: '#007bff' }}>
+              <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0', color: 'var(--text-primary)' }}>
                 {credits ? `${credits.remaining} Credits` : 'Credits unavailable'}
               </p>
             )}
@@ -120,12 +122,13 @@ function Credits({ config, setAppProcessing }: CreditsProps) {
         
         {error && (
           <div style={{
-            background: '#f8d7da',
-            color: '#721c24',
+            background: 'var(--danger-color)',
+            color: 'var(--bg-primary)',
             padding: '12px',
             borderRadius: '4px',
             marginBottom: '20px',
-            border: '1px solid #f1aeb5'
+            border: '1px solid var(--danger-color)',
+            opacity: '0.9'
           }}>
             {error}
           </div>
@@ -146,10 +149,10 @@ function Credits({ config, setAppProcessing }: CreditsProps) {
               <div
                 key={index}
                 style={{
-                  border: '1px solid #dee2e6',
+                  border: '1px solid var(--border-color)',
                   borderRadius: '8px',
                   padding: '20px',
-                  background: '#ffffff',
+                  background: 'var(--bg-secondary)',
                   boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                   transition: 'transform 0.2s ease, box-shadow 0.2s ease'
                 }}
@@ -163,16 +166,16 @@ function Credits({ config, setAppProcessing }: CreditsProps) {
                 }}
               >
                 <div style={{ textAlign: 'center' }}>
-                  <h3 style={{ margin: '0 0 10px 0', color: '#495057' }}>
+                  <h3 style={{ margin: '0 0 10px 0', color: 'var(--text-primary)' }}>
                     {pkg.name}
                   </h3>
-                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#007bff', margin: '10px 0' }}>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--text-primary)', margin: '10px 0' }}>
                     {pkg.value}
                   </div>
                   {pkg.discount_percent > 0 ? (
                     <div style={{
-                      background: '#d4edda',
-                      color: '#155724',
+                      background: 'var(--success-color)',
+                      color: 'var(--bg-primary)',
                       padding: '4px 8px',
                       borderRadius: '4px',
                       fontSize: '12px',
@@ -214,7 +217,7 @@ function Credits({ config, setAppProcessing }: CreditsProps) {
             ))}
           </div>
         ) : !isLoading && (
-          <div style={{ textAlign: 'center', padding: '40px', color: '#6c757d' }}>
+          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
             <p>No credit packages available at the moment.</p>
             <button
               onClick={loadCreditPackages}
@@ -235,14 +238,14 @@ function Credits({ config, setAppProcessing }: CreditsProps) {
 
       {/* Instructions */}
       <div style={{
-        background: '#e7f3ff',
+        background: 'var(--bg-tertiary)',
         padding: '15px',
         borderRadius: '6px',
         marginTop: '30px',
-        border: '1px solid #b3d7ff'
+        border: '1px solid var(--border-color)'
       }}>
-        <h4 style={{ margin: '0 0 10px 0', color: '#0c5460' }}>💡 How it works:</h4>
-        <ul style={{ margin: '0', paddingLeft: '20px', color: '#0c5460' }}>
+        <h4 style={{ margin: '0 0 10px 0', color: 'var(--text-primary)' }}><i className="fas fa-lightbulb" style={{marginRight: '6px', color: '#ffc107'}}></i>How it works:</h4>
+        <ul style={{ margin: '0', paddingLeft: '20px', color: 'var(--text-secondary)' }}>
           <li>Click "Purchase Now" to open the secure checkout page in your browser</li>
           <li>Complete your purchase on the OpenSubtitles website</li>
           <li>Credits will be added to your account automatically</li>

@@ -9,7 +9,9 @@ interface AppConfig {
   apiKey?: string;
   lastUsedLanguage?: string;
   debugMode?: boolean;
+  debugLevel?: number;
   autoLanguageDetection?: boolean;
+  darkMode?: boolean;
   credits?: {
     used: number;
     remaining: number;
@@ -80,7 +82,7 @@ function Info({ config, setAppProcessing }: InfoProps) {
     
     // Handle undefined languages
     if (!languages) {
-      return <div style={{ fontSize: '14px', color: '#6c757d', fontStyle: 'italic' }}>Language information not available</div>;
+      return <div style={{ fontSize: '14px', color: 'var(--text-muted)', fontStyle: 'italic' }}>Language information not available</div>;
     }
     
     const showCollapsible = languages.length > 20;
@@ -88,7 +90,7 @@ function Info({ config, setAppProcessing }: InfoProps) {
 
     return (
       <div style={{ marginTop: '12px' }}>
-        <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '8px', color: '#495057' }}>
+        <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '8px', color: 'var(--text-primary)' }}>
           Languages Supported ({languages.length})
         </div>
         <div style={{ 
@@ -104,10 +106,10 @@ function Info({ config, setAppProcessing }: InfoProps) {
               style={{
                 fontSize: '12px',
                 padding: '4px 8px',
-                backgroundColor: '#e9ecef',
+                backgroundColor: 'var(--bg-tertiary)',
                 borderRadius: '12px',
-                color: '#495057',
-                border: '1px solid #dee2e6'
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-color)'
               }}
             >
               {lang.language_name}
@@ -121,20 +123,20 @@ function Info({ config, setAppProcessing }: InfoProps) {
               marginTop: '8px',
               padding: '6px 12px',
               fontSize: '12px',
-              color: '#007bff',
+              color: 'var(--button-bg)',
               backgroundColor: 'transparent',
-              border: '1px solid #007bff',
+              border: '1px solid var(--button-bg)',
               borderRadius: '4px',
               cursor: 'pointer',
               transition: 'all 0.2s'
             }}
             onMouseOver={(e) => {
-              e.currentTarget.style.backgroundColor = '#007bff';
-              e.currentTarget.style.color = 'white';
+              e.currentTarget.style.backgroundColor = 'var(--button-bg)';
+              e.currentTarget.style.color = 'var(--button-text)';
             }}
             onMouseOut={(e) => {
               e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = '#007bff';
+              e.currentTarget.style.color = 'var(--button-bg)';
             }}
           >
             {isExpanded ? 'Show Less' : `Show All ${languages.length} Languages`}
@@ -158,13 +160,13 @@ function Info({ config, setAppProcessing }: InfoProps) {
     <>
       <div className="info-container" style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '20px' }}>
       <h1>AI Model Information & Pricing</h1>
-      <p style={{ marginBottom: '30px', color: '#666' }}>
+      <p style={{ marginBottom: '30px', color: 'var(--text-secondary)' }}>
         Learn about the available AI models and their pricing structure. All prices are in credits.
       </p>
 
       {/* Transcription Models */}
       <section style={{ marginBottom: '40px', width: '100%' }}>
-        <h2 style={{ marginBottom: '20px', color: '#333', borderBottom: '2px solid #3498db', paddingBottom: '8px' }}>
+        <h2 style={{ marginBottom: '20px', color: 'var(--text-primary)', borderBottom: '2px solid var(--info-color)', paddingBottom: '8px' }}>
           Transcription Models
         </h2>
         {servicesInfo?.Transcription && servicesInfo.Transcription.length > 0 ? (
@@ -178,9 +180,9 @@ function Info({ config, setAppProcessing }: InfoProps) {
             {servicesInfo.Transcription.map((model) => (
               <div key={model.name} style={{
                 padding: '20px',
-                border: '1px solid #e0e0e0',
+                border: '1px solid var(--border-color)',
                 borderRadius: '8px',
-                backgroundColor: '#fff',
+                backgroundColor: 'var(--bg-secondary)',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                 display: 'grid',
                 gridTemplateRows: 'auto auto 1fr auto',
@@ -199,7 +201,7 @@ function Info({ config, setAppProcessing }: InfoProps) {
                   <div style={{ 
                     fontSize: '18px',
                     fontWeight: 'bold', 
-                    color: '#2c3e50',
+                    color: 'var(--text-primary)',
                     textAlign: 'center',
                     marginBottom: '8px'
                   }}>
@@ -223,7 +225,7 @@ function Info({ config, setAppProcessing }: InfoProps) {
                 <div style={{ 
                   gridArea: 'description',
                   fontSize: '14px', 
-                  color: '#666', 
+                  color: 'var(--text-secondary)', 
                   marginBottom: '12px',
                   lineHeight: '1.5',
                   alignSelf: 'start'
@@ -236,10 +238,10 @@ function Info({ config, setAppProcessing }: InfoProps) {
                 }}>
                   <div style={{ 
                     fontSize: '16px', 
-                    color: '#2196F3', 
+                    color: 'var(--bg-primary)', 
                     fontWeight: 'bold',
                     padding: '8px 12px',
-                    backgroundColor: '#e3f2fd',
+                    backgroundColor: 'var(--info-color)',
                     borderRadius: '4px',
                     display: 'inline-block',
                     marginBottom: '12px'
@@ -252,7 +254,7 @@ function Info({ config, setAppProcessing }: InfoProps) {
             ))}
           </div>
         ) : (
-          <p style={{ color: '#666', fontStyle: 'italic', fontSize: '16px' }}>
+          <p style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '16px' }}>
             No transcription models available. Please check your API configuration.
           </p>
         )}
@@ -260,7 +262,7 @@ function Info({ config, setAppProcessing }: InfoProps) {
 
       {/* Translation Models */}
       <section style={{ marginBottom: '40px', width: '100%' }}>
-        <h2 style={{ marginBottom: '20px', color: '#333', borderBottom: '2px solid #e74c3c', paddingBottom: '8px' }}>
+        <h2 style={{ marginBottom: '20px', color: 'var(--text-primary)', borderBottom: '2px solid var(--danger-color)', paddingBottom: '8px' }}>
           Translation Models
         </h2>
         {servicesInfo?.Translation && servicesInfo.Translation.length > 0 ? (
@@ -274,9 +276,9 @@ function Info({ config, setAppProcessing }: InfoProps) {
             {servicesInfo.Translation.map((model) => (
               <div key={model.name} style={{
                 padding: '20px',
-                border: '1px solid #e0e0e0',
+                border: '1px solid var(--border-color)',
                 borderRadius: '8px',
-                backgroundColor: '#fff',
+                backgroundColor: 'var(--bg-secondary)',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                 display: 'grid',
                 gridTemplateRows: 'auto auto 1fr auto',
@@ -295,7 +297,7 @@ function Info({ config, setAppProcessing }: InfoProps) {
                   <div style={{ 
                     fontSize: '18px',
                     fontWeight: 'bold', 
-                    color: '#2c3e50',
+                    color: 'var(--text-primary)',
                     textAlign: 'center',
                     marginBottom: '8px'
                   }}>
@@ -319,7 +321,7 @@ function Info({ config, setAppProcessing }: InfoProps) {
                 <div style={{ 
                   gridArea: 'description',
                   fontSize: '14px', 
-                  color: '#666', 
+                  color: 'var(--text-secondary)', 
                   marginBottom: '12px',
                   lineHeight: '1.5',
                   alignSelf: 'start'
@@ -332,10 +334,10 @@ function Info({ config, setAppProcessing }: InfoProps) {
                 }}>
                   <div style={{ 
                     fontSize: '16px', 
-                    color: '#e74c3c', 
+                    color: 'var(--bg-primary)', 
                     fontWeight: 'bold',
                     padding: '8px 12px',
-                    backgroundColor: '#ffebee',
+                    backgroundColor: 'var(--danger-color)',
                     borderRadius: '4px',
                     display: 'inline-block',
                     marginBottom: '12px'
@@ -348,7 +350,7 @@ function Info({ config, setAppProcessing }: InfoProps) {
             ))}
           </div>
         ) : (
-          <p style={{ color: '#666', fontStyle: 'italic', fontSize: '16px' }}>
+          <p style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '16px' }}>
             No translation models available. Please check your API configuration.
           </p>
         )}
@@ -357,13 +359,13 @@ function Info({ config, setAppProcessing }: InfoProps) {
       {/* Pricing Notes */}
       <section style={{
         padding: '20px',
-        backgroundColor: '#f8f9fa',
-        borderLeft: '4px solid #17a2b8',
+        backgroundColor: 'var(--bg-tertiary)',
+        borderLeft: '4px solid var(--info-color)',
         borderRadius: '4px',
         marginTop: '30px'
       }}>
-        <h3 style={{ marginBottom: '12px', color: '#17a2b8' }}>Pricing Information</h3>
-        <ul style={{ marginLeft: '20px', lineHeight: '1.6', color: '#495057' }}>
+        <h3 style={{ marginBottom: '12px', color: 'var(--info-color)' }}>Pricing Information</h3>
+        <ul style={{ marginLeft: '20px', lineHeight: '1.6', color: 'var(--text-secondary)' }}>
           <li>All prices are quoted in credits, which are deducted from your account upon successful processing</li>
           <li>Transcription costs are calculated based on audio duration (per minute)</li>
           <li>Translation costs are calculated based on character count (per 500 characters)</li>
@@ -376,13 +378,13 @@ function Info({ config, setAppProcessing }: InfoProps) {
       {/* Usage Tips */}
       <section style={{
         padding: '20px',
-        backgroundColor: '#d4edda',
-        borderLeft: '4px solid #28a745',
+        backgroundColor: 'var(--bg-tertiary)',
+        borderLeft: '4px solid var(--success-color)',
         borderRadius: '4px',
         marginTop: '20px'
       }}>
-        <h3 style={{ marginBottom: '12px', color: '#155724' }}>💡 Cost Optimization Tips</h3>
-        <ul style={{ marginLeft: '20px', lineHeight: '1.6', color: '#155724' }}>
+        <h3 style={{ marginBottom: '12px', color: 'var(--success-color)' }}><i className="fas fa-lightbulb"></i> Cost Optimization Tips</h3>
+        <ul style={{ marginLeft: '20px', lineHeight: '1.6', color: 'var(--text-secondary)' }}>
           <li>Use audio preprocessing to improve quality and reduce processing time</li>
           <li>Choose the appropriate model - basic models work well for clear audio</li>
           <li>For translations, shorter text segments are often more cost-effective</li>

@@ -277,8 +277,8 @@ const Help: React.FC<HelpProps> = ({}) => {
 
           <h4>File Queue Management</h4>
           <ul>
-            <li><strong>Reorder Files:</strong> Use ↑ ↓ buttons to change processing order</li>
-            <li><strong>Remove Files:</strong> Click × to remove unwanted files from queue</li>
+            <li><strong>Reorder Files:</strong> Use <i className="fas fa-arrow-up"></i> <i className="fas fa-arrow-down"></i> buttons to change processing order</li>
+            <li><strong>Remove Files:</strong> Click <i className="fas fa-times"></i> to remove unwanted files from queue</li>
             <li><strong>File Information:</strong> View detected language, file type, and progress for each file</li>
             <li><strong>Individual Settings:</strong> Each file can have different source language variants</li>
           </ul>
@@ -302,39 +302,39 @@ const Help: React.FC<HelpProps> = ({}) => {
 
           <h4>Batch Processing vs Single File</h4>
           <div style={{ marginTop: '20px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #ddd' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid var(--border-color)' }}>
               <thead>
-                <tr style={{ backgroundColor: '#f8f9fa' }}>
-                  <th style={{ padding: '12px', border: '1px solid #ddd', textAlign: 'left' }}>Feature</th>
-                  <th style={{ padding: '12px', border: '1px solid #ddd', textAlign: 'left' }}>Single File</th>
-                  <th style={{ padding: '12px', border: '1px solid #ddd', textAlign: 'left' }}>Batch Processing</th>
+                <tr className="table-row-even">
+                  <th style={{ padding: '12px', border: '1px solid var(--border-color)', textAlign: 'left', color: 'var(--text-primary)' }}>Feature</th>
+                  <th style={{ padding: '12px', border: '1px solid var(--border-color)', textAlign: 'left', color: 'var(--text-primary)' }}>Single File</th>
+                  <th style={{ padding: '12px', border: '1px solid var(--border-color)', textAlign: 'left', color: 'var(--text-primary)' }}>Batch Processing</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td style={{ padding: '12px', border: '1px solid #ddd' }}><strong>File Capacity</strong></td>
-                  <td style={{ padding: '12px', border: '1px solid #ddd' }}>One file at a time</td>
-                  <td style={{ padding: '12px', border: '1px solid #ddd' }}>Multiple files simultaneously</td>
+                  <td style={{ padding: '12px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}><strong>File Capacity</strong></td>
+                  <td style={{ padding: '12px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>One file at a time</td>
+                  <td style={{ padding: '12px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>Multiple files simultaneously</td>
                 </tr>
-                <tr style={{ backgroundColor: '#f8f9fa' }}>
-                  <td style={{ padding: '12px', border: '1px solid #ddd' }}><strong>Workflow</strong></td>
-                  <td style={{ padding: '12px', border: '1px solid #ddd' }}>Manual per-file processing</td>
-                  <td style={{ padding: '12px', border: '1px solid #ddd' }}>Automated sequential processing</td>
-                </tr>
-                <tr>
-                  <td style={{ padding: '12px', border: '1px solid #ddd' }}><strong>Language Settings</strong></td>
-                  <td style={{ padding: '12px', border: '1px solid #ddd' }}>Per-session global settings</td>
-                  <td style={{ padding: '12px', border: '1px solid #ddd' }}>Per-file individual settings</td>
-                </tr>
-                <tr style={{ backgroundColor: '#f8f9fa' }}>
-                  <td style={{ padding: '12px', border: '1px solid #ddd' }}><strong>Chaining</strong></td>
-                  <td style={{ padding: '12px', border: '1px solid #ddd' }}>Manual transcribe → translate</td>
-                  <td style={{ padding: '12px', border: '1px solid #ddd' }}>Automatic transcribe → translate</td>
+                <tr className="table-row-even">
+                  <td style={{ padding: '12px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}><strong>Workflow</strong></td>
+                  <td style={{ padding: '12px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>Manual per-file processing</td>
+                  <td style={{ padding: '12px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>Automated sequential processing</td>
                 </tr>
                 <tr>
-                  <td style={{ padding: '12px', border: '1px solid #ddd' }}><strong>Best For</strong></td>
-                  <td style={{ padding: '12px', border: '1px solid #ddd' }}>Testing, single files, immediate results</td>
-                  <td style={{ padding: '12px', border: '1px solid #ddd' }}>Large volumes, automation, bulk processing</td>
+                  <td style={{ padding: '12px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}><strong>Language Settings</strong></td>
+                  <td style={{ padding: '12px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>Per-session global settings</td>
+                  <td style={{ padding: '12px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>Per-file individual settings</td>
+                </tr>
+                <tr className="table-row-even">
+                  <td style={{ padding: '12px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}><strong>Chaining</strong></td>
+                  <td style={{ padding: '12px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>Manual transcribe <i className="fas fa-arrow-right"></i> translate</td>
+                  <td style={{ padding: '12px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>Automatic transcribe <i className="fas fa-arrow-right"></i> translate</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: '12px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}><strong>Best For</strong></td>
+                  <td style={{ padding: '12px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>Testing, single files, immediate results</td>
+                  <td style={{ padding: '12px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>Large volumes, automation, bulk processing</td>
                 </tr>
               </tbody>
             </table>
@@ -436,7 +436,7 @@ const Help: React.FC<HelpProps> = ({}) => {
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
-      background: '#ffffff'
+      background: 'var(--bg-secondary)'
     }}>
       {/* Header */}
       <div style={{
@@ -444,10 +444,10 @@ const Help: React.FC<HelpProps> = ({}) => {
         justifyContent: 'center',
         alignItems: 'center',
         padding: '20px',
-        borderBottom: '1px solid #e0e0e0',
-        background: '#f8f9fa'
+        borderBottom: '1px solid var(--border-color)',
+        background: 'var(--bg-tertiary)'
       }}>
-        <h1 style={{ margin: 0, fontSize: '24px', color: '#333' }}>Help & Documentation</h1>
+        <h1 style={{ margin: 0, fontSize: '24px', color: 'var(--text-primary)' }}>Help & Documentation</h1>
       </div>
 
       {/* Content Area */}
@@ -459,8 +459,8 @@ const Help: React.FC<HelpProps> = ({}) => {
         {/* Sidebar Navigation */}
         <div style={{
           width: '250px',
-          background: '#f1f3f4',
-          borderRight: '1px solid #e0e0e0',
+          background: 'var(--bg-tertiary)',
+          borderRight: '1px solid var(--border-color)',
           overflowY: 'auto'
         }}>
           <nav style={{ padding: '20px 0' }}>
@@ -472,18 +472,18 @@ const Help: React.FC<HelpProps> = ({}) => {
                   display: 'block',
                   width: '100%',
                   padding: '12px 20px',
-                  background: activeSection === key ? '#007bff' : 'transparent',
-                  color: activeSection === key ? 'white' : '#333',
+                  background: activeSection === key ? 'var(--button-bg)' : 'transparent',
+                  color: activeSection === key ? 'var(--button-text)' : 'var(--text-primary)',
                   border: 'none',
                   textAlign: 'left',
                   cursor: 'pointer',
                   fontSize: '14px',
-                  borderLeft: activeSection === key ? '3px solid #0056b3' : '3px solid transparent',
+                  borderLeft: activeSection === key ? '3px solid var(--button-bg)' : '3px solid transparent',
                   transition: 'all 0.2s ease'
                 }}
                 onMouseEnter={(e) => {
                   if (activeSection !== key) {
-                    e.currentTarget.style.background = '#e9ecef';
+                    e.currentTarget.style.background = 'var(--bg-secondary)';
                   }
                 }}
                 onMouseLeave={(e) => {
@@ -507,22 +507,22 @@ const Help: React.FC<HelpProps> = ({}) => {
         }}>
           <style>{`
             .help-content h3 {
-              color: #007bff;
+              color: var(--button-bg);
               margin-top: 30px;
               margin-bottom: 15px;
               font-size: 20px;
-              border-bottom: 2px solid #e9ecef;
+              border-bottom: 2px solid var(--border-color);
               padding-bottom: 5px;
             }
             .help-content h4 {
-              color: #495057;
+              color: var(--text-primary);
               margin-top: 25px;
               margin-bottom: 12px;
               font-size: 16px;
             }
             .help-content p {
               margin-bottom: 15px;
-              color: #666;
+              color: var(--text-secondary);
             }
             .help-content ul, .help-content ol {
               margin-bottom: 20px;
@@ -530,13 +530,14 @@ const Help: React.FC<HelpProps> = ({}) => {
             }
             .help-content li {
               margin-bottom: 8px;
-              color: #555;
+              color: var(--text-secondary);
             }
             .help-content li strong {
-              color: #333;
+              color: var(--text-primary);
             }
             .help-content code {
-              background: #f8f9fa;
+              background: var(--bg-tertiary);
+              color: var(--text-primary);
               padding: 2px 6px;
               border-radius: 3px;
               font-family: 'Courier New', monospace;

@@ -43,7 +43,7 @@ const NetworkSimulationPanel: React.FC<NetworkSimulationPanelProps> = ({
         className="dev-panel-toggle"
         title="Open Network Simulation Panel"
       >
-        🔧
+        <i className="fas fa-wrench"></i>
         <style jsx>{`
           .dev-panel-toggle {
             position: fixed;
@@ -76,7 +76,7 @@ const NetworkSimulationPanel: React.FC<NetworkSimulationPanelProps> = ({
     <div className="dev-panel">
       <div className="dev-panel-header">
         <h3>Network Simulation</h3>
-        <button onClick={onToggle} className="close-btn">×</button>
+        <button onClick={onToggle} className="close-btn"><i className="fas fa-times"></i></button>
       </div>
       
       <div className="dev-panel-content">
@@ -108,7 +108,7 @@ const NetworkSimulationPanel: React.FC<NetworkSimulationPanelProps> = ({
                   <span className="type-name">{type}</span>
                   <span className="probability">{(typeConfig.probability * 100).toFixed(1)}%</span>
                   <div className="status-indicator" title={typeConfig.enabled ? 'Enabled' : 'Disabled'}>
-                    {typeConfig.enabled ? '●' : '○'}
+                    <i className={`fas ${typeConfig.enabled ? 'fa-circle' : 'fa-circle'}`} style={{color: typeConfig.enabled ? '#28a745' : '#6c757d'}}></i>
                   </div>
                 </div>
               ))}

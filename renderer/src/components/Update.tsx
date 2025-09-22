@@ -44,7 +44,7 @@ function Update({}: UpdateProps) {
       if (!response.ok) {
         throw new Error(`GitHub API error: ${response.status}`);
       }
-      
+
       const releases = await response.json();
       const formattedReleases: ReleaseInfo[] = releases.slice(0, 10).map((release: any) => ({
         tag_name: release.tag_name,
@@ -52,7 +52,7 @@ function Update({}: UpdateProps) {
         published_at: release.published_at,
         body: release.body || 'No release notes available.'
       }));
-      
+
       setReleaseHistory(formattedReleases);
     } catch (error) {
       console.error('Failed to load release history:', error);
@@ -101,12 +101,12 @@ function Update({}: UpdateProps) {
       <div className="form-group">
         <div style={{
           padding: '20px',
-          backgroundColor: '#f8f9fa',
-          border: '1px solid #dee2e6',
+          backgroundColor: 'var(--bg-tertiary)',
+          border: '1px solid var(--border-color)',
           borderRadius: '8px',
           marginBottom: '20px'
         }}>
-          <h3 style={{ marginBottom: '15px', fontSize: '18px', color: '#2c3e50' }}>Current Version</h3>
+          <h3 style={{ marginBottom: '15px', fontSize: '18px', color: 'var(--text-primary)' }}>Current Version</h3>
           <div style={{ 
             fontSize: '24px', 
             fontWeight: 'bold', 
@@ -151,17 +151,17 @@ function Update({}: UpdateProps) {
           </div>
           
           {updateStatus && (
-            <div style={{ 
+            <div style={{
               padding: '12px 16px',
-              backgroundColor: updateStatus.includes('Update ready:') ? '#d4edda' : 
-                             updateStatus.includes('error') ? '#f8d7da' : '#d1ecf1',
-              color: updateStatus.includes('Update ready:') ? '#155724' : 
-                     updateStatus.includes('error') ? '#721c24' : '#0c5460',
-              border: `1px solid ${updateStatus.includes('Update ready:') ? '#c3e6cb' : 
-                                  updateStatus.includes('error') ? '#f5c6cb' : '#bee5eb'}`,
+              backgroundColor: updateStatus.includes('Update ready:') ? 'var(--success-color)' :
+                             updateStatus.includes('error') ? 'var(--danger-color)' : 'var(--info-color)',
+              color: 'var(--bg-primary)',
+              border: `1px solid ${updateStatus.includes('Update ready:') ? 'var(--success-color)' :
+                                  updateStatus.includes('error') ? 'var(--danger-color)' : 'var(--info-color)'}`,
               borderRadius: '4px',
               fontSize: '14px',
-              fontWeight: '500'
+              fontWeight: '500',
+              opacity: '0.9'
             }}>
               {updateStatus}
             </div>
@@ -172,8 +172,8 @@ function Update({}: UpdateProps) {
       <div className="form-group">
         <div style={{
           padding: '20px',
-          backgroundColor: '#ffffff',
-          border: '1px solid #dee2e6',
+          backgroundColor: 'var(--bg-secondary)',
+          border: '1px solid var(--border-color)',
           borderRadius: '8px'
         }}>
           <div style={{ 
@@ -182,14 +182,14 @@ function Update({}: UpdateProps) {
             alignItems: 'center',
             marginBottom: '15px'
           }}>
-            <h3 style={{ fontSize: '18px', color: '#2c3e50', margin: 0 }}>Release History</h3>
+            <h3 style={{ fontSize: '18px', color: 'var(--text-primary)', margin: 0 }}>Release History</h3>
             <button
               type="button"
               onClick={() => setShowHistory(!showHistory)}
               style={{
                 backgroundColor: 'transparent',
-                border: '1px solid #6c757d',
-                color: '#6c757d',
+                border: '1px solid var(--text-secondary)',
+                color: 'var(--text-secondary)',
                 padding: '6px 12px',
                 borderRadius: '4px',
                 cursor: 'pointer',
@@ -208,8 +208,8 @@ function Update({}: UpdateProps) {
                   style={{
                     padding: '15px',
                     marginBottom: '15px',
-                    backgroundColor: index === 0 ? '#e8f5e8' : '#f8f9fa',
-                    border: '1px solid #dee2e6',
+                    backgroundColor: index === 0 ? 'var(--success-color)' : 'var(--bg-tertiary)',
+                    border: '1px solid var(--border-color)',
                     borderRadius: '6px'
                   }}
                 >
@@ -219,9 +219,9 @@ function Update({}: UpdateProps) {
                     alignItems: 'center',
                     marginBottom: '10px'
                   }}>
-                    <h4 style={{ 
-                      fontSize: '16px', 
-                      color: '#2c3e50', 
+                    <h4 style={{
+                      fontSize: '16px',
+                      color: 'var(--text-primary)',
                       margin: 0,
                       display: 'flex',
                       alignItems: 'center',
@@ -241,17 +241,17 @@ function Update({}: UpdateProps) {
                         </span>
                       )}
                     </h4>
-                    <span style={{ 
-                      fontSize: '12px', 
-                      color: '#6c757d' 
+                    <span style={{
+                      fontSize: '12px',
+                      color: 'var(--text-secondary)'
                     }}>
                       {formatDate(release.published_at)}
                     </span>
                   </div>
                   
-                  <div style={{ 
-                    fontSize: '14px', 
-                    color: '#495057',
+                  <div style={{
+                    fontSize: '14px',
+                    color: 'var(--text-secondary)',
                     lineHeight: '1.5'
                   }}>
                     {parseChangelog(release.body).map((line, lineIndex) => (

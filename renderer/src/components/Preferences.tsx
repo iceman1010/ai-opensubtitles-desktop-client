@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import CacheManager from '../services/cache';
+import { logger } from '../utils/errorLogger';
 
 interface AppConfig {
   username: string;
@@ -7,6 +8,7 @@ interface AppConfig {
   apiKey?: string;
   lastUsedLanguage?: string;
   debugMode?: boolean;
+  debugLevel?: number;
   checkUpdatesOnStart?: boolean;
   autoRemoveCompletedFiles?: boolean;
   cacheExpirationHours?: number;
@@ -14,7 +16,9 @@ interface AppConfig {
   ffmpegPath?: string;
   audio_language_detection_time?: number;
   apiBaseUrl?: string;
+  apiUrlParameter?: string;
   autoLanguageDetection?: boolean;
+  darkMode?: boolean;
   credits?: {
     used: number;
     remaining: number;
@@ -32,6 +36,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
   const [password, setPassword] = useState(config.password || '');
   const [apiKey, setApiKey] = useState(config.apiKey || '');
   const [debugMode, setDebugMode] = useState(config.debugMode || false);
+  const [debugLevel, setDebugLevel] = useState(config.debugLevel ?? 0);
   const [checkUpdatesOnStart, setCheckUpdatesOnStart] = useState(config.checkUpdatesOnStart ?? true);
   const [autoRemoveCompletedFiles, setAutoRemoveCompletedFiles] = useState(config.autoRemoveCompletedFiles ?? false);
   const [cacheExpirationHours, setCacheExpirationHours] = useState(config.cacheExpirationHours ?? 24);
@@ -39,7 +44,8 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
   const [ffmpegPath, setFfmpegPath] = useState(config.ffmpegPath || '');
   const [audioLanguageDetectionTime, setAudioLanguageDetectionTime] = useState(config.audio_language_detection_time ?? 240);
   const [apiBaseUrl, setApiBaseUrl] = useState(config.apiBaseUrl || 'https://api.opensubtitles.com/api/v1');
-  const [autoLanguageDetection, setAutoLanguageDetection] = useState(config.autoLanguageDetection ?? true);
+  const [apiUrlParameter, setApiUrlParameter] = useState(config.apiUrlParameter || '');
+  const [autoLanguageDetection, setAutoLanguageDetection] = useState(config.autoLanguageDetection ?? false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [isTestingFfmpeg, setIsTestingFfmpeg] = useState(false);
@@ -54,19 +60,20 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
   const handleResetSettings = async () => {
     if (window.confirm('Are you sure you want to reset all settings? This will clear your login credentials and all preferences. This action cannot be undone.')) {
       try {
-        console.log('=== FRONTEND RESET DEBUG ===');
-        console.log('Calling resetAllSettings...');
+        logger.debug(2, 'Preferences', '=== FRONTEND RESET DEBUG ===');
+        logger.debug(2, 'Preferences', 'Calling resetAllSettings...');
         const success = await window.electronAPI.resetAllSettings();
-        console.log('resetAllSettings returned:', success);
-        console.log('Success type:', typeof success);
+        logger.debug(2, 'Preferences', `resetAllSettings returned: ${success}`);
+        logger.debug(2, 'Preferences', `Success type: ${typeof success}`);
         
         if (success) {
-          console.log('Reset successful, updating UI...');
+          logger.debug(2, 'Preferences', 'Reset successful, updating UI...');
           // Reset local state to match cleared config
           setUsername('');
           setPassword('');
           setApiKey('');
           setDebugMode(false);
+          setDebugLevel(0);
           setCheckUpdatesOnStart(true);
           setAutoRemoveCompletedFiles(false);
           setFfmpegPath('');
@@ -75,10 +82,10 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
           setError('');
           alert('All settings have been reset successfully.');
         } else {
-          console.log('Reset failed, showing error...');
+          logger.debug(2, 'Preferences', 'Reset failed, showing error...');
           setError('Failed to reset settings. Please try again.');
         }
-        console.log('=== END FRONTEND RESET DEBUG ===');
+        logger.debug(2, 'Preferences', '=== END FRONTEND RESET DEBUG ===');
       } catch (error) {
         console.error('=== FRONTEND RESET ERROR ===');
         console.error('Reset settings error:', error);
@@ -114,21 +121,21 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
     try {
       const result = await window.electronAPI.registerFileAssociations();
       if (result.success) {
-        alert(`✅ ${result.message}`);
+        alert(`Success: ${result.message}`);
         // Refresh status after successful registration
         await checkFileAssociationStatus();
       } else {
-        alert(`❌ ${result.message}`);
+        alert(`Error: ${result.message}`);
       }
     } catch (error) {
       console.error('Failed to register file associations:', error);
-      alert('❌ Failed to register file types. Please try running the application as administrator/root.');
+      alert('Error: Failed to register file types. Please try running the application as administrator/root.');
     } finally {
       setIsRegisteringAssociations(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleCredentialsSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username || !password || !apiKey) {
       return;
@@ -138,15 +145,82 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
     setError('');
     setAppProcessing(true, 'Validating credentials...');
     try {
-      const success = await onSave({ username, password, apiKey, debugMode, checkUpdatesOnStart, autoRemoveCompletedFiles, cacheExpirationHours, betaTest, ffmpegPath, audio_language_detection_time: audioLanguageDetectionTime, apiBaseUrl, autoLanguageDetection });
+      const success = await onSave({ username, password, apiKey });
       if (!success) {
-        setError('Failed to save preferences. Please check your credentials.');
+        setError('Failed to save credentials. Please check your login information.');
+      } else {
+        setError('');
+        // Show success message briefly
+        const successDiv = document.createElement('div');
+        successDiv.className = 'status-message success';
+        successDiv.textContent = 'Credentials saved successfully!';
+        successDiv.style.cssText = 'margin-bottom: 15px; padding: 10px; background: #d4edda; color: #155724; border: 1px solid #c3e6cb; border-radius: 4px;';
+        const form = document.querySelector('.preferences-form');
+        if (form) {
+          form.insertBefore(successDiv, form.firstChild);
+          setTimeout(() => successDiv.remove(), 3000);
+        }
       }
     } catch (error) {
-      setError('Failed to save preferences. Please check your credentials and try again.');
+      setError('Failed to save credentials. Please check your information and try again.');
     } finally {
       setIsLoading(false);
       setAppProcessing(false);
+    }
+  };
+
+  // Helper function to get user-friendly setting names
+  const getSettingDisplayName = (settingKey: keyof AppConfig): string => {
+    const nameMap: Record<string, string> = {
+      debugMode: 'debug mode',
+      debugLevel: 'debug level',
+      checkUpdatesOnStart: 'update checking',
+      autoRemoveCompletedFiles: 'auto-remove completed files',
+      cacheExpirationHours: 'cache expiration',
+      betaTest: 'beta testing',
+      ffmpegPath: 'FFmpeg path',
+      apiBaseUrl: 'API base URL',
+      apiUrlParameter: 'API parameters',
+      autoLanguageDetection: 'auto language detection',
+      darkMode: 'dark mode'
+    };
+    return nameMap[settingKey] || settingKey;
+  };
+
+  // Generic handler for instant save settings (no credential validation)
+  const handleInstantSave = async (settingKey: keyof AppConfig, value: any) => {
+    const displayName = getSettingDisplayName(settingKey);
+
+    try {
+      // Show saving message in status bar
+      setAppProcessing(true, `Saving ${displayName}...`);
+
+      const success = await window.electronAPI.saveConfig({ [settingKey]: value });
+      if (success) {
+        // Update parent component state
+        const updatedConfig = await window.electronAPI.getConfig();
+
+        // Show success message briefly
+        setAppProcessing(true, `${displayName} saved`);
+        setTimeout(() => {
+          setAppProcessing(false);
+        }, 1500);
+
+        logger.debug(1, 'Preferences', `Instantly saved ${settingKey}:`, value);
+      } else {
+        // Show error message
+        setAppProcessing(true, `Failed to save ${displayName}`);
+        setTimeout(() => {
+          setAppProcessing(false);
+        }, 2000);
+      }
+    } catch (error) {
+      logger.debug(1, 'Preferences', `Failed to instantly save ${settingKey}:`, error);
+      // Show error message
+      setAppProcessing(true, `Error saving ${displayName}`);
+      setTimeout(() => {
+        setAppProcessing(false);
+      }, 2000);
     }
   };
 
@@ -172,7 +246,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
     try {
       const result = await window.electronAPI.testFfmpegPath(ffmpegPath);
       setFfmpegTestResult(result);
-      console.log('FFmpeg test result:', result);
+      logger.debug(1, 'Preferences', 'FFmpeg test result:', result);
     } catch (error) {
       console.error('Failed to test FFmpeg path:', error);
       setFfmpegTestResult({ success: false, message: 'Failed to test FFmpeg path' });
@@ -195,12 +269,32 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
 
   const handleAudioLanguageDetectionTimeChange = async (newValue: number) => {
     setAudioLanguageDetectionTime(newValue);
-
-    // Immediately save only this setting
+    // Use a more user-friendly name for the status message
     try {
-      await onSave({ audio_language_detection_time: newValue });
+      setAppProcessing(true, 'Saving audio detection time...');
+
+      const success = await window.electronAPI.saveConfig({ audio_language_detection_time: newValue });
+      if (success) {
+        const updatedConfig = await window.electronAPI.getConfig();
+
+        setAppProcessing(true, 'Audio detection time saved');
+        setTimeout(() => {
+          setAppProcessing(false);
+        }, 1500);
+
+        logger.debug(1, 'Preferences', `Instantly saved audio_language_detection_time:`, newValue);
+      } else {
+        setAppProcessing(true, 'Failed to save audio detection time');
+        setTimeout(() => {
+          setAppProcessing(false);
+        }, 2000);
+      }
     } catch (error) {
-      console.error('Failed to save audio language detection time:', error);
+      logger.debug(1, 'Preferences', `Failed to instantly save audio_language_detection_time:`, error);
+      setAppProcessing(true, 'Error saving audio detection time');
+      setTimeout(() => {
+        setAppProcessing(false);
+      }, 2000);
     }
   };
 
@@ -220,42 +314,118 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
         </div>
       )}
       
-      <form onSubmit={handleSubmit} className="preferences-form">
-        <div className="form-group">
-          <label htmlFor="username">Username:</label>
-          <input
-            type="text"
-            id="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            disabled={isLoading}
-          />
+      <form onSubmit={handleCredentialsSave} className="preferences-form">
+        {/* Credentials Section - Requires Save Button */}
+        <div style={{
+          padding: '20px',
+          backgroundColor: 'var(--bg-tertiary)',
+          border: '2px solid #007bff',
+          borderRadius: '8px',
+          marginBottom: '25px'
+        }}>
+          <h3 style={{
+            marginTop: '0',
+            marginBottom: '16px',
+            fontSize: '16px',
+            color: '#007bff',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <i className="fas fa-key"></i>
+            Account Credentials
+          </h3>
+          <p style={{
+            fontSize: '13px',
+            color: 'var(--text-secondary)',
+            marginBottom: '20px',
+            lineHeight: '1.4'
+          }}>
+            These settings require the "Save Credentials" button and will validate your login information.
+          </p>
+
+          <div className="form-group">
+            <label htmlFor="username">Username:</label>
+            <input
+              type="text"
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="password">Password:</label>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="apiKey">API Key:</label>
+            <input
+              type="text"
+              id="apiKey"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              required
+              disabled={isLoading}
+              placeholder="Your OpenSubtitles API Key"
+            />
+          </div>
+
+          <div className="button-group">
+            <button
+              type="submit"
+              className="button"
+              disabled={isLoading || !username || !password || !apiKey}
+              style={{
+                backgroundColor: '#007bff',
+                borderColor: '#007bff',
+                padding: '10px 20px',
+                fontSize: '14px',
+                fontWeight: '600'
+              }}
+            >
+              <i className="fas fa-save" style={{ marginRight: '6px' }}></i>
+              {isLoading ? 'Saving...' : 'Save Credentials'}
+            </button>
+          </div>
         </div>
 
-        <div className="form-group">
-          <label htmlFor="password">Password:</label>
-          <input
-            type="password"
-            id="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            disabled={isLoading}
-          />
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="apiKey">API Key:</label>
-          <input
-            type="text"
-            id="apiKey"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            required
-            disabled={isLoading}
-            placeholder="Your OpenSubtitles API Key"
-          />
+        {/* Auto-Save Settings Section */}
+        <div style={{
+          marginBottom: '20px'
+        }}>
+          <h3 style={{
+            marginTop: '0',
+            marginBottom: '12px',
+            fontSize: '16px',
+            color: 'var(--text-primary)',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <i className="fas fa-cog"></i>
+            Application Settings
+          </h3>
+          <p style={{
+            fontSize: '13px',
+            color: 'var(--text-secondary)',
+            marginBottom: '20px',
+            lineHeight: '1.4'
+          }}>
+            These settings save automatically when changed - no save button required.
+          </p>
         </div>
 
         <div className="form-group">
@@ -269,7 +439,11 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
               type="checkbox"
               id="debug-mode"
               checked={debugMode}
-              onChange={(e) => setDebugMode(e.target.checked)}
+              onChange={(e) => {
+                const newValue = e.target.checked;
+                setDebugMode(newValue);
+                handleInstantSave('debugMode', newValue);
+              }}
               disabled={isLoading}
               style={{ 
                 width: '18px',
@@ -294,7 +468,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
               </label>
               <div style={{ 
                 fontSize: '12px', 
-                color: '#666', 
+                color: 'var(--text-secondary)', 
                 lineHeight: '1.4',
                 maxWidth: '400px'
               }}>
@@ -305,47 +479,148 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
         </div>
 
         {debugMode && (
-          <div className="form-group">
-            <label htmlFor="api-base-url" style={{
-              display: 'block',
-              marginBottom: '8px',
-              fontSize: '14px',
-              fontWeight: '500'
-            }}>
-              API Base URL
-            </label>
-            <input
-              id="api-base-url"
-              type="text"
-              value={apiBaseUrl}
-              onChange={(e) => setApiBaseUrl(e.target.value)}
-              disabled={isLoading}
-              placeholder="https://api.opensubtitles.com/api/v1"
-              style={{
-                width: '100%',
-                padding: '10px 12px',
+          <>
+            <div className="form-group">
+              <label htmlFor="api-base-url" style={{
+                display: 'block',
+                marginBottom: '8px',
                 fontSize: '14px',
-                border: '2px solid #e0e0e0',
-                borderRadius: '6px',
-                backgroundColor: isLoading ? '#f9f9f9' : '#fff',
-                transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-                boxSizing: 'border-box',
-                outline: 'none',
-                fontFamily: 'monospace'
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#007acc'}
-              onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
-            />
-            <div style={{
-              fontSize: '12px',
-              color: '#666',
-              lineHeight: '1.4',
-              marginTop: '6px',
-              maxWidth: '500px'
-            }}>
-              Base URL for API calls. Only visible in debug mode. Use this to point to a test server for automated testing. Default: https://api.opensubtitles.com/api/v1
+                fontWeight: '500'
+              }}>
+                API Base URL
+              </label>
+              <input
+                id="api-base-url"
+                type="text"
+                value={apiBaseUrl}
+                onChange={(e) => {
+                  const newValue = e.target.value;
+                  setApiBaseUrl(newValue);
+                  handleInstantSave('apiBaseUrl', newValue);
+                }}
+                disabled={isLoading}
+                placeholder="https://api.opensubtitles.com/api/v1"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  fontSize: '14px',
+                  border: '2px solid var(--input-border)',
+                  borderRadius: '6px',
+                  backgroundColor: isLoading ? 'var(--bg-tertiary)' : 'var(--input-bg)',
+                  transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+                  boxSizing: 'border-box',
+                  outline: 'none',
+                  fontFamily: 'monospace'
+                }}
+                onFocus={(e) => e.target.style.borderColor = 'var(--button-bg)'}
+                onBlur={(e) => e.target.style.borderColor = 'var(--input-border)'}
+              />
+              <div style={{
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                lineHeight: '1.4',
+                marginTop: '6px',
+                maxWidth: '500px'
+              }}>
+                Base URL for API calls. Only visible in debug mode. Use this to point to a test server for automated testing. Default: https://api.opensubtitles.com/api/v1
+              </div>
             </div>
-          </div>
+
+            <div className="form-group">
+              <label htmlFor="api-url-parameter" style={{
+                display: 'block',
+                marginBottom: '8px',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}>
+                API URL Parameter
+              </label>
+              <input
+                id="api-url-parameter"
+                type="text"
+                value={apiUrlParameter}
+                onChange={(e) => {
+                  const newValue = e.target.value;
+                  setApiUrlParameter(newValue);
+                  handleInstantSave('apiUrlParameter', newValue);
+                }}
+                disabled={isLoading}
+                placeholder="?var1=1&var2=2"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  fontSize: '14px',
+                  border: '2px solid var(--input-border)',
+                  borderRadius: '6px',
+                  backgroundColor: isLoading ? 'var(--bg-tertiary)' : 'var(--input-bg)',
+                  transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+                  boxSizing: 'border-box',
+                  outline: 'none',
+                  fontFamily: 'monospace'
+                }}
+                onFocus={(e) => e.target.style.borderColor = 'var(--button-bg)'}
+                onBlur={(e) => e.target.style.borderColor = 'var(--input-border)'}
+              />
+              <div style={{
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                lineHeight: '1.4',
+                marginTop: '6px',
+                maxWidth: '500px'
+              }}>
+                Optional URL parameters to append to all API requests for debugging. Example: ?debug=1&test=true
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="debug-level" style={{
+                display: 'block',
+                marginBottom: '8px',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}>
+                Debug Level
+              </label>
+              <select
+                id="debug-level"
+                value={debugLevel}
+                onChange={(e) => {
+                  const newValue = Number(e.target.value);
+                  setDebugLevel(newValue);
+                  handleInstantSave('debugLevel', newValue);
+                }}
+                disabled={isLoading}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  fontSize: '14px',
+                  border: '2px solid var(--input-border)',
+                  borderRadius: '6px',
+                  backgroundColor: isLoading ? 'var(--bg-tertiary)' : 'var(--input-bg)',
+                  color: 'var(--text-primary)',
+                  transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+                  boxSizing: 'border-box',
+                  outline: 'none'
+                }}
+                onFocus={(e) => e.target.style.borderColor = 'var(--button-bg)'}
+                onBlur={(e) => e.target.style.borderColor = 'var(--input-border)'}
+              >
+                <option value={0}>0 - Silent (No debug output)</option>
+                <option value={1}>1 - Basic (Essential info only)</option>
+                <option value={2}>2 - Verbose (Detailed debugging)</option>
+                <option value={3}>3 - Full (All debug information)</option>
+              </select>
+              <div style={{
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                lineHeight: '1.4',
+                marginTop: '6px',
+                maxWidth: '500px'
+              }}>
+                Controls the verbosity of debug output. Higher levels provide more detailed logging information.
+              </div>
+            </div>
+          </>
         )}
 
         <div className="form-group">
@@ -359,7 +634,11 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
               type="checkbox"
               id="check-updates-on-start"
               checked={checkUpdatesOnStart}
-              onChange={(e) => setCheckUpdatesOnStart(e.target.checked)}
+              onChange={(e) => {
+                const newValue = e.target.checked;
+                setCheckUpdatesOnStart(newValue);
+                handleInstantSave('checkUpdatesOnStart', newValue);
+              }}
               disabled={isLoading}
               style={{ 
                 width: '18px',
@@ -384,7 +663,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
               </label>
               <div style={{ 
                 fontSize: '12px', 
-                color: '#666', 
+                color: 'var(--text-secondary)', 
                 lineHeight: '1.4',
                 maxWidth: '400px'
               }}>
@@ -405,7 +684,11 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
               type="checkbox"
               id="auto-remove-completed-files"
               checked={autoRemoveCompletedFiles}
-              onChange={(e) => setAutoRemoveCompletedFiles(e.target.checked)}
+              onChange={(e) => {
+                const newValue = e.target.checked;
+                setAutoRemoveCompletedFiles(newValue);
+                handleInstantSave('autoRemoveCompletedFiles', newValue);
+              }}
               disabled={isLoading}
               style={{ 
                 width: '18px',
@@ -430,7 +713,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
               </label>
               <div style={{ 
                 fontSize: '12px', 
-                color: '#666', 
+                color: 'var(--text-secondary)', 
                 lineHeight: '1.4',
                 maxWidth: '400px'
               }}>
@@ -461,7 +744,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
               </label>
               <div style={{ 
                 fontSize: '12px', 
-                color: '#666', 
+                color: 'var(--text-secondary)', 
                 lineHeight: '1.4',
                 maxWidth: '400px',
                 marginBottom: '8px'
@@ -472,14 +755,18 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
                 <select
                   id="cache-expiration-hours"
                   value={cacheExpirationHours}
-                  onChange={(e) => setCacheExpirationHours(Number(e.target.value))}
+                  onChange={(e) => {
+                    const newValue = Number(e.target.value);
+                    setCacheExpirationHours(newValue);
+                    handleInstantSave('cacheExpirationHours', newValue);
+                  }}
                   disabled={isLoading}
                   style={{
                     padding: '8px 12px',
                     border: '1px solid #ddd',
                     borderRadius: '4px',
                     fontSize: '14px',
-                    backgroundColor: '#fff',
+                    backgroundColor: 'var(--bg-secondary)',
                     cursor: 'pointer',
                     minWidth: '120px'
                   }}
@@ -535,7 +822,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
               </label>
               <div style={{
                 fontSize: '12px',
-                color: '#666',
+                color: 'var(--text-secondary)',
                 lineHeight: '1.4',
                 maxWidth: '400px',
                 marginBottom: '12px'
@@ -552,7 +839,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
                 <div style={{
                   fontSize: '16px',
                   fontWeight: 'bold',
-                  color: '#2c3e50',
+                  color: 'var(--text-primary)',
                   minWidth: '80px'
                 }}>
                   {Math.floor(audioLanguageDetectionTime / 60)}:{(audioLanguageDetectionTime % 60).toString().padStart(2, '0')}
@@ -617,16 +904,16 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
                   marginBottom: '4px'
                 }}
               >
-                Auto Language Detection in Batch Processing
+                Auto Language Detection for Audio/Video Files
               </label>
               <div style={{
                 fontSize: '12px',
-                color: '#666',
+                color: 'var(--text-secondary)',
                 lineHeight: '1.4',
                 maxWidth: '400px',
                 marginBottom: '12px'
               }}>
-                Automatically detect the language of files when added to the batch processing queue. When disabled, you can manually trigger language detection or process files without detection.
+                Automatically detect the language of audio and video files when added to the batch processing queue. Subtitle files (.srt, .vtt, etc.) will always be auto-detected regardless of this setting. When disabled for audio/video files, you can manually trigger language detection.
               </div>
 
               <div style={{
@@ -638,7 +925,11 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
                   type="checkbox"
                   id="auto-language-detection"
                   checked={autoLanguageDetection}
-                  onChange={(e) => setAutoLanguageDetection(e.target.checked)}
+                  onChange={(e) => {
+                    const newValue = e.target.checked;
+                    setAutoLanguageDetection(newValue);
+                    handleInstantSave('autoLanguageDetection', newValue);
+                  }}
                   disabled={isLoading}
                   style={{
                     width: '16px',
@@ -671,7 +962,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
         <div className="form-group">
           <div style={{
             padding: '20px',
-            backgroundColor: '#f8f9fa',
+            backgroundColor: 'var(--bg-tertiary)',
             border: '2px solid #e9ecef',
             borderRadius: '6px',
             marginBottom: '15px'
@@ -701,8 +992,10 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
                     id="ffmpeg-path"
                     value={ffmpegPath}
                     onChange={(e) => {
-                      setFfmpegPath(e.target.value);
+                      const newValue = e.target.value;
+                      setFfmpegPath(newValue);
                       setFfmpegTestResult(null);
+                      handleInstantSave('ffmpegPath', newValue);
                     }}
                     disabled={isLoading}
                     placeholder="e.g., /usr/local/bin/ffmpeg or /opt/homebrew/bin/ffmpeg"
@@ -759,6 +1052,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
                       onClick={() => {
                         setFfmpegPath('');
                         setFfmpegTestResult(null);
+                        handleInstantSave('ffmpegPath', '');
                       }}
                       disabled={isLoading}
                       style={{
@@ -787,7 +1081,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
                   color: ffmpegTestResult.success ? '#155724' : '#721c24',
                   border: `1px solid ${ffmpegTestResult.success ? '#c3e6cb' : '#f5c6cb'}`
                 }}>
-                  {ffmpegTestResult.success ? '✅' : '❌'} {ffmpegTestResult.message}
+                  <i className={`fas ${ffmpegTestResult.success ? 'fa-check-circle text-success' : 'fa-times-circle text-danger'}`}></i> {ffmpegTestResult.message}
                 </div>
               )}
             </div>
@@ -812,21 +1106,11 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
           </div>
         </div>
 
-        <div className="button-group">
-          <button
-            type="submit"
-            className="button"
-            disabled={isLoading || !username || !password || !apiKey}
-          >
-            {isLoading ? 'Saving...' : 'Save'}
-          </button>
-        </div>
-        
         {/* File Associations Section */}
         <div className="form-group">
           <div style={{
             padding: '20px',
-            backgroundColor: '#f8f9fa',
+            backgroundColor: 'var(--bg-tertiary)',
             border: '2px solid #e9ecef',
             borderRadius: '6px',
             marginBottom: '15px',
@@ -852,15 +1136,15 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
               }} />
               <span style={{
                 fontSize: '14px',
-                color: '#495057',
+                color: 'var(--text-primary)',
                 fontWeight: '500'
               }}>
                 {isCheckingAssociations ? (
                   'Checking status...'
                 ) : fileAssociationStatus.registered ? (
-                  `✅ Registered for ${fileAssociationStatus.associatedFormats.length} file types`
+                  <><i className="fas fa-check-circle text-success"></i> Registered for {fileAssociationStatus.associatedFormats.length} file types</>
                 ) : (
-                  '❌ Not registered as default handler'
+                  <><i className="fas fa-times-circle text-danger"></i> Not registered as default handler</>
                 )}
               </span>
             </div>
@@ -868,7 +1152,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
             {fileAssociationStatus.registered && fileAssociationStatus.associatedFormats.length > 0 && (
               <div style={{
                 fontSize: '12px',
-                color: '#6c757d',
+                color: 'var(--text-secondary)',
                 marginBottom: '15px',
                 padding: '8px',
                 backgroundColor: '#e8f5e8',
@@ -919,7 +1203,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
                 style={{
                   backgroundColor: 'transparent',
                   borderColor: '#6c757d',
-                  color: '#6c757d',
+                  color: 'var(--text-secondary)',
                   padding: '8px 16px',
                   border: '2px solid',
                   borderRadius: '5px',
@@ -952,7 +1236,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
               marginTop: '10px',
               lineHeight: '1.4'
             }}>
-              💡 <strong>Note:</strong> On Windows/Linux, you may need to run as administrator/root for system-wide file associations.
+              <i className="fas fa-lightbulb"></i> <strong>Note:</strong> On Windows/Linux, you may need to run as administrator/root for system-wide file associations.
             </div>
           </div>
         </div>
@@ -1000,7 +1284,11 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
               <input
                 type="checkbox"
                 checked={betaTest}
-                onChange={(e) => setBetaTest(e.target.checked)}
+                onChange={(e) => {
+                  const newValue = e.target.checked;
+                  setBetaTest(newValue);
+                  handleInstantSave('betaTest', newValue);
+                }}
                 style={{ 
                   marginRight: '10px',
                   width: 'auto',

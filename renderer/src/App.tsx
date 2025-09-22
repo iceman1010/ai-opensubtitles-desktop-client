@@ -10,7 +10,7 @@ import Help from './components/Help';
 import StatusBar from './components/StatusBar';
 import ErrorLogControls from './components/ErrorLogControls';
 import { APIProvider, useAPI } from './contexts/APIContext';
-import './utils/errorLogger'; // Initialize global error handlers
+import { logger } from './utils/errorLogger'; // Initialize global error handlers
 import appConfig from './config/appConfig.json';
 import packageInfo from '../../package.json';
 import logoImage from './assets/logo.png';
@@ -21,6 +21,7 @@ interface AppConfig {
   apiKey?: string;
   lastUsedLanguage?: string;
   debugMode?: boolean;
+  debugLevel?: number;
   checkUpdatesOnStart?: boolean;
   autoRemoveCompletedFiles?: boolean;
   cacheExpirationHours?: number;
@@ -28,7 +29,9 @@ interface AppConfig {
   ffmpegPath?: string;
   audio_language_detection_time?: number;
   apiBaseUrl?: string;
+  apiUrlParameter?: string;
   autoLanguageDetection?: boolean;
+  darkMode?: boolean;
   credits?: {
     used: number;
     remaining: number;
@@ -39,10 +42,42 @@ interface AppConfig {
 function App() {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showSplashScreen, setShowSplashScreen] = useState(true);
+  const [splashOpacity, setSplashOpacity] = useState(1);
 
   useEffect(() => {
+    // Start fade out after 3 seconds, then hide completely after fade finishes
+    const fadeTimer = setTimeout(() => {
+      setSplashOpacity(0);
+    }, 3000);
+
+    const hideTimer = setTimeout(() => {
+      setShowSplashScreen(false);
+    }, 4000); // 3s display + 1s fade = 4s total
+
     loadConfig();
+
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(hideTimer);
+    };
   }, []);
+
+  // Handle dark mode class toggling
+  useEffect(() => {
+    if (config?.darkMode) {
+      document.documentElement.classList.add('dark-mode');
+    } else {
+      document.documentElement.classList.remove('dark-mode');
+    }
+  }, [config?.darkMode]);
+
+  // Sync debug level with logger
+  useEffect(() => {
+    if (config?.debugLevel !== undefined) {
+      logger.setDebugLevel(config.debugLevel);
+    }
+  }, [config?.debugLevel]);
 
   const loadConfig = async () => {
     try {
@@ -69,16 +104,92 @@ function App() {
   // Determine if we have valid credentials
   const hasCredentials = config?.username && config?.password && config?.apiKey;
 
+  // Show splash screen overlay with fade transition
+  if (showSplashScreen) {
+    return (
+      <>
+        {/* Main app content loads behind splash screen - ready for reveal */}
+        {!isLoading && (
+          <APIProvider
+            initialConfig={hasCredentials ? {
+              username: config.username,
+              password: config.password,
+              apiKey: config.apiKey,
+              apiBaseUrl: config.apiBaseUrl,
+              apiUrlParameter: config.apiUrlParameter
+            } : undefined}
+          >
+            <AppContent
+              config={config}
+              setConfig={setConfig}
+              hasCredentials={!!hasCredentials}
+              isLoading={isLoading}
+            />
+          </APIProvider>
+        )}
+
+        {/* Splash screen overlay */}
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: '#ffffff',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          opacity: splashOpacity,
+          transition: 'opacity 1000ms ease-out'
+        }}>
+          <img
+            src={logoImage}
+            alt="Logo"
+            style={{
+              width: '120px',
+              height: '120px',
+              borderRadius: '50%',
+              marginBottom: '16px'
+            }}
+          />
+          <div style={{
+            fontSize: '11px',
+            color: '#6c757d',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            fontWeight: '300'
+          }}>
+            v{packageInfo.version}
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="app">
+        <div className="main-content">
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Normal app flow after splash screen is hidden
   return (
-    <APIProvider 
+    <APIProvider
       initialConfig={hasCredentials ? {
         username: config.username,
         password: config.password,
-        apiKey: config.apiKey
+        apiKey: config.apiKey,
+        apiBaseUrl: config.apiBaseUrl,
+        apiUrlParameter: config.apiUrlParameter
       } : undefined}
     >
-      <AppContent 
-        config={config} 
+      <AppContent
+        config={config}
         setConfig={setConfig}
         hasCredentials={!!hasCredentials}
         isLoading={isLoading}
@@ -165,7 +276,7 @@ function AppContent({
   useEffect(() => {
     // Handle single file opening - route to Single File screen
     const handleExternalFile = (event: any, filePath: string) => {
-      console.log('App: Received single external file:', filePath);
+      logger.debug(1, 'App', `Received single external file: ${filePath}`);
       setCurrentScreen('main');
       // Set the file for MainScreen to pick up
       setPendingMainFile(filePath);
@@ -173,7 +284,7 @@ function AppContent({
 
     // Handle multiple files opening - route to Batch screen
     const handleExternalFiles = (event: any, filePaths: string[]) => {
-      console.log(`App: Received ${filePaths.length} external files:`, filePaths);
+      logger.debug(1, 'App', `Received ${filePaths.length} external files:`, filePaths);
       setCurrentScreen('batch');
       // Set files for batch screen to pick up
       setPendingBatchFiles(filePaths);
@@ -311,7 +422,7 @@ function AppContent({
                   className={currentScreen === 'main' ? 'active' : ''}
                   onClick={() => handleScreenChange('main')}
                 >
-                  Single File
+                  <i className="fas fa-file-audio"></i>Single File
                 </button>
               </li>
               <li>
@@ -319,7 +430,7 @@ function AppContent({
                   className={currentScreen === 'batch' ? 'active' : ''}
                   onClick={() => handleScreenChange('batch')}
                 >
-                  Batch
+                  <i className="fas fa-layer-group"></i>Batch
                 </button>
               </li>
               <li>
@@ -327,7 +438,7 @@ function AppContent({
                   className={currentScreen === 'info' ? 'active' : ''}
                   onClick={() => handleScreenChange('info')}
                 >
-                  Info
+                  <i className="fas fa-info-circle"></i>Info
                 </button>
               </li>
               <li>
@@ -335,7 +446,7 @@ function AppContent({
                   className={currentScreen === 'credits' ? 'active' : ''}
                   onClick={() => handleScreenChange('credits')}
                 >
-                  Credits
+                  <i className="fas fa-coins"></i>Credits
                 </button>
               </li>
               <li>
@@ -343,7 +454,7 @@ function AppContent({
                   className={currentScreen === 'preferences' ? 'active' : ''}
                   onClick={() => handleScreenChange('preferences')}
                 >
-                  Preferences
+                  <i className="fas fa-cog"></i>Preferences
                 </button>
               </li>
               <li>
@@ -351,7 +462,7 @@ function AppContent({
                   className={currentScreen === 'update' ? 'active' : ''}
                   onClick={() => handleScreenChange('update')}
                 >
-                  Update
+                  <i className="fas fa-download"></i>Update
                 </button>
               </li>
               <li>
@@ -359,18 +470,66 @@ function AppContent({
                   className={currentScreen === 'help' ? 'active' : ''}
                   onClick={() => handleScreenChange('help')}
                 >
-                  Help
+                  <i className="fas fa-question-circle"></i>Help
                 </button>
               </li>
             </ul>
           </nav>
-          
+
+          {/* Dark Mode Toggle positioned under version number */}
+          <div style={{
+            position: 'absolute',
+            bottom: '10px', // Moved 15px down from 25px
+            left: '50%',
+            transform: 'translateX(-50%)',
+            textAlign: 'center'
+          }}>
+            <button
+              onClick={async () => {
+                const newDarkMode = !config?.darkMode;
+                // Save dark mode directly without credential validation
+                const success = await window.electronAPI.saveConfig({ darkMode: newDarkMode });
+                if (success) {
+                  const updatedConfig = await window.electronAPI.getConfig();
+                  setConfig(updatedConfig);
+                }
+              }}
+              style={{
+                background: 'transparent',
+                border: '2px solid var(--sidebar-text)',
+                borderRadius: '20px',
+                color: 'var(--sidebar-text)',
+                padding: '6px 12px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.2s ease',
+                minWidth: '100px',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+            >
+              <i className={`fas ${config?.darkMode ? 'fa-sun' : 'fa-moon'}`}></i>
+              {config?.darkMode ? 'Light' : 'Dark'}
+            </button>
+          </div>
+
           {/* Logo positioned above version display at bottom of sidebar */}
-          <div 
-            className="sidebar-logo" 
-            style={{ 
+          <div
+            className="sidebar-logo"
+            style={{
               position: 'absolute',
-              bottom: '75px', // 45px (version position) + 20px (logo height) + 10px (gap)
+              bottom: '90px', // 60px (version position) + 20px (logo height) + 10px (gap)
               left: '50%',
               transform: 'translateX(-50%)',
               textAlign: 'center',
@@ -378,9 +537,9 @@ function AppContent({
               width: 'calc(100% - 40px)' // Account for sidebar padding
             }}
           >
-            <img 
-              src={logoImage} 
-              alt="Logo" 
+            <img
+              src={logoImage}
+              alt="Logo"
               style={{
                 width: '100%',
                 maxWidth: '60px', // Smaller size for bottom positioning
@@ -391,7 +550,10 @@ function AppContent({
           </div>
           
           {/* Version display at bottom of sidebar */}
-          <div className="sidebar-version">
+          <div className="sidebar-version" style={{
+            position: 'absolute',
+            bottom: '60px' // Moved 15px up from 45px
+          }}>
             v{packageInfo.version}
           </div>
         </div>
@@ -471,17 +633,17 @@ function AppContent({
           position: 'fixed',
           top: '20px',
           right: '20px',
-          background: 'rgba(255, 255, 255, 0.95)',
-          border: '1px solid #ddd',
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-color)',
           borderRadius: '8px',
           padding: '8px 12px',
           fontSize: '14px',
           fontWeight: '500',
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
           zIndex: 1000,
-          color: '#333'
+          color: 'var(--text-primary)'
         }}>
-          💳 Credits: <strong>{credits.remaining}</strong>
+          <i className="fas fa-coins" style={{color: 'var(--text-primary)', marginRight: '6px'}}></i>Credits: <strong>{credits.remaining}</strong>
         </div>
       )}
 

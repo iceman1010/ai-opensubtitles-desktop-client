@@ -8,6 +8,7 @@ export interface AppConfig {
   apiKey?: string;
   lastUsedLanguage?: string;
   debugMode?: boolean;
+  debugLevel?: number;
   checkUpdatesOnStart?: boolean;
   autoRemoveCompletedFiles?: boolean;
   cacheExpirationHours?: number;
@@ -29,6 +30,14 @@ export class ConfigManager {
     const userDataPath = app.getPath('userData');
     this.configPath = path.join(userDataPath, 'config.json');
     this.config = this.loadConfig();
+  }
+
+  private debug(level: number, category: string, message: string, ...args: any[]) {
+    const debugLevel = this.config.debugLevel ?? 0;
+
+    if (debugLevel >= level) {
+      console.log(`[${category}] ${message}`, ...args);
+    }
   }
 
   private loadConfig(): AppConfig {
@@ -147,24 +156,24 @@ export class ConfigManager {
 
   resetAllSettings(): boolean {
     try {
-      console.log('=== RESET SETTINGS DEBUG ===');
-      console.log('Config path:', this.configPath);
-      console.log('Config file exists:', fs.existsSync(this.configPath));
+      this.debug(3, 'Config', '=== RESET SETTINGS DEBUG ===');
+      this.debug(3, 'Config', 'Config path:', this.configPath);
+      this.debug(3, 'Config', 'Config file exists:', fs.existsSync(this.configPath));
       
       // Clear config file
       if (fs.existsSync(this.configPath)) {
-        console.log('Deleting config file...');
+        this.debug(2, 'Config', 'Deleting config file...');
         fs.unlinkSync(this.configPath);
-        console.log('Config file deleted successfully');
+        this.debug(2, 'Config', 'Config file deleted successfully');
       }
       
       // Clear token file
-      console.log('Clearing token...');
+      this.debug(2, 'Config', 'Clearing token...');
       this.clearToken();
-      console.log('Token cleared successfully');
+      this.debug(2, 'Config', 'Token cleared successfully');
       
       // Reset in-memory config to defaults
-      console.log('Resetting in-memory config...');
+      this.debug(2, 'Config', 'Resetting in-memory config...');
       this.config = {
         username: '',
         password: '',
@@ -174,10 +183,10 @@ export class ConfigManager {
         apiBaseUrl: 'https://api.opensubtitles.com/api/v1',
         autoLanguageDetection: true,
       };
-      console.log('In-memory config reset successfully');
+      this.debug(2, 'Config', 'In-memory config reset successfully');
       
-      console.log('All settings have been reset successfully');
-      console.log('=== END RESET SETTINGS DEBUG ===');
+      this.debug(2, 'Config', 'All settings have been reset successfully');
+      this.debug(3, 'Config', '=== END RESET SETTINGS DEBUG ===');
       return true;
     } catch (error) {
       console.error('=== RESET SETTINGS ERROR ===');

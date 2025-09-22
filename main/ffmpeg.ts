@@ -6,6 +6,17 @@ import ffmpeg from 'fluent-ffmpeg';
 export class FFmpegManager {
   private ffmpegPath: string | null = null;
   private isInitialized = false;
+  private debugLevel: number = 0;
+
+  setDebugLevel(level: number): void {
+    this.debugLevel = level;
+  }
+
+  private debug(level: number, category: string, message: string, ...args: any[]) {
+    if (this.debugLevel >= level) {
+      console.log(`[${category}] ${message}`, ...args);
+    }
+  }
 
   async initialize(customPath?: string): Promise<boolean> {
     if (this.isInitialized) {
@@ -15,15 +26,15 @@ export class FFmpegManager {
     try {
       // Try custom path first if provided
       if (customPath && customPath.trim()) {
-        console.log(`Trying custom FFmpeg path: ${customPath}`);
+        this.debug(2, 'FFmpeg', `Trying custom FFmpeg path: ${customPath}`);
         if (await this.testFFmpegPath(customPath)) {
           this.ffmpegPath = customPath;
           ffmpeg.setFfmpegPath(this.ffmpegPath);
           this.isInitialized = true;
-          console.log(`FFmpeg using custom path: ${this.ffmpegPath}`);
+          this.debug(2, 'FFmpeg', `FFmpeg using custom path: ${this.ffmpegPath}`);
           return true;
         } else {
-          console.warn(`Custom FFmpeg path failed, falling back to auto-detection: ${customPath}`);
+          this.debug(1, 'FFmpeg', `Custom FFmpeg path failed, falling back to auto-detection: ${customPath}`);
         }
       }
 
@@ -32,7 +43,7 @@ export class FFmpegManager {
       if (this.ffmpegPath) {
         ffmpeg.setFfmpegPath(this.ffmpegPath);
         this.isInitialized = true;
-        console.log(`FFmpeg found at: ${this.ffmpegPath}`);
+        this.debug(2, 'FFmpeg', `FFmpeg found at: ${this.ffmpegPath}`);
         return true;
       }
 
@@ -43,7 +54,7 @@ export class FFmpegManager {
       if (this.ffmpegPath) {
         ffmpeg.setFfmpegPath(this.ffmpegPath);
         this.isInitialized = true;
-        console.log(`FFmpeg downloaded and configured at: ${this.ffmpegPath}`);
+        this.debug(2, 'FFmpeg', `FFmpeg downloaded and configured at: ${this.ffmpegPath}`);
         return true;
       }
 
@@ -80,43 +91,43 @@ export class FFmpegManager {
       process.env.FFMPEG_PATH // User-defined environment variable
     ].filter(Boolean); // Remove any undefined values
 
-    console.log('=== FFmpeg PATH DETECTION START ===');
-    console.log('Searching for FFmpeg in multiple locations...');
-    console.log('Possible paths to check:', possiblePaths);
+    this.debug(3, 'FFmpeg', '=== FFmpeg PATH DETECTION START ===');
+    this.debug(3, 'FFmpeg', 'Searching for FFmpeg in multiple locations...');
+    this.debug(3, 'FFmpeg', 'Possible paths to check:', possiblePaths);
 
     // First try the traditional 'which' command
-    console.log('Step 1: Trying which/where command...');
+    this.debug(3, 'FFmpeg', 'Step 1: Trying which/where command...');
     const whichResult = await this.tryWhichCommand();
     if (whichResult) {
-      console.log(`✅ FFmpeg found via 'which' command: ${whichResult}`);
+      this.debug(2, 'FFmpeg', `✅ FFmpeg found via 'which' command: ${whichResult}`);
       return whichResult;
     }
-    console.log('❌ which/where command failed or returned no result');
+    this.debug(3, 'FFmpeg', '❌ which/where command failed or returned no result');
 
     // Then try each possible path
-    console.log('Step 2: Testing predefined paths...');
+    this.debug(3, 'FFmpeg', 'Step 2: Testing predefined paths...');
     for (const testPath of possiblePaths) {
       if (testPath) {
-        console.log(`  Testing: ${testPath}`);
+        this.debug(3, 'FFmpeg', `  Testing: ${testPath}`);
         if (await this.testFFmpegPath(testPath)) {
-          console.log(`  ✅ FFmpeg found at: ${testPath}`);
+          this.debug(2, 'FFmpeg', `  ✅ FFmpeg found at: ${testPath}`);
           return testPath;
         }
-        console.log(`  ❌ Failed: ${testPath}`);
+        this.debug(3, 'FFmpeg', `  ❌ Failed: ${testPath}`);
       }
     }
 
     // If all else fails, try to find it via Homebrew
-    console.log('Step 3: Trying Homebrew detection...');
+    this.debug(3, 'FFmpeg', 'Step 3: Trying Homebrew detection...');
     const brewResult = await this.tryHomebrewPath();
     if (brewResult) {
-      console.log(`✅ FFmpeg found via Homebrew: ${brewResult}`);
+      this.debug(2, 'FFmpeg', `✅ FFmpeg found via Homebrew: ${brewResult}`);
       return brewResult;
     }
-    console.log('❌ Homebrew detection failed');
+    this.debug(3, 'FFmpeg', '❌ Homebrew detection failed');
 
-    console.log('=== FFmpeg PATH DETECTION END ===');
-    console.warn('⚠️  FFmpeg not found in any standard locations');
+    this.debug(3, 'FFmpeg', '=== FFmpeg PATH DETECTION END ===');
+    this.debug(1, 'FFmpeg', '⚠️  FFmpeg not found in any standard locations');
     return null;
   }
 
@@ -194,7 +205,7 @@ export class FFmpegManager {
       const ffmpegStatic = require('ffmpeg-static');
       if (ffmpegStatic && fs.existsSync(ffmpegStatic)) {
         this.ffmpegPath = ffmpegStatic;
-        console.log('Using ffmpeg-static binary');
+        this.debug(2, 'FFmpeg', 'Using ffmpeg-static binary');
       }
     } catch (error) {
       console.error('Failed to use ffmpeg-static:', error);

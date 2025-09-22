@@ -16,6 +16,15 @@ class MainApp {
     this.ffmpegManager = new FFmpegManager();
   }
 
+  private debug(level: number, category: string, message: string, ...args: any[]) {
+    const config = this.configManager.getConfig();
+    const debugLevel = config.debugLevel ?? 0;
+
+    if (debugLevel >= level) {
+      console.log(`[${category}] ${message}`, ...args);
+    }
+  }
+
   async initialize() {
     // Parse command line arguments for file path
     this.parseCommandLineArguments(process.argv);
@@ -63,10 +72,10 @@ class MainApp {
         }
       }
     } catch (error) {
-      console.warn('Failed to load user-agent from config, using fallback:', error);
+      this.debug(1, 'Main', 'Failed to load user-agent from config, using fallback:', error);
     }
     
-    console.log('Setting User-Agent to:', customUserAgent);
+    this.debug(2, 'Main', 'Setting User-Agent to:', customUserAgent);
     
     // Set globally for the default session
     session.defaultSession.setUserAgent(customUserAgent);
@@ -75,6 +84,7 @@ class MainApp {
     await this.setupIPC();
     await this.setupAutoUpdater();
     const appConfig = this.configManager.getConfig();
+    this.ffmpegManager.setDebugLevel(appConfig.debugLevel ?? 0);
     await this.ffmpegManager.initialize(appConfig.ffmpegPath);
   }
 
@@ -97,7 +107,7 @@ class MainApp {
     // Open DevTools if debug mode is enabled
     if (isDebugMode) {
       this.mainWindow.webContents.openDevTools();
-      console.log('Debug mode enabled - opening DevTools');
+      this.debug(1, 'Main', 'Debug mode enabled - opening DevTools');
     }
 
     const isDev = process.env.NODE_ENV === 'development';
@@ -108,22 +118,22 @@ class MainApp {
       // Smart path resolution for different packaging formats
       const rendererPath = path.join(__dirname, '../renderer/index.html');
       
-      console.log('=== RENDERER PATH DEBUG ===');
-      console.log('__dirname:', __dirname);
-      console.log('In app.asar:', __dirname.includes('app.asar'));
-      console.log('rendererPath:', rendererPath);
-      console.log('rendererPath exists:', require('fs').existsSync(rendererPath));
-      
+      this.debug(3, 'Renderer', '=== RENDERER PATH DEBUG ===');
+      this.debug(3, 'Renderer', '__dirname:', __dirname);
+      this.debug(3, 'Renderer', 'In app.asar:', __dirname.includes('app.asar'));
+      this.debug(3, 'Renderer', 'rendererPath:', rendererPath);
+      this.debug(3, 'Renderer', 'rendererPath exists:', require('fs').existsSync(rendererPath));
+
       // List directory contents for debugging
       try {
         const parentDir = path.dirname(rendererPath);
-        console.log('Parent dir:', parentDir);
-        console.log('Parent dir contents:', require('fs').readdirSync(parentDir));
+        this.debug(3, 'Renderer', 'Parent dir:', parentDir);
+        this.debug(3, 'Renderer', 'Parent dir contents:', require('fs').readdirSync(parentDir));
       } catch (err) {
-        console.log('Could not list parent dir:', err instanceof Error ? err.message : err);
+        this.debug(3, 'Renderer', 'Could not list parent dir:', err instanceof Error ? err.message : err);
       }
-      
-      console.log('==========================');
+
+      this.debug(3, 'Renderer', '==========================');
       
       await this.mainWindow.loadFile(rendererPath);
     }
@@ -135,7 +145,7 @@ class MainApp {
     });
 
     this.mainWindow.webContents.on('dom-ready', () => {
-      console.log('DOM ready');
+      this.debug(2, 'Main', 'DOM ready');
     });
 
     this.mainWindow.on('closed', () => {
@@ -472,17 +482,17 @@ class MainApp {
   private async setupAutoUpdater() {
     // Skip auto-updater setup in development
     const isDev = process.env.NODE_ENV === 'development';
-    console.log('=== AUTO-UPDATER SETUP ===');
-    console.log('Environment:', process.env.NODE_ENV);
-    console.log('Is Development:', isDev);
+    this.debug(2, 'AutoUpdater', '=== AUTO-UPDATER SETUP ===');
+    this.debug(2, 'AutoUpdater', 'Environment:', process.env.NODE_ENV);
+    this.debug(2, 'AutoUpdater', 'Is Development:', isDev);
     
     if (isDev) {
-      console.log('Skipping auto-updater setup in development mode');
+      this.debug(2, 'AutoUpdater', 'Skipping auto-updater setup in development mode');
       return;
     }
 
     try {
-      console.log('Configuring auto-updater for GitHub releases...');
+      this.debug(2, 'AutoUpdater', 'Configuring auto-updater for GitHub releases...');
       
       // Configure auto-updater for GitHub releases
       autoUpdater.setFeedURL({
@@ -494,24 +504,24 @@ class MainApp {
       // Fix version comparison issues with missing releases
       autoUpdater.allowPrerelease = false;
       
-      console.log('Auto-updater feed URL set successfully');
+      this.debug(2, 'AutoUpdater', 'Auto-updater feed URL set successfully');
     } catch (error) {
       console.error('Failed to configure auto-updater:', error);
     }
 
     // Set up auto-updater event handlers
     autoUpdater.on('checking-for-update', () => {
-      console.log('Checking for update...');
+      this.debug(2, 'AutoUpdater', 'Checking for update...');
       this.sendUpdateStatus('checking-for-update', 'Checking for updates...');
     });
 
     autoUpdater.on('update-available', (info) => {
-      console.log('Update available:', info);
+      this.debug(2, 'AutoUpdater', 'Update available:', info);
       this.sendUpdateStatus('update-available', `Update available: v${info.version}`);
     });
 
     autoUpdater.on('update-not-available', (info) => {
-      console.log('Update not available:', info);
+      this.debug(2, 'AutoUpdater', 'Update not available:', info);
       this.sendUpdateStatus('update-not-available', 'You have the latest version');
     });
 
@@ -522,12 +532,12 @@ class MainApp {
 
     autoUpdater.on('download-progress', (progressObj) => {
       const logMessage = `Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent}% (${progressObj.transferred}/${progressObj.total})`;
-      console.log(logMessage);
+      this.debug(3, 'AutoUpdater', logMessage);
       this.sendUpdateStatus('update-downloading', `Downloading update: ${Math.round(progressObj.percent)}%`);
     });
 
     autoUpdater.on('update-downloaded', (info) => {
-      console.log('Update downloaded:', info);
+      this.debug(2, 'AutoUpdater', 'Update downloaded:', info);
       this.sendUpdateStatus('update-downloaded', `Update ready: v${info.version}`);
     });
 
@@ -548,28 +558,28 @@ class MainApp {
 
   private async checkForUpdates() {
     const isDev = process.env.NODE_ENV === 'development';
-    console.log('=== UPDATE CHECK DEBUG ===');
-    console.log('Environment:', process.env.NODE_ENV);
-    console.log('Is Development:', isDev);
-    console.log('Platform:', process.platform);
-    console.log('App Version:', require('../../package.json').version);
+    this.debug(3, 'UpdateCheck', '=== UPDATE CHECK DEBUG ===');
+    this.debug(3, 'UpdateCheck', 'Environment:', process.env.NODE_ENV);
+    this.debug(3, 'UpdateCheck', 'Is Development:', isDev);
+    this.debug(3, 'UpdateCheck', 'Platform:', process.platform);
+    this.debug(3, 'UpdateCheck', 'App Version:', require('../../package.json').version);
     
     if (isDev) {
-      console.log('Update check skipped in development mode');
+      this.debug(2, 'UpdateCheck', 'Update check skipped in development mode');
       this.sendUpdateStatus('update-not-available', 'Updates not available in development mode');
       return;
     }
 
     try {
-      console.log('Starting update check...');
-      console.log('AutoUpdater feed URL:', {
+      this.debug(2, 'UpdateCheck', 'Starting update check...');
+      this.debug(3, 'UpdateCheck', 'AutoUpdater feed URL:', {
         provider: 'github',
         owner: 'iceman1010',
         repo: 'ai-opensubtitles-desktop-client'
       });
       
       const result = await autoUpdater.checkForUpdates();
-      console.log('Update check result:', result);
+      this.debug(3, 'UpdateCheck', 'Update check result:', result);
     } catch (error) {
       console.error('Failed to check for updates:', error);
       console.error('Error details:', {
@@ -581,7 +591,7 @@ class MainApp {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.sendUpdateStatus('update-error', `Update check failed: ${errorMessage}`);
     }
-    console.log('=== END UPDATE CHECK DEBUG ===');
+    this.debug(3, 'UpdateCheck', '=== END UPDATE CHECK DEBUG ===');
   }
 
   private async downloadAndInstallUpdate() {
@@ -616,9 +626,14 @@ class MainApp {
 
     ipcMain.handle('save-config', async (_, config) => {
       const result = this.configManager.saveConfig(config);
+      // Update debug level
+      if (config.debugLevel !== undefined) {
+        this.ffmpegManager.setDebugLevel(config.debugLevel);
+      }
       // Reinitialize FFmpeg if the path changed
       if (config.ffmpegPath !== undefined) {
         this.ffmpegManager = new (require('./ffmpeg').FFmpegManager)();
+        this.ffmpegManager.setDebugLevel(config.debugLevel ?? 0);
         await this.ffmpegManager.initialize(config.ffmpegPath);
       }
       return result;
@@ -650,7 +665,7 @@ class MainApp {
     ipcMain.handle('select-multiple-files', async () => {
       if (!this.mainWindow) return [];
       
-      console.log('Main: Multiple file dialog requested');
+      this.debug(2, 'Main', 'Multiple file dialog requested');
       
       const allMediaExtensions = [
         ...fileFormatsConfig.video,
@@ -671,11 +686,11 @@ class MainApp {
         ]
       };
       
-      console.log('Main: Dialog options:', dialogOptions);
+      this.debug(3, 'Main', 'Dialog options:', dialogOptions);
       
       const result = await dialog.showOpenDialog(this.mainWindow, dialogOptions);
       
-      console.log('Main: Dialog result:', {
+      this.debug(3, 'Main', 'Dialog result:', {
         canceled: result.canceled,
         filePaths: result.filePaths,
         filePathsLength: result.filePaths?.length
@@ -812,7 +827,7 @@ class MainApp {
         const fs = require('fs');
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
-          console.log('Deleted file:', filePath);
+          this.debug(2, 'Main', 'Deleted file:', filePath);
         }
       } catch (error) {
         console.error('Failed to delete file:', filePath, error);
@@ -1074,7 +1089,7 @@ class MainApp {
           execSync(`ftype OpenSubtitles.${ext}="${appPath}" "%1"`, { stdio: 'pipe' });
           execSync(`assoc .${ext}=OpenSubtitles.${ext}`, { stdio: 'pipe' });
         } catch (error) {
-          console.error(`Failed to associate .${ext}:`, error);
+          this.debug(1, 'FileAssoc', `Failed to associate .${ext}:`, error);
         }
       }
       
@@ -1171,7 +1186,7 @@ MimeType=`;
         try {
           execSync(`duti -s ${bundleId} .${ext} all`, { stdio: 'pipe' });
         } catch (error) {
-          console.error(`Failed to associate .${ext}:`, error);
+          this.debug(1, 'FileAssoc', `Failed to associate .${ext}:`, error);
         }
       }
       
@@ -1193,11 +1208,11 @@ MimeType=`;
     
     if (filePaths.length === 1) {
       // Single file - send to Single File screen
-      console.log('Sending single file to Single File screen:', filePaths[0]);
+      this.debug(2, 'Main', 'Sending single file to Single File screen:', filePaths[0]);
       this.mainWindow.webContents.send('open-file-from-external', filePaths[0]);
     } else if (filePaths.length > 1) {
       // Multiple files - send to Batch screen
-      console.log(`Sending ${filePaths.length} files to Batch screen:`, filePaths);
+      this.debug(2, 'Main', `Sending ${filePaths.length} files to Batch screen:`, filePaths);
       this.mainWindow.webContents.send('open-files-from-external', filePaths);
     }
   }
@@ -1207,7 +1222,7 @@ MimeType=`;
       return { success: false, message: 'Path is empty. Use auto-detection instead.' };
     }
 
-    console.log(`Testing FFmpeg path: ${path}`);
+    this.debug(2, 'FFmpeg', `Testing FFmpeg path: ${path}`);
     
     return new Promise((resolve) => {
       const { spawn } = require('child_process');
@@ -1224,13 +1239,13 @@ MimeType=`;
           ? `FFmpeg path is valid and working: ${path}`
           : `FFmpeg path failed to execute. Exit code: ${code}`;
         
-        console.log(`FFmpeg test result: ${success ? 'SUCCESS' : 'FAILED'} - ${message}`);
+        this.debug(2, 'FFmpeg', `FFmpeg test result: ${success ? 'SUCCESS' : 'FAILED'} - ${message}`);
         resolve({ success, message });
       });
 
       child.on('error', (error: any) => {
         const message = `FFmpeg path not found or not executable: ${error.message}`;
-        console.log(`FFmpeg test error: ${message}`);
+        this.debug(1, 'FFmpeg', `FFmpeg test error: ${message}`);
         resolve({ success: false, message });
       });
 
@@ -1238,7 +1253,7 @@ MimeType=`;
       setTimeout(() => {
         child.kill();
         const message = 'FFmpeg test timed out after 5 seconds';
-        console.log(message);
+        this.debug(1, 'FFmpeg', message);
         resolve({ success: false, message });
       }, 5000);
     });
@@ -1282,7 +1297,7 @@ MimeType=`;
         properties: ['openFile']
       });
 
-      console.log('FFmpeg file dialog result:', result);
+      this.debug(3, 'FFmpeg', 'FFmpeg file dialog result:', result);
       
       if (result.canceled || !result.filePaths.length) {
         return { cancelled: true };

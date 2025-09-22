@@ -125,7 +125,7 @@ const SmartSelect: React.FC<SmartSelectProps> = ({
             }}
             title={option.tooltip}
           >
-            ○ {option.label} {option.tooltip ? `(${option.tooltip})` : ''}
+            {option.label} {option.tooltip ? `(${option.tooltip})` : ''}
           </option>
         ))}
       </select>

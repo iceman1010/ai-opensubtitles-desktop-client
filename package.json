@@ -1,6 +1,6 @@
 {
   "name": "ai-opensubtitles-client",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "description": "Cross-platform desktop client for AI.Opensubtitles.com",
   "main": "dist/main/main.js",
   "homepage": "./",
@@ -438,6 +438,7 @@
     "vite": "^5.0.8"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-free": "^7.0.1",
     "electron-updater": "^6.6.2",
     "ffmpeg-static": "^5.2.0",
     "fluent-ffmpeg": "^2.1.2",

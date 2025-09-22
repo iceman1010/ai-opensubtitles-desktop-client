@@ -40,13 +40,13 @@ const NetworkStatus: React.FC<NetworkStatusProps> = ({ onNetworkChange }) => {
       {online ? (
         justWentOnline ? (
           <>
-            <span className="status-icon">✓</span>
+            <span className="status-icon"><i className="fas fa-check text-success"></i></span>
             Connection restored
           </>
         ) : null
       ) : (
         <>
-          <span className="status-icon">⚠</span>
+          <span className="status-icon"><i className="fas fa-exclamation-triangle text-warning"></i></span>
           No internet connection
         </>
       )}

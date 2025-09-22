@@ -1,3 +1,48 @@
+/* CSS Custom Properties for Light and Dark Mode */
+:root {
+  /* Light Mode Colors */
+  --bg-primary: #f5f5f5;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f8f9fa;
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --text-muted: #999999;
+  --border-color: #dee2e6;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --input-bg: #ffffff;
+  --input-border: #ced4da;
+  --button-bg: #007bff;
+  --button-text: #ffffff;
+  --sidebar-bg: #5f5f5f;
+  --sidebar-text: #ffffff;
+  --success-color: #28a745;
+  --warning-color: #ffc107;
+  --danger-color: #dc3545;
+  --info-color: #17a2b8;
+}
+
+/* Dark Mode Colors */
+.dark-mode {
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #2d2d2d;
+  --bg-tertiary: #404040;
+  --text-primary: #ffffff;
+  --text-secondary: #e0e0e0;
+  --text-muted: #b0b0b0;
+  --border-color: #555555;
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  --input-bg: #3a3a3a;
+  --input-border: #666666;
+  --button-bg: #0066cc;
+  --button-text: #ffffff;
+  --sidebar-bg: #2a2a2a;
+  --sidebar-text: #ffffff;
+  --success-color: #28a745;
+  --warning-color: #ffc107;
+  --danger-color: #dc3545;
+  --info-color: #17a2b8;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -15,8 +60,10 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f5f5f5;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 #root {
@@ -30,11 +77,12 @@ body {
 
 .sidebar {
   width: 250px;
-  background-color: #5f5f5f;
-  color: white;
+  background-color: var(--sidebar-bg);
+  color: var(--sidebar-text);
   padding: 20px;
-  box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+  box-shadow: 2px 0 5px var(--shadow-color);
   position: relative;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .sidebar h2 {
@@ -53,7 +101,7 @@ body {
 .sidebar nav button {
   background: none;
   border: none;
-  color: white;
+  color: var(--sidebar-text);
   cursor: pointer;
   font-size: 16px;
   padding: 5px 5px;
@@ -64,17 +112,20 @@ body {
 }
 
 .sidebar nav button:hover {
-  background-color: #34495e;
+  background-color: rgba(52, 73, 94, 0.7);
 }
 
 .sidebar nav button.active {
-  background-color: #3498db;
+  background-color: var(--button-bg);
 }
 
 .main-content {
   flex: 1;
   padding: 30px;
   overflow-y: auto;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .form-group {
@@ -85,16 +136,66 @@ body {
   display: block;
   margin-bottom: 8px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .form-group input,
-.form-group select {
+.form-group select,
+select {
   width: 100%;
   padding: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--input-border);
   border-radius: 4px;
   font-size: 16px;
+  background-color: var(--input-bg);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* Global select styling for all dropdowns */
+select {
+  background-color: var(--input-bg) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--input-border) !important;
+}
+
+/* Option styling for dark mode */
+select option {
+  background-color: var(--input-bg);
+  color: var(--text-primary);
+}
+
+/* Global file input styling for all file selectors and folder selectors */
+input[type="file"],
+input[type="file"][webkitdirectory] {
+  background-color: var(--input-bg) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--input-border) !important;
+  border-radius: 4px;
+  padding: 8px 12px;
+}
+
+/* File input button styling (includes folder selectors) */
+input[type="file"]::-webkit-file-upload-button,
+input[type="file"][webkitdirectory]::-webkit-file-upload-button {
+  background-color: var(--button-bg);
+  color: var(--button-text);
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+input[type="file"]::-moz-file-upload-button,
+input[type="file"][webkitdirectory]::-moz-file-upload-button {
+  background-color: var(--button-bg);
+  color: var(--button-text);
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  margin-right: 8px;
+  cursor: pointer;
 }
 
 .form-group input:focus,
@@ -133,12 +234,14 @@ body {
 }
 
 .file-drop-zone {
-  border: 2px dashed #bdc3c7;
+  border: 2px dashed var(--border-color);
   border-radius: 8px;
   padding: 40px;
   text-align: center;
   margin: 20px 0;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, background-color 0.3s ease;
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
 }
 
 .file-drop-zone:hover {
@@ -147,22 +250,22 @@ body {
 
 .file-drop-zone.dragover {
   border-color: #3498db;
-  background-color: #ecf0f1;
+  background-color: var(--bg-secondary);
 }
 
 .file-drop-zone.disabled {
-  border-color: #d3d3d3;
-  color: #999;
+  border-color: var(--border-color);
+  color: var(--text-muted);
   cursor: not-allowed;
 }
 
 .file-drop-zone.disabled:hover {
-  border-color: #d3d3d3;
+  border-color: var(--border-color);
 }
 
 .form-group select:disabled {
-  background-color: #f5f5f5;
-  color: #999;
+  background-color: var(--bg-tertiary);
+  color: var(--text-muted);
   cursor: not-allowed;
 }
 
@@ -193,7 +296,7 @@ body {
 .progress-bar {
   width: 100%;
   height: 8px;
-  background-color: #ecf0f1;
+  background-color: var(--border-color);
   border-radius: 4px;
   overflow: hidden;
   margin: 10px 0;
@@ -232,7 +335,7 @@ body {
 .credits-info {
   margin: 20px 0;
   padding: 15px;
-  background-color: #ecf0f1;
+  background-color: var(--bg-tertiary);
   border-radius: 4px;
 }
 
@@ -258,15 +361,17 @@ body {
 
 .supported-formats {
   margin-top: 15px;
-  color: #7f8c8d;
+  color: var(--text-muted);
 }
 
 .selected-file-info {
   margin-top: 15px;
   padding: 15px;
-  background-color: #d4edda;
+  background-color: var(--success-color);
   border-radius: 4px;
-  border: 1px solid #c3e6cb;
+  border: 1px solid var(--success-color);
+  color: var(--bg-primary);
+  opacity: 0.9;
 }
 
 .selected-file-info p {
@@ -276,9 +381,9 @@ body {
 .file-info {
   margin: 20px 0;
   padding: 15px;
-  background-color: #f8f9fa;
+  background-color: var(--bg-tertiary);
   border-radius: 4px;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--border-color);
 }
 
 .file-info h3 {
@@ -295,9 +400,9 @@ body {
 
 .options-container {
   padding: 20px;
-  background-color: #f8f9fa;
+  background-color: var(--bg-tertiary);
   border-radius: 8px;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--border-color);
 }
 
 .options-container .form-group {
@@ -330,7 +435,7 @@ body {
 
 .options-container h3 {
   margin-bottom: 20px;
-  color: #2c3e50;
+  color: var(--text-primary);
 }
 
 .action-section {
@@ -370,4 +475,108 @@ body {
   text-align: center;
   user-select: none;
   opacity: 0.7;
+}
+
+/* FontAwesome icon spacing for sidebar navigation */
+.sidebar nav button i {
+  margin-right: 8px;
+  width: 16px;
+  text-align: center;
+}
+
+/* Centralized Dark Mode Classes */
+.card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.card-tertiary {
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.status-info {
+  background-color: var(--info-color);
+  color: var(--bg-primary);
+  opacity: 0.9;
+  padding: 12px;
+  border-radius: 4px;
+  margin: 10px 0;
+}
+
+.status-success {
+  background-color: var(--success-color);
+  color: var(--bg-primary);
+  opacity: 0.9;
+  padding: 12px;
+  border-radius: 4px;
+  margin: 10px 0;
+}
+
+.status-warning {
+  background-color: var(--warning-color);
+  color: var(--bg-primary);
+  opacity: 0.9;
+  padding: 12px;
+  border-radius: 4px;
+  margin: 10px 0;
+}
+
+.status-danger {
+  background-color: var(--danger-color);
+  color: var(--bg-primary);
+  opacity: 0.9;
+  padding: 12px;
+  border-radius: 4px;
+  margin: 10px 0;
+}
+
+.table-container {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 20px 0;
+}
+
+.table-row-even {
+  background-color: var(--bg-tertiary);
+}
+
+.floating-widget {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  box-shadow: 0 2px 8px var(--shadow-color);
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* Language tags and status badges */
+.language-tag {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  margin: 2px;
+  display: inline-block;
+  border: 1px solid var(--border-color);
+}
+
+.reliability-badge {
+  color: var(--bg-primary) !important;
+  font-weight: bold;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }

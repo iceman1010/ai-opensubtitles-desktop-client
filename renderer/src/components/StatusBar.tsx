@@ -130,21 +130,21 @@ const StatusBar: React.FC<StatusBarProps> = ({
     if (!online) {
       return (
         <span className="status-item offline">
-          <span className="status-icon">⚠</span>
+          <span className="status-icon"><i className="fas fa-exclamation-triangle text-warning"></i></span>
           Offline
         </span>
       );
     } else if (showConnectionChange) {
       return (
         <span className="status-item online-restored">
-          <span className="status-icon">✓</span>
+          <span className="status-icon"><i className="fas fa-check text-success"></i></span>
           Connected
         </span>
       );
     } else {
       return (
         <span className="status-item online">
-          <span className="status-icon">●</span>
+          <span className="status-icon"><i className="fas fa-circle text-success"></i></span>
           Online
         </span>
       );
@@ -295,17 +295,17 @@ const StatusBar: React.FC<StatusBarProps> = ({
       {/* Network Status */}
       {!online ? (
         <span style={{...statusItemStyles, color: '#dc3545', fontWeight: 600}}>
-          <span style={statusIconStyles}>⚠</span>
+          <i className="fas fa-exclamation-triangle" style={{...statusIconStyles, color: '#dc3545'}}></i>
           Offline
         </span>
       ) : showConnectionChange ? (
         <span style={{...statusItemStyles, color: '#28a745', fontWeight: 600}} className="status-pulse">
-          <span style={statusIconStyles}>✓</span>
+          <i className="fas fa-check" style={{...statusIconStyles, color: '#28a745'}}></i>
           Connected
         </span>
       ) : (
         <span style={{...statusItemStyles, color: '#28a745'}}>
-          <span style={statusIconStyles}>●</span>
+          <i className="fas fa-circle" style={{...statusIconStyles, color: '#28a745', fontSize: '8px'}}></i>
           Online
         </span>
       )}
@@ -315,7 +315,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
         <>
           <span style={statusSeparatorStyles}>|</span>
           <span style={{...statusItemStyles, color: '#6f42c1', fontWeight: 500, fontSize: 11}}>
-            <span style={statusIconStyles} className="status-pulsing">◐</span>
+            <i className="fas fa-sync-alt" style={{...statusIconStyles, color: '#6f42c1'}} className="status-pulsing"></i>
             {currentApiContext ? getEndpointDisplay(currentApiContext) : 'API'}
           </span>
         </>
@@ -326,7 +326,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
         <>
           <span style={statusSeparatorStyles}>|</span>
           <span style={{...statusItemStyles, color: '#007bff', fontWeight: 600}}>
-            <span style={statusIconStyles} className="status-spinning">⟳</span>
+            <i className="fas fa-spinner" style={{...statusIconStyles, color: '#007bff'}} className="status-spinning"></i>
             <span title={displayedTask}>{truncateText(displayedTask, 40)}</span>
           </span>
         </>
@@ -338,10 +338,12 @@ const StatusBar: React.FC<StatusBarProps> = ({
           <span style={statusSeparatorStyles}>|</span>
           <span style={{...statusItemStyles, color: '#fd7e14', fontWeight: 500}}>
             <span style={statusIconStyles} className={updateStatus.includes('Downloading') ? 'status-pulsing' : ''}>
-              {updateStatus.includes('available') ? '↓' : 
-               updateStatus.includes('Downloading') ? '⬇' : 
-               updateStatus.includes('ready') ? '✓' : 
-               updateStatus.includes('error') ? '✗' : '⟳'}
+              <i className={`fas ${
+                updateStatus.includes('available') ? 'fa-arrow-down' :
+                updateStatus.includes('Downloading') ? 'fa-download' :
+                updateStatus.includes('ready') ? 'fa-check' :
+                updateStatus.includes('error') ? 'fa-times' : 'fa-sync-alt'
+              }`} style={{...statusIconStyles, color: '#fd7e14'}}></i>
             </span>
             <span title={updateStatus}>{truncateText(updateStatus, 35)}</span>
           </span>

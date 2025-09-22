@@ -109,13 +109,17 @@ export class OpenSubtitlesAPI {
   private baseURL = 'https://api.opensubtitles.com/api/v1';
   private apiKey: string = '';
   private token: string = '';
+  private apiUrlParameter: string = '';
 
-  constructor(apiKey?: string, baseUrl?: string) {
+  constructor(apiKey?: string, baseUrl?: string, apiUrlParameter?: string) {
     if (apiKey) {
       this.setApiKey(apiKey);
     }
     if (baseUrl) {
       this.setBaseUrl(baseUrl);
+    }
+    if (apiUrlParameter) {
+      this.setApiUrlParameter(apiUrlParameter);
     }
   }
 
@@ -124,12 +128,18 @@ export class OpenSubtitlesAPI {
     this.baseURL = baseUrl;
   }
 
+  setApiUrlParameter(apiUrlParameter: string): void {
+    this.apiUrlParameter = apiUrlParameter;
+  }
+
   private getAIUrl(endpoint: string): string {
-    return `${this.baseURL}/ai${endpoint}`;
+    const baseUrl = `${this.baseURL}/ai${endpoint}`;
+    return this.apiUrlParameter ? `${baseUrl}${this.apiUrlParameter}` : baseUrl;
   }
 
   private getLoginUrl(endpoint: string): string {
-    return `${this.baseURL}${endpoint}`;
+    const baseUrl = `${this.baseURL}${endpoint}`;
+    return this.apiUrlParameter ? `${baseUrl}${this.apiUrlParameter}` : baseUrl;
   }
 
   setApiKey(apiKey: string): void {
@@ -268,7 +278,7 @@ export class OpenSubtitlesAPI {
   async getTranscriptionInfo(): Promise<{ success: boolean; data?: TranscriptionInfo; error?: string }> {
     const cacheKey = 'transcription_info';
     const cached = CacheManager.get<TranscriptionInfo>(cacheKey);
-    
+
     if (cached) {
       logger.info('API', 'Using cached transcription info');
       return { success: true, data: cached };
@@ -281,68 +291,76 @@ export class OpenSubtitlesAPI {
     }
 
     try {
-      logger.info('API', 'Fetching transcription info from API...');
-      
-      const headers = {
-        'Accept': 'application/json',
-        'Api-Key': this.apiKey || '',
-        'Content-Type': 'application/json',
-        'User-Agent': getUserAgent(),
-      };
-      
-      if (this.token) {
-        headers['Authorization'] = `Bearer ${this.token}`;
-      }
-      
-      const [apisResponse, languagesResponse] = await Promise.all([
-        fetch(this.getAIUrl('/info/transcription_apis'), {
-          method: 'POST',
-          headers,
-        }),
-        fetch(this.getAIUrl('/info/transcription_languages'), {
-          method: 'POST',
-          headers,
-        }),
-      ]);
-      
-      if (!apisResponse.ok) {
-        if (apisResponse.status === 401 || apisResponse.status === 403) {
-          await this.handleAuthError();
+      const result = await apiRequestWithRetry(async () => {
+        logger.info('API', 'Fetching transcription info from API...');
+
+        const headers = {
+          'Accept': 'application/json',
+          'Api-Key': this.apiKey || '',
+          'Content-Type': 'application/json',
+          'User-Agent': getUserAgent(),
+        };
+
+        if (this.token) {
+          headers['Authorization'] = `Bearer ${this.token}`;
         }
-        throw new Error(`APIs request failed: ${apisResponse.status} ${apisResponse.statusText}`);
-      }
-      if (!languagesResponse.ok) {
-        if (languagesResponse.status === 401 || languagesResponse.status === 403) {
-          await this.handleAuthError();
+
+        const [apisResponse, languagesResponse] = await Promise.all([
+          fetch(this.getAIUrl('/info/transcription_apis'), {
+            method: 'POST',
+            headers,
+          }),
+          fetch(this.getAIUrl('/info/transcription_languages'), {
+            method: 'POST',
+            headers,
+          }),
+        ]);
+
+        if (!apisResponse.ok) {
+          if (apisResponse.status === 401 || apisResponse.status === 403) {
+            await this.handleAuthError();
+          }
+          const error = new Error(`APIs request failed: ${apisResponse.status} ${apisResponse.statusText}`);
+          (error as any).status = apisResponse.status;
+          (error as any).responseText = await apisResponse.text().catch(() => '');
+          throw error;
         }
-        throw new Error(`Languages request failed: ${languagesResponse.status} ${languagesResponse.statusText}`);
-      }
-      
-      const apisData = await apisResponse.json();
-      const languagesData = await languagesResponse.json();
-      
-      logger.info('API', 'Transcription APIs response', apisData);
-      logger.info('API', 'Transcription languages response', languagesData);
+        if (!languagesResponse.ok) {
+          if (languagesResponse.status === 401 || languagesResponse.status === 403) {
+            await this.handleAuthError();
+          }
+          const error = new Error(`Languages request failed: ${languagesResponse.status} ${languagesResponse.statusText}`);
+          (error as any).status = languagesResponse.status;
+          (error as any).responseText = await languagesResponse.text().catch(() => '');
+          throw error;
+        }
 
-      const data: TranscriptionInfo = {
-        apis: apisData.data || apisData,
-        languages: languagesData.data || languagesData,
-      };
+        const apisData = await apisResponse.json();
+        const languagesData = await languagesResponse.json();
 
-      CacheManager.set(cacheKey, data);
-      logger.info('API', 'Transcription info cached successfully');
+        logger.info('API', 'Transcription APIs response', apisData);
+        logger.info('API', 'Transcription languages response', languagesData);
 
-      return {
-        success: true,
-        data,
-      };
+        const data: TranscriptionInfo = {
+          apis: apisData.data || apisData,
+          languages: languagesData.data || languagesData,
+        };
+
+        CacheManager.set(cacheKey, data);
+        logger.info('API', 'Transcription info cached successfully');
+
+        return {
+          success: true,
+          data,
+        };
+      }, 'Get Transcription Info', 3);
+
+      return result;
     } catch (error: any) {
-      logger.error('API', 'Error fetching transcription info', {
-        error: error.message,
-      });
+      logger.error('API', 'Error fetching transcription info after retries:', error);
       return {
         success: false,
-        error: error.message || 'Failed to get transcription info',
+        error: getUserFriendlyErrorMessage(error),
       };
     }
   }
@@ -350,7 +368,7 @@ export class OpenSubtitlesAPI {
   async getTranslationInfo(): Promise<{ success: boolean; data?: TranslationInfo; error?: string }> {
     const cacheKey = 'translation_info';
     const cached = CacheManager.get<TranslationInfo>(cacheKey);
-    
+
     if (cached) {
       logger.info('API', 'Using cached translation info');
       return { success: true, data: cached };
@@ -363,62 +381,76 @@ export class OpenSubtitlesAPI {
     }
 
     try {
-      logger.info('API', 'Fetching translation info from API...');
-      
-      const headers = {
-        'Accept': 'application/json',
-        'Api-Key': this.apiKey || '',
-        'Content-Type': 'application/json',
-        'User-Agent': getUserAgent(),
-      };
-      
-      if (this.token) {
-        headers['Authorization'] = `Bearer ${this.token}`;
-      }
-      
-      const [apisResponse, languagesResponse] = await Promise.all([
-        fetch(this.getAIUrl('/info/translation_apis'), {
-          method: 'POST',
-          headers,
-        }),
-        fetch(this.getAIUrl('/info/translation_languages'), {
-          method: 'POST',
-          headers,
-        }),
-      ]);
-      
-      if (!apisResponse.ok) {
-        throw new Error(`APIs request failed: ${apisResponse.status} ${apisResponse.statusText}`);
-      }
-      if (!languagesResponse.ok) {
-        throw new Error(`Languages request failed: ${languagesResponse.status} ${languagesResponse.statusText}`);
-      }
-      
-      const apisData = await apisResponse.json();
-      const languagesData = await languagesResponse.json();
-      
-      logger.info('API', 'Translation APIs response', apisData);
-      logger.info('API', 'Translation languages response', languagesData);
+      const result = await apiRequestWithRetry(async () => {
+        logger.info('API', 'Fetching translation info from API...');
 
-      const data: TranslationInfo = {
-        apis: apisData.data || apisData,
-        languages: languagesData.data || languagesData,
-      };
+        const headers = {
+          'Accept': 'application/json',
+          'Api-Key': this.apiKey || '',
+          'Content-Type': 'application/json',
+          'User-Agent': getUserAgent(),
+        };
 
-      CacheManager.set(cacheKey, data);
-      logger.info('API', 'Translation info cached successfully');
+        if (this.token) {
+          headers['Authorization'] = `Bearer ${this.token}`;
+        }
 
-      return {
-        success: true,
-        data,
-      };
+        const [apisResponse, languagesResponse] = await Promise.all([
+          fetch(this.getAIUrl('/info/translation_apis'), {
+            method: 'POST',
+            headers,
+          }),
+          fetch(this.getAIUrl('/info/translation_languages'), {
+            method: 'POST',
+            headers,
+          }),
+        ]);
+
+        if (!apisResponse.ok) {
+          if (apisResponse.status === 401 || apisResponse.status === 403) {
+            await this.handleAuthError();
+          }
+          const error = new Error(`APIs request failed: ${apisResponse.status} ${apisResponse.statusText}`);
+          (error as any).status = apisResponse.status;
+          (error as any).responseText = await apisResponse.text().catch(() => '');
+          throw error;
+        }
+        if (!languagesResponse.ok) {
+          if (languagesResponse.status === 401 || languagesResponse.status === 403) {
+            await this.handleAuthError();
+          }
+          const error = new Error(`Languages request failed: ${languagesResponse.status} ${languagesResponse.statusText}`);
+          (error as any).status = languagesResponse.status;
+          (error as any).responseText = await languagesResponse.text().catch(() => '');
+          throw error;
+        }
+
+        const apisData = await apisResponse.json();
+        const languagesData = await languagesResponse.json();
+
+        logger.info('API', 'Translation APIs response', apisData);
+        logger.info('API', 'Translation languages response', languagesData);
+
+        const data: TranslationInfo = {
+          apis: apisData.data || apisData,
+          languages: languagesData.data || languagesData,
+        };
+
+        CacheManager.set(cacheKey, data);
+        logger.info('API', 'Translation info cached successfully');
+
+        return {
+          success: true,
+          data,
+        };
+      }, 'Get Translation Info', 3);
+
+      return result;
     } catch (error: any) {
-      logger.error('API', 'Error fetching translation info', {
-        error: error.message,
-      });
+      logger.error('API', 'Error fetching translation info after retries:', error);
       return {
         success: false,
-        error: error.message || 'Failed to get translation info',
+        error: getUserFriendlyErrorMessage(error),
       };
     }
   }
@@ -428,77 +460,90 @@ export class OpenSubtitlesAPI {
     options: TranscriptionOptions
   ): Promise<APIResponse> {
     try {
-      const formData = new FormData();
-      
-      if (typeof audioFile === 'string') {
-        // Check if it's an extracted/converted audio file (temporary file)
-        if (audioFile.includes('_converted.mp3') || audioFile.includes('_converted.wav')) {
-          // Use the audio file reader for extracted/converted files
-          const fileData = await window.electronAPI.readAudioFile(audioFile);
-          const buffer = new Uint8Array(fileData.buffer);
-          formData.append('file', new Blob([buffer]), fileData.fileName);
-        } else {
-          // Use the regular file reader for original files
-          const fileData = await window.electronAPI.readFile(audioFile);
-          const buffer = new Uint8Array(fileData.buffer);
-          formData.append('file', new Blob([buffer]), fileData.fileName);
-        }
-      } else {
-        formData.append('file', audioFile);
-      }
-      
-      formData.append('language', options.language);
-      formData.append('api', options.api);
-      
-      if (options.returnContent) {
-        formData.append('return_content', 'true');
-      }
-
-      const headers: { [key: string]: string } = {
-        'Api-Key': this.apiKey || '',
-        'User-Agent': getUserAgent(),
-      };
-      
-      if (this.token) {
-        headers['Authorization'] = `Bearer ${this.token}`;
-      }
-      
-      // DO NOT set Content-Type for FormData - let browser set it automatically with boundary
-      
-      logger.info('API', 'Sending transcription request:', {
-        url: this.getAIUrl('/transcribe'),
-        headers: headers,
-        language: options.language,
+      logger.info('API', 'Initiating transcription', {
+        fileType: typeof audioFile,
+        fileName: typeof audioFile === 'string' ? audioFile.split('/').pop() : audioFile.name,
         api: options.api,
-        returnContent: options.returnContent
+        language: options.language
       });
+      return await apiRequestWithRetry(async () => {
+        const formData = new FormData();
 
-      const response = await fetch(this.getAIUrl('/transcribe'), {
-        method: 'POST',
-        headers,
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        logger.error('API', 'Transcription request failed:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorText: errorText,
-          headers: Object.fromEntries(response.headers.entries())
-        });
-        
-        if (response.status === 401 || response.status === 403) {
-          await this.handleAuthError();
+        if (typeof audioFile === 'string') {
+          // Check if it's an extracted/converted audio file (temporary file)
+          if (audioFile.includes('_converted.mp3') || audioFile.includes('_converted.wav')) {
+            // Use the audio file reader for extracted/converted files
+            const fileData = await window.electronAPI.readAudioFile(audioFile);
+            const buffer = new Uint8Array(fileData.buffer);
+            formData.append('file', new Blob([buffer]), fileData.fileName);
+          } else {
+            // Use the regular file reader for original files
+            const fileData = await window.electronAPI.readFile(audioFile);
+            const buffer = new Uint8Array(fileData.buffer);
+            formData.append('file', new Blob([buffer]), fileData.fileName);
+          }
+        } else {
+          formData.append('file', audioFile);
         }
-        throw new Error(`Request failed: ${response.status} ${response.statusText} - ${errorText}`);
-      }
 
-      return await response.json();
+        formData.append('language', options.language);
+        formData.append('api', options.api);
+
+        if (options.returnContent) {
+          formData.append('return_content', 'true');
+        }
+
+        const headers: { [key: string]: string } = {
+          'Api-Key': this.apiKey || '',
+          'User-Agent': getUserAgent(),
+        };
+
+        if (this.token) {
+          headers['Authorization'] = `Bearer ${this.token}`;
+        }
+
+        // DO NOT set Content-Type for FormData - let browser set it automatically with boundary
+
+        logger.info('API', 'Sending transcription request:', {
+          url: this.getAIUrl('/transcribe'),
+          headers: headers,
+          language: options.language,
+          api: options.api,
+          returnContent: options.returnContent
+        });
+
+        const response = await fetch(this.getAIUrl('/transcribe'), {
+          method: 'POST',
+          headers,
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          logger.error('API', 'Transcription request failed:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorText: errorText,
+            headers: Object.fromEntries(response.headers.entries())
+          });
+
+          if (response.status === 401 || response.status === 403) {
+            await this.handleAuthError();
+          }
+
+          // Create error with status for better categorization
+          const error = new Error(`Request failed: ${response.status} ${response.statusText} - ${errorText}`);
+          (error as any).status = response.status;
+          (error as any).responseText = errorText;
+          throw error;
+        }
+
+        return await response.json();
+      }, 'Initiate Transcription', 3);
     } catch (error: any) {
       return {
         status: 'ERROR',
-        errors: [error.message || 'Transcription initiation failed'],
+        errors: [getUserFriendlyErrorMessage(error)],
       };
     }
   }
@@ -508,58 +553,73 @@ export class OpenSubtitlesAPI {
     options: TranslationOptions
   ): Promise<APIResponse> {
     try {
-      const formData = new FormData();
-      
-      if (typeof subtitleFile === 'string') {
-        const fileData = await window.electronAPI.readFile(subtitleFile);
-        const buffer = new Uint8Array(fileData.buffer);
-        formData.append('file', new Blob([buffer]), fileData.fileName);
-      } else {
-        formData.append('file', subtitleFile);
-      }
-      
-      formData.append('translate_from', options.translateFrom);
-      formData.append('translate_to', options.translateTo);
-      formData.append('api', options.api);
-      
-      if (options.returnContent) {
-        formData.append('return_content', 'true');
-      }
-
-      const headers = {
-        'Accept': 'application/json',
-        'Api-Key': this.apiKey || '',
-        'User-Agent': getUserAgent(),
-      };
-      
-      if (this.token) {
-        headers['Authorization'] = `Bearer ${this.token}`;
-      }
-
-      const response = await fetch(this.getAIUrl('/translate'), {
-        method: 'POST',
-        headers,
-        body: formData,
+      logger.info('API', 'Initiating translation', {
+        fileType: typeof subtitleFile,
+        fileName: typeof subtitleFile === 'string' ? subtitleFile.split('/').pop() : subtitleFile.name,
+        api: options.api,
+        sourceLanguage: options.source_language,
+        targetLanguage: options.target_language
       });
+      return await apiRequestWithRetry(async () => {
+        const formData = new FormData();
 
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          await this.handleAuthError();
+        if (typeof subtitleFile === 'string') {
+          const fileData = await window.electronAPI.readFile(subtitleFile);
+          const buffer = new Uint8Array(fileData.buffer);
+          formData.append('file', new Blob([buffer]), fileData.fileName);
+        } else {
+          formData.append('file', subtitleFile);
         }
-        throw new Error(`Request failed: ${response.status} ${response.statusText}`);
-      }
 
-      return await response.json();
+        formData.append('translate_from', options.translateFrom);
+        formData.append('translate_to', options.translateTo);
+        formData.append('api', options.api);
+
+        if (options.returnContent) {
+          formData.append('return_content', 'true');
+        }
+
+        const headers = {
+          'Accept': 'application/json',
+          'Api-Key': this.apiKey || '',
+          'User-Agent': getUserAgent(),
+        };
+
+        if (this.token) {
+          headers['Authorization'] = `Bearer ${this.token}`;
+        }
+
+        const response = await fetch(this.getAIUrl('/translate'), {
+          method: 'POST',
+          headers,
+          body: formData,
+        });
+
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            await this.handleAuthError();
+          }
+
+          // Create error with status for better categorization
+          const error = new Error(`Request failed: ${response.status} ${response.statusText}`);
+          (error as any).status = response.status;
+          (error as any).responseText = await response.text().catch(() => '');
+          throw error;
+        }
+
+        return await response.json();
+      }, 'Initiate Translation', 3);
     } catch (error: any) {
       return {
         status: 'ERROR',
-        errors: [error.message || 'Translation initiation failed'],
+        errors: [getUserFriendlyErrorMessage(error)],
       };
     }
   }
 
   async checkTranscriptionStatus(correlationId: string): Promise<APIResponse<CompletedTaskData>> {
     try {
+      logger.info('API', 'Checking transcription status', { correlationId });
       return await apiRequestWithRetry(async () => {
         const headers = {
           'Accept': 'application/json',
@@ -595,6 +655,7 @@ export class OpenSubtitlesAPI {
 
   async checkTranslationStatus(correlationId: string): Promise<APIResponse<CompletedTaskData>> {
     try {
+      logger.info('API', 'Checking translation status', { correlationId });
       return await apiRequestWithRetry(async () => {
         const headers = {
           'Accept': 'application/json',
@@ -630,95 +691,116 @@ export class OpenSubtitlesAPI {
 
   async detectLanguage(file: File | string, duration?: number): Promise<APIResponse<LanguageDetectionResult>> {
     try {
-      const formData = new FormData();
-      
-      // Follow the exact pattern from detect_Language_initial.sh: --form "file=@$FILE"
-      if (typeof file === 'string') {
-        const fileData = await window.electronAPI.readFile(file);
-        const buffer = new Uint8Array(fileData.buffer);
-        formData.append('file', new Blob([buffer]), fileData.fileName);
-      } else {
-        formData.append('file', file);
-      }
+      return await apiRequestWithRetry(async () => {
+        const formData = new FormData();
 
-      // Add duration parameter if provided
-      if (duration) {
-        formData.append('duration', duration.toString());
-      }
+        // Follow the exact pattern from detect_Language_initial.sh: --form "file=@$FILE"
+        if (typeof file === 'string') {
+          const fileData = await window.electronAPI.readFile(file);
+          const buffer = new Uint8Array(fileData.buffer);
+          formData.append('file', new Blob([buffer]), fileData.fileName);
+        } else {
+          formData.append('file', file);
+        }
 
-      const headers = {
-        'Api-Key': this.apiKey || '',
-        'User-Agent': getUserAgent(),
-      };
-      
-      if (this.token) {
-        headers['Authorization'] = `Bearer ${this.token}`;
-      }
+        // Add duration parameter if provided
+        if (duration) {
+          formData.append('duration', duration.toString());
+        }
 
-      logger.info('API', 'Initiating language detection', {
-        fileType: typeof file,
-        fileName: typeof file === 'string' ? file : file.name
-      });
+        const headers = {
+          'Api-Key': this.apiKey || '',
+          'User-Agent': getUserAgent(),
+        };
 
-      const response = await fetch(this.getAIUrl('/detect_language'), {
-        method: 'POST',
-        headers,
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        const errorBody = await response.text();
-        logger.error('API', 'Language detection failed', { 
-          status: response.status, 
-          statusText: response.statusText,
-          body: errorBody 
+        if (this.token) {
+          headers['Authorization'] = `Bearer ${this.token}`;
+        }
+
+        logger.info('API', 'Initiating language detection', {
+          fileType: typeof file,
+          fileName: typeof file === 'string' ? file : file.name
         });
-        throw new Error(`Request failed: ${response.status} ${response.statusText} - ${errorBody}`);
-      }
 
-      const data = await response.json();
-      logger.info('API', 'Language detection response received', data);
-      return data;
+        const response = await fetch(this.getAIUrl('/detect_language'), {
+          method: 'POST',
+          headers,
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorBody = await response.text();
+          logger.error('API', 'Language detection failed', {
+            status: response.status,
+            statusText: response.statusText,
+            body: errorBody
+          });
+
+          if (response.status === 401 || response.status === 403) {
+            await this.handleAuthError();
+          }
+
+          // Create error with status for better categorization
+          const error = new Error(`Request failed: ${response.status} ${response.statusText} - ${errorBody}`);
+          (error as any).status = response.status;
+          (error as any).responseText = errorBody;
+          throw error;
+        }
+
+        const data = await response.json();
+        logger.info('API', 'Language detection response received', data);
+        return data;
+      }, 'Detect Language', 3);
     } catch (error: any) {
-      logger.error('API', 'Language detection error', error);
+      logger.error('API', 'Language detection error after retries:', error);
       return {
         status: 'ERROR',
-        errors: [error.message || 'Failed to detect language'],
+        errors: [getUserFriendlyErrorMessage(error)],
       };
     }
   }
 
   async checkLanguageDetectionStatus(correlationId: string): Promise<APIResponse<LanguageDetectionResult>> {
     try {
-      const headers = {
-        'Accept': 'application/json',
-        'Api-Key': this.apiKey || '',
-        'Content-Type': 'application/json',
-        'User-Agent': getUserAgent(),
-      };
-      
-      if (this.token) {
-        headers['Authorization'] = `Bearer ${this.token}`;
-      }
+      return await apiRequestWithRetry(async () => {
+        const headers = {
+          'Accept': 'application/json',
+          'Api-Key': this.apiKey || '',
+          'Content-Type': 'application/json',
+          'User-Agent': getUserAgent(),
+        };
 
-      logger.info('API', `Checking language detection status for correlation ID: ${correlationId}`);
+        if (this.token) {
+          headers['Authorization'] = `Bearer ${this.token}`;
+        }
 
-      const response = await fetch(this.getAIUrl(`/detectLanguage/${correlationId}`), {
-        method: 'POST',
-        headers,
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Request failed: ${response.status} ${response.statusText}`);
-      }
+        logger.info('API', `Checking language detection status for correlation ID: ${correlationId}`);
 
-      const data = await response.json();
-      logger.info('API', 'Language detection status response', data);
-      return data;
+        const response = await fetch(this.getAIUrl(`/detectLanguage/${correlationId}`), {
+          method: 'POST',
+          headers,
+        });
+
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            await this.handleAuthError();
+          }
+
+          // Create error with status for better categorization
+          const error = new Error(`Request failed: ${response.status} ${response.statusText}`);
+          (error as any).status = response.status;
+          (error as any).responseText = await response.text().catch(() => '');
+          throw error;
+        }
+
+        const data = await response.json();
+        logger.info('API', 'Language detection status response', data);
+        return data;
+      }, `Check Language Detection Status (${correlationId})`);
     } catch (error: any) {
       return {
         status: 'ERROR',
-        errors: [error.message || 'Failed to check language detection status'],
+        errors: [getUserFriendlyErrorMessage(error)],
       };
     }
   }
@@ -732,39 +814,51 @@ export class OpenSubtitlesAPI {
     }
 
     try {
-      const headers = {
-        'Accept': 'application/json',
-        'Api-Key': this.apiKey || '',
-        'Content-Type': 'application/json',
-        'User-Agent': getUserAgent(),
-      };
-      
-      if (this.token) {
-        headers['Authorization'] = `Bearer ${this.token}`;
-      }
-      
-      const response = await fetch(this.getAIUrl('/info/transcription_languages'), {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ api: apiId }),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Request failed: ${response.status} ${response.statusText}`);
-      }
-      
-      const data: LanguageInfo[] = await response.json();
-      
-      CacheManager.set(cacheKey, data);
+      const result = await apiRequestWithRetry(async () => {
+        const headers = {
+          'Accept': 'application/json',
+          'Api-Key': this.apiKey || '',
+          'Content-Type': 'application/json',
+          'User-Agent': getUserAgent(),
+        };
 
-      return {
-        success: true,
-        data,
-      };
+        if (this.token) {
+          headers['Authorization'] = `Bearer ${this.token}`;
+        }
+
+        const response = await fetch(this.getAIUrl('/info/transcription_languages'), {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ api: apiId }),
+        });
+
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            await this.handleAuthError();
+          }
+
+          // Create error with status for better categorization
+          const error = new Error(`Request failed: ${response.status} ${response.statusText}`);
+          (error as any).status = response.status;
+          (error as any).responseText = await response.text().catch(() => '');
+          throw error;
+        }
+
+        const data: LanguageInfo[] = await response.json();
+
+        CacheManager.set(cacheKey, data);
+
+        return {
+          success: true,
+          data,
+        };
+      }, `Get Transcription Languages for API (${apiId})`, 3);
+
+      return result;
     } catch (error: any) {
       return {
         success: false,
-        error: error.message || 'Failed to get transcription languages',
+        error: getUserFriendlyErrorMessage(error),
       };
     }
   }
@@ -778,68 +872,77 @@ export class OpenSubtitlesAPI {
     }
 
     try {
-      const headers = {
-        'Accept': 'application/json',
-        'Api-Key': this.apiKey || '',
-        'Content-Type': 'application/json',
-        'User-Agent': getUserAgent(),
-      };
-      
-      if (this.token) {
-        headers['Authorization'] = `Bearer ${this.token}`;
-      }
-      
-      logger.info('API', `Fetching translation languages for API: ${apiId}`);
-      
-      const response = await fetch(this.getAIUrl('/info/translation_languages'), {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ api: apiId }),
-      });
-      
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          await this.handleAuthError();
-        }
-        throw new Error(`Request failed: ${response.status} ${response.statusText}`);
-      }
-      
-      const responseData = await response.json();
-      logger.info('API', `Translation languages response for ${apiId}:`, responseData);
-      
-      let data: LanguageInfo[] = [];
-      
-      // Handle different response structures
-      if (responseData.data) {
-        // If response has a data property, check if it's grouped by API or a direct array
-        if (typeof responseData.data === 'object' && !Array.isArray(responseData.data)) {
-          // It's grouped by API, extract the specific API's languages
-          data = responseData.data[apiId] || [];
-        } else if (Array.isArray(responseData.data)) {
-          // It's a direct array
-          data = responseData.data;
-        }
-      } else if (typeof responseData === 'object' && !Array.isArray(responseData)) {
-        // Response is grouped by API at the root level
-        data = responseData[apiId] || [];
-      } else if (Array.isArray(responseData)) {
-        // Response is a direct array
-        data = responseData;
-      }
-      
-      logger.info('API', `Processed ${data.length} languages for API ${apiId}`);
-      
-      CacheManager.set(cacheKey, data);
+      const result = await apiRequestWithRetry(async () => {
+        const headers = {
+          'Accept': 'application/json',
+          'Api-Key': this.apiKey || '',
+          'Content-Type': 'application/json',
+          'User-Agent': getUserAgent(),
+        };
 
-      return {
-        success: true,
-        data,
-      };
+        if (this.token) {
+          headers['Authorization'] = `Bearer ${this.token}`;
+        }
+
+        logger.info('API', `Fetching translation languages for API: ${apiId}`);
+
+        const response = await fetch(this.getAIUrl('/info/translation_languages'), {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ api: apiId }),
+        });
+
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            await this.handleAuthError();
+          }
+
+          // Create error with status for better categorization
+          const error = new Error(`Request failed: ${response.status} ${response.statusText}`);
+          (error as any).status = response.status;
+          (error as any).responseText = await response.text().catch(() => '');
+          throw error;
+        }
+
+        const responseData = await response.json();
+        logger.info('API', `Translation languages response for ${apiId}:`, responseData);
+
+        let data: LanguageInfo[] = [];
+
+        // Handle different response structures
+        if (responseData.data) {
+          // If response has a data property, check if it's grouped by API or a direct array
+          if (typeof responseData.data === 'object' && !Array.isArray(responseData.data)) {
+            // It's grouped by API, extract the specific API's languages
+            data = responseData.data[apiId] || [];
+          } else if (Array.isArray(responseData.data)) {
+            // It's a direct array
+            data = responseData.data;
+          }
+        } else if (typeof responseData === 'object' && !Array.isArray(responseData)) {
+          // Response is grouped by API at the root level
+          data = responseData[apiId] || [];
+        } else if (Array.isArray(responseData)) {
+          // Response is a direct array
+          data = responseData;
+        }
+
+        logger.info('API', `Processed ${data.length} languages for API ${apiId}`);
+
+        CacheManager.set(cacheKey, data);
+
+        return {
+          success: true,
+          data,
+        };
+      }, `Get Translation Languages for API (${apiId})`, 3);
+
+      return result;
     } catch (error: any) {
-      logger.error('API', `Error fetching translation languages for ${apiId}:`, error);
+      logger.error('API', `Error fetching translation languages for ${apiId} after retries:`, error);
       return {
         success: false,
-        error: error.message || 'Failed to get translation languages',
+        error: getUserFriendlyErrorMessage(error),
       };
     }
   }
@@ -853,78 +956,95 @@ export class OpenSubtitlesAPI {
     }
 
     try {
-      // For now, we'll get all APIs and filter client-side
-      // In the future, the API might support filtering by language pair
-      const headers = {
-        'Accept': 'application/json',
-        'Api-Key': this.apiKey || '',
-        'Content-Type': 'application/json',
-        'User-Agent': getUserAgent(),
-      };
-      
-      if (this.token) {
-        headers['Authorization'] = `Bearer ${this.token}`;
-      }
-      
-      const response = await fetch(this.getAIUrl('/info/translation_apis'), {
-        method: 'POST',
-        headers,
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Request failed: ${response.status} ${response.statusText}`);
-      }
-      
-      const responseData = await response.json();
-      const allApis: string[] = responseData.data || responseData;
-      
-      // TODO: Implement proper filtering based on language support
-      // For now, return all APIs (this should be improved with actual API filtering)
-      CacheManager.set(cacheKey, allApis);
+      const result = await apiRequestWithRetry(async () => {
+        // For now, we'll get all APIs and filter client-side
+        // In the future, the API might support filtering by language pair
+        const headers = {
+          'Accept': 'application/json',
+          'Api-Key': this.apiKey || '',
+          'Content-Type': 'application/json',
+          'User-Agent': getUserAgent(),
+        };
 
-      return {
-        success: true,
-        data: allApis,
-      };
+        if (this.token) {
+          headers['Authorization'] = `Bearer ${this.token}`;
+        }
+
+        const response = await fetch(this.getAIUrl('/info/translation_apis'), {
+          method: 'POST',
+          headers,
+        });
+
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            await this.handleAuthError();
+          }
+
+          // Create error with status for better categorization
+          const error = new Error(`Request failed: ${response.status} ${response.statusText}`);
+          (error as any).status = response.status;
+          (error as any).responseText = await response.text().catch(() => '');
+          throw error;
+        }
+
+        const responseData = await response.json();
+        const allApis: string[] = responseData.data || responseData;
+
+        // TODO: Implement proper filtering based on language support
+        // For now, return all APIs (this should be improved with actual API filtering)
+        CacheManager.set(cacheKey, allApis);
+
+        return {
+          success: true,
+          data: allApis,
+        };
+      }, `Get Translation APIs for Language Pair (${sourceLanguage}-${targetLanguage})`, 3);
+
+      return result;
     } catch (error: any) {
       return {
         success: false,
-        error: error.message || 'Failed to get translation APIs',
+        error: getUserFriendlyErrorMessage(error),
       };
     }
   }
 
   async downloadFile(url: string): Promise<{ success: boolean; content?: string; error?: string }> {
     try {
-      const headers = {
-        'Accept': 'application/json',
-        'Api-Key': this.apiKey || '',
-        'User-Agent': getUserAgent(),
-      };
-      
-      if (this.token) {
-        headers['Authorization'] = `Bearer ${this.token}`;
-      }
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers,
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Request failed: ${response.status} ${response.statusText}`);
-      }
-      
-      const content = await response.text();
-      
+      const result = await apiRequestWithRetry(async () => {
+        const headers = {
+          'Accept': 'application/json',
+          'Api-Key': this.apiKey || '',
+          'User-Agent': getUserAgent(),
+        };
+
+        if (this.token) {
+          headers['Authorization'] = `Bearer ${this.token}`;
+        }
+
+        const response = await fetch(url, {
+          method: 'GET',
+          headers,
+        });
+
+        if (!response.ok) {
+          const error = new Error(`Request failed: ${response.status} ${response.statusText}`);
+          (error as any).status = response.status;
+          (error as any).responseText = await response.text().catch(() => '');
+          throw error;
+        }
+
+        return await response.text();
+      }, 'Download File', 3);
+
       return {
         success: true,
-        content,
+        content: result,
       };
     } catch (error: any) {
       return {
         success: false,
-        error: error.message || 'Download failed',
+        error: getUserFriendlyErrorMessage(error),
       };
     }
   }
@@ -1051,6 +1171,7 @@ export class OpenSubtitlesAPI {
 
   async getCreditPackages(email?: string): Promise<{ success: boolean; data?: CreditPackage[]; error?: string }> {
     try {
+      logger.info('API', 'Fetching credit packages');
       const result = await apiRequestWithRetry(async () => {
         const headers = {
           'Accept': 'application/json',
