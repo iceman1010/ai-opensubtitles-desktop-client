@@ -46,14 +46,14 @@ function App() {
   const [splashOpacity, setSplashOpacity] = useState(1);
 
   useEffect(() => {
-    // Start fade out after 3 seconds, then hide completely after fade finishes
+    // Start fade out after 4 seconds, then hide completely after fade finishes
     const fadeTimer = setTimeout(() => {
       setSplashOpacity(0);
-    }, 3000);
+    }, 4000);
 
     const hideTimer = setTimeout(() => {
       setShowSplashScreen(false);
-    }, 4000); // 3s display + 1s fade = 4s total
+    }, 5000); // 4s display + 1s fade = 5s total
 
     loadConfig();
 
@@ -135,7 +135,7 @@ function App() {
           left: 0,
           width: '100vw',
           height: '100vh',
-          backgroundColor: '#ffffff',
+          backgroundColor: config?.darkMode ? '#1a1a1a' : '#ffffff',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -144,9 +144,53 @@ function App() {
           opacity: splashOpacity,
           transition: 'opacity 1000ms ease-out'
         }}>
+          <style>
+            {`
+              @keyframes splashBounceGlow {
+                0% {
+                  transform: translateY(-100px) scale(0.3);
+                  opacity: 0;
+                  box-shadow: 0 0 20px rgba(74, 144, 226, 0.3);
+                }
+                50% {
+                  transform: translateY(10px) scale(1.1);
+                  opacity: 0.8;
+                  box-shadow: 0 0 30px rgba(74, 144, 226, 0.5);
+                }
+                70% {
+                  transform: translateY(-5px) scale(0.95);
+                  opacity: 1;
+                  box-shadow: 0 0 25px rgba(74, 144, 226, 0.4);
+                }
+                100% {
+                  transform: translateY(0) scale(1);
+                  opacity: 1;
+                  box-shadow: 0 0 20px rgba(74, 144, 226, 0.3);
+                }
+              }
+
+              @keyframes splashGlowPulse {
+                0% {
+                  box-shadow: 0 0 20px rgba(74, 144, 226, 0.3);
+                }
+                50% {
+                  box-shadow: 0 0 30px rgba(74, 144, 226, 0.6);
+                }
+                100% {
+                  box-shadow: 0 0 20px rgba(74, 144, 226, 0.3);
+                }
+              }
+
+              .splash-logo {
+                animation: splashBounceGlow 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards,
+                           splashGlowPulse 2s ease-in-out infinite 1.2s;
+              }
+            `}
+          </style>
           <img
             src={logoImage}
             alt="Logo"
+            className="splash-logo"
             style={{
               width: '120px',
               height: '120px',
@@ -155,8 +199,10 @@ function App() {
             }}
           />
           <div style={{
+            position: 'absolute',
+            bottom: '10px',
             fontSize: '11px',
-            color: '#6c757d',
+            color: config?.darkMode ? '#aaa' : '#6c757d',
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             fontWeight: '300'
           }}>
@@ -561,88 +607,93 @@ function AppContent({
 
       <div className="main-content">
         {currentScreen === 'login' && (
-          <Login 
-            onLogin={handleLogin} 
+          <Login
+            onLogin={handleLogin}
             setAppProcessing={setAppProcessing}
           />
         )}
-        <div style={{ display: currentScreen === 'main' ? 'block' : 'none' }}>
-          {config && (
-            <MainScreen 
-              config={config} 
-              setAppProcessing={setAppProcessing}
-              onNavigateToCredits={() => setCurrentScreen('credits')}
-              onNavigateToBatch={(filePaths?: string[]) => {
-                if (filePaths) {
-                  setPendingBatchFiles(filePaths);
-                }
-                setCurrentScreen('batch');
-              }}
-              pendingExternalFile={pendingMainFile}
-              onExternalFileProcessed={() => setPendingMainFile(null)}
-              onCreditsUpdate={handleCreditsUpdate}
-            />
-          )}
-        </div>
-        <div style={{ display: currentScreen === 'batch' ? 'block' : 'none' }}>
-          {config && (
-            <BatchScreen 
-              config={config} 
-              setAppProcessing={setAppProcessing}
-              pendingFiles={pendingBatchFiles}
-              onFilesPending={() => setPendingBatchFiles([])}
-            />
-          )}
-        </div>
-        <div style={{ display: currentScreen === 'info' ? 'block' : 'none' }}>
-          {config && (
-            <Info 
-              config={config} 
-              setAppProcessing={setAppProcessing}
-            />
-          )}
-        </div>
-        <div style={{ display: currentScreen === 'credits' ? 'block' : 'none' }}>
-          {config && (
-            <Credits 
-              config={config} 
-              setAppProcessing={setAppProcessing}
-            />
-          )}
-        </div>
-        <div style={{ display: currentScreen === 'preferences' ? 'block' : 'none' }}>
-          {config && (
-            <Preferences
-              config={config}
-              onSave={handlePreferencesSave}
-              setAppProcessing={setAppProcessing}
-            />
-          )}
-        </div>
-        <div style={{ display: currentScreen === 'update' ? 'block' : 'none' }}>
+        {currentScreen === 'main' && config && (
+          <MainScreen
+            config={config}
+            setAppProcessing={setAppProcessing}
+            onNavigateToCredits={() => setCurrentScreen('credits')}
+            onNavigateToBatch={(filePaths?: string[]) => {
+              if (filePaths) {
+                setPendingBatchFiles(filePaths);
+              }
+              setCurrentScreen('batch');
+            }}
+            pendingExternalFile={pendingMainFile}
+            onExternalFileProcessed={() => setPendingMainFile(null)}
+            onCreditsUpdate={handleCreditsUpdate}
+          />
+        )}
+        {currentScreen === 'batch' && config && (
+          <BatchScreen
+            config={config}
+            setAppProcessing={setAppProcessing}
+            pendingFiles={pendingBatchFiles}
+            onFilesPending={() => setPendingBatchFiles([])}
+            isVisible={true}
+          />
+        )}
+        {currentScreen === 'info' && config && (
+          <Info
+            config={config}
+            setAppProcessing={setAppProcessing}
+          />
+        )}
+        {currentScreen === 'credits' && config && (
+          <Credits
+            config={config}
+            setAppProcessing={setAppProcessing}
+            isVisible={true}
+          />
+        )}
+        {currentScreen === 'preferences' && config && (
+          <Preferences
+            config={config}
+            onSave={handlePreferencesSave}
+            setAppProcessing={setAppProcessing}
+          />
+        )}
+        {currentScreen === 'update' && (
           <Update />
-        </div>
-        <div style={{ display: currentScreen === 'help' ? 'block' : 'none' }}>
+        )}
+        {currentScreen === 'help' && (
           <Help />
-        </div>
+        )}
       </div>
 
       {/* Floating Credits Display */}
       {credits && currentScreen !== 'login' && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          background: 'var(--bg-secondary)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '8px',
-          padding: '8px 12px',
-          fontSize: '14px',
-          fontWeight: '500',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          zIndex: 1000,
-          color: 'var(--text-primary)'
-        }}>
+        <div
+          onClick={() => setCurrentScreen('credits')}
+          style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '8px',
+            padding: '8px 12px',
+            fontSize: '14px',
+            fontWeight: '500',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            zIndex: 1000,
+            color: 'var(--text-primary)',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+          }}
+        >
           <i className="fas fa-coins" style={{color: 'var(--text-primary)', marginRight: '6px'}}></i>Credits: <strong>{credits.remaining}</strong>
         </div>
       )}

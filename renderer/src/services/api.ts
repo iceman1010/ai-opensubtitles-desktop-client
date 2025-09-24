@@ -180,10 +180,6 @@ export class OpenSubtitlesAPI {
     }
   }
 
-  private async handleAuthError(): Promise<void> {
-    logger.warn('API', 'Authentication error detected, clearing cached token');
-    await this.clearCachedToken();
-  }
 
   async login(username: string, password: string): Promise<{ success: boolean; token?: string; error?: string }> {
     // Validate required parameters before attempting login
@@ -317,18 +313,12 @@ export class OpenSubtitlesAPI {
         ]);
 
         if (!apisResponse.ok) {
-          if (apisResponse.status === 401 || apisResponse.status === 403) {
-            await this.handleAuthError();
-          }
           const error = new Error(`APIs request failed: ${apisResponse.status} ${apisResponse.statusText}`);
           (error as any).status = apisResponse.status;
           (error as any).responseText = await apisResponse.text().catch(() => '');
           throw error;
         }
         if (!languagesResponse.ok) {
-          if (languagesResponse.status === 401 || languagesResponse.status === 403) {
-            await this.handleAuthError();
-          }
           const error = new Error(`Languages request failed: ${languagesResponse.status} ${languagesResponse.statusText}`);
           (error as any).status = languagesResponse.status;
           (error as any).responseText = await languagesResponse.text().catch(() => '');
@@ -407,18 +397,12 @@ export class OpenSubtitlesAPI {
         ]);
 
         if (!apisResponse.ok) {
-          if (apisResponse.status === 401 || apisResponse.status === 403) {
-            await this.handleAuthError();
-          }
           const error = new Error(`APIs request failed: ${apisResponse.status} ${apisResponse.statusText}`);
           (error as any).status = apisResponse.status;
           (error as any).responseText = await apisResponse.text().catch(() => '');
           throw error;
         }
         if (!languagesResponse.ok) {
-          if (languagesResponse.status === 401 || languagesResponse.status === 403) {
-            await this.handleAuthError();
-          }
           const error = new Error(`Languages request failed: ${languagesResponse.status} ${languagesResponse.statusText}`);
           (error as any).status = languagesResponse.status;
           (error as any).responseText = await languagesResponse.text().catch(() => '');
@@ -527,9 +511,6 @@ export class OpenSubtitlesAPI {
             headers: Object.fromEntries(response.headers.entries())
           });
 
-          if (response.status === 401 || response.status === 403) {
-            await this.handleAuthError();
-          }
 
           // Create error with status for better categorization
           const error = new Error(`Request failed: ${response.status} ${response.statusText} - ${errorText}`);
@@ -596,9 +577,6 @@ export class OpenSubtitlesAPI {
         });
 
         if (!response.ok) {
-          if (response.status === 401 || response.status === 403) {
-            await this.handleAuthError();
-          }
 
           // Create error with status for better categorization
           const error = new Error(`Request failed: ${response.status} ${response.statusText}`);
@@ -736,9 +714,6 @@ export class OpenSubtitlesAPI {
             body: errorBody
           });
 
-          if (response.status === 401 || response.status === 403) {
-            await this.handleAuthError();
-          }
 
           // Create error with status for better categorization
           const error = new Error(`Request failed: ${response.status} ${response.statusText} - ${errorBody}`);
@@ -782,9 +757,6 @@ export class OpenSubtitlesAPI {
         });
 
         if (!response.ok) {
-          if (response.status === 401 || response.status === 403) {
-            await this.handleAuthError();
-          }
 
           // Create error with status for better categorization
           const error = new Error(`Request failed: ${response.status} ${response.statusText}`);
@@ -833,9 +805,6 @@ export class OpenSubtitlesAPI {
         });
 
         if (!response.ok) {
-          if (response.status === 401 || response.status === 403) {
-            await this.handleAuthError();
-          }
 
           // Create error with status for better categorization
           const error = new Error(`Request failed: ${response.status} ${response.statusText}`);
@@ -893,9 +862,6 @@ export class OpenSubtitlesAPI {
         });
 
         if (!response.ok) {
-          if (response.status === 401 || response.status === 403) {
-            await this.handleAuthError();
-          }
 
           // Create error with status for better categorization
           const error = new Error(`Request failed: ${response.status} ${response.statusText}`);
@@ -976,9 +942,6 @@ export class OpenSubtitlesAPI {
         });
 
         if (!response.ok) {
-          if (response.status === 401 || response.status === 403) {
-            await this.handleAuthError();
-          }
 
           // Create error with status for better categorization
           const error = new Error(`Request failed: ${response.status} ${response.statusText}`);
@@ -1069,9 +1032,6 @@ export class OpenSubtitlesAPI {
         });
         
         if (!response.ok) {
-          if (response.status === 401 || response.status === 403) {
-            await this.handleAuthError();
-          }
           
           // Create error with status for better categorization
           const error = new Error(`Request failed: ${response.status} ${response.statusText}`);
@@ -1135,9 +1095,6 @@ export class OpenSubtitlesAPI {
         });
         
         if (!response.ok) {
-          if (response.status === 401 || response.status === 403) {
-            await this.handleAuthError();
-          }
           
           const error = new Error(`Request failed: ${response.status} ${response.statusText}`);
           (error as any).status = response.status;
@@ -1170,6 +1127,14 @@ export class OpenSubtitlesAPI {
   }
 
   async getCreditPackages(email?: string): Promise<{ success: boolean; data?: CreditPackage[]; error?: string }> {
+    const cacheKey = `credit_packages_${email || 'default'}`;
+    const cached = CacheManager.get<CreditPackage[]>(cacheKey);
+
+    if (cached) {
+      logger.info('API', 'Using cached credit packages');
+      return { success: true, data: cached };
+    }
+
     try {
       logger.info('API', 'Fetching credit packages');
       const result = await apiRequestWithRetry(async () => {
@@ -1196,9 +1161,6 @@ export class OpenSubtitlesAPI {
         });
         
         if (!response.ok) {
-          if (response.status === 401 || response.status === 403) {
-            await this.handleAuthError();
-          }
           
           const error = new Error(`Request failed: ${response.status} ${response.statusText}`);
           (error as any).status = response.status;
@@ -1210,9 +1172,14 @@ export class OpenSubtitlesAPI {
         logger.info('API', 'Credit packages response:', responseData);
         
         if (responseData.data && Array.isArray(responseData.data)) {
+          const data = responseData.data;
+          // Cache the credit packages data
+          CacheManager.set(cacheKey, data);
+          logger.info('API', 'Credit packages cached successfully');
+
           return {
             success: true,
-            data: responseData.data,
+            data,
           };
         } else {
           throw new Error('Invalid response format - expected data array');

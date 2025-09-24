@@ -93,6 +93,8 @@ interface AppConfig {
   audio_language_detection_time?: number;
   autoLanguageDetection?: boolean;
   darkMode?: boolean;
+  pollingIntervalSeconds?: number;
+  pollingTimeoutSeconds?: number;
 }
 
 interface BatchScreenProps {
@@ -100,9 +102,10 @@ interface BatchScreenProps {
   setAppProcessing: (processing: boolean, task?: string) => void;
   pendingFiles?: string[];
   onFilesPending?: () => void;
+  isVisible?: boolean;
 }
 
-const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pendingFiles, onFilesPending }) => {
+const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pendingFiles, onFilesPending, isVisible = true }) => {
   const [queue, setQueue] = useState<BatchFile[]>([]);
   const detectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const detectionInProgressRef = useRef<Set<string>>(new Set());
@@ -165,6 +168,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
   
   const [availableTranslationLanguages, setAvailableTranslationLanguages] = useState<LanguageInfo[]>([]);
   const [isLoadingLanguages, setIsLoadingLanguages] = useState(false);
+  const [languagesLoaded, setLanguagesLoaded] = useState(false);
   
   const processingRef = useRef<boolean>(false);
   const shouldStopRef = useRef<boolean>(false);
@@ -201,22 +205,22 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
 
   // Authentication now handled by APIContext
 
-  // Initialize batch settings when API info is available from context
+  // Initialize batch settings when API info is available from context and screen is visible
   useEffect(() => {
-    if (contextTranscriptionInfo && contextTranscriptionInfo.apis.length > 0) {
+    if (isVisible && !languagesLoaded && contextTranscriptionInfo && contextTranscriptionInfo.apis.length > 0) {
       const defaultModel = contextTranscriptionInfo.apis[0];
       setBatchSettings(prev => ({ ...prev, transcriptionModel: defaultModel }));
       loadLanguagesForTranscriptionModel(defaultModel, contextTranscriptionInfo);
     }
-  }, [contextTranscriptionInfo]);
+  }, [contextTranscriptionInfo, isVisible, languagesLoaded]);
 
   useEffect(() => {
-    if (contextTranslationInfo && contextTranslationInfo.apis.length > 0) {
+    if (isVisible && !languagesLoaded && contextTranslationInfo && contextTranslationInfo.apis.length > 0) {
       const defaultModel = contextTranslationInfo.apis[0];
       setBatchSettings(prev => ({ ...prev, translationModel: defaultModel }));
       loadLanguagesForTranslationModel(defaultModel, contextTranslationInfo);
     }
-  }, [contextTranslationInfo]);
+  }, [contextTranslationInfo, isVisible, languagesLoaded]);
 
 
   const loadLanguagesForTranscriptionModel = async (modelId: string, transcriptionData?: TranscriptionInfo) => {
@@ -243,6 +247,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
       logger.error('BatchScreen', 'Exception loading transcription languages for model', error);
     } finally {
       setIsLoadingLanguages(false);
+      setLanguagesLoaded(true);
     }
   };
 
@@ -288,6 +293,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
       logger.error('BatchScreen', 'Exception loading translation languages for model', error);
     } finally {
       setIsLoadingLanguages(false);
+      setLanguagesLoaded(true);
     }
   };
 
@@ -455,26 +461,31 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
 
   // Poll for language detection completion (similar to MainScreen)
   const pollLanguageDetection = async (correlationId: string, fileId: string, tempAudioFile: string | null = null): Promise<DetectedLanguage | null> => {
-    const maxAttempts = 24; // 2 minutes with 5-second intervals
-    let attempts = 0;
+    const startTime = Date.now();
+    const pollingInterval = (config.pollingIntervalSeconds || 10) * 1000; // Convert to milliseconds
+    const timeoutMs = (config.pollingTimeoutSeconds || 7200) * 1000; // Default 2 hours
 
     return new Promise((resolve) => {
       const poll = async () => {
         try {
-          attempts++;
+          const elapsedMs = Date.now() - startTime;
+          const elapsedSeconds = Math.floor(elapsedMs / 1000);
+
           if (!isAuthenticated) {
             resolve(null);
             return;
           }
 
+          // Update status with elapsed time
+          setAppProcessing(true, `Language detection in progress... (${elapsedSeconds}s elapsed)`);
+
           const result = await checkLanguageDetectionStatus(correlationId);
-          logger.info('BatchScreen', `Polling attempt ${attempts} for correlation ${correlationId}:`, result);
-          setAppProcessing(true, `Language detection in progress... (attempt ${attempts}/${maxAttempts})`);
-          
+          logger.info('BatchScreen', `Polling for correlation ${correlationId} (${elapsedSeconds}s elapsed):`, result);
+
           if (result.status === 'COMPLETED' && result.data?.language) {
             logger.info('BatchScreen', `Language detection completed:`, result.data.language);
             setAppProcessing(true, `Language detected: ${result.data.language.name}`);
-            
+
             // Clean up temp audio file if it exists
             if (tempAudioFile) {
               try {
@@ -483,7 +494,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
                 logger.warn('BatchScreen', 'Failed to cleanup temp audio file after polling:', cleanupError);
               }
             }
-            
+
             logger.debug(3, 'BatchScreen', `🔍 pollLanguageDetection resolved with language for fileId: ${fileId}`);
             resolve(result.data.language);
           } else if (result.status === 'ERROR') {
@@ -500,33 +511,34 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
             resolve(null);
           } else if (result.status === 'TIMEOUT') {
             logger.error('BatchScreen', 'Language detection timed out');
-            setQueue(prev => prev.map(f => 
-              f.id === fileId ? { 
-                ...f, 
+            setQueue(prev => prev.map(f =>
+              f.id === fileId ? {
+                ...f,
                 status: 'pending' as const,
                 error: 'Language detection timed out'
               } : f
             ));
             resolve(null);
-          } else if (attempts >= maxAttempts) {
-            logger.error('BatchScreen', 'Language detection polling timeout after 2 minutes');
-            setQueue(prev => prev.map(f => 
-              f.id === fileId ? { 
-                ...f, 
+          } else if (elapsedMs >= timeoutMs) {
+            const timeoutMinutes = Math.floor(timeoutMs / 60000);
+            logger.error('BatchScreen', `Language detection polling timeout after ${timeoutMinutes} minutes`);
+            setQueue(prev => prev.map(f =>
+              f.id === fileId ? {
+                ...f,
                 status: 'pending' as const,
-                error: 'Language detection timed out after 2 minutes'
+                error: `Language detection timed out after ${timeoutMinutes} minutes`
               } : f
             ));
             resolve(null);
           } else {
             // Still processing, poll again
-            setTimeout(poll, 5000);
+            setTimeout(poll, pollingInterval);
           }
         } catch (error) {
           logger.error('BatchScreen', 'Language detection polling error:', error);
-          setQueue(prev => prev.map(f => 
-            f.id === fileId ? { 
-              ...f, 
+          setQueue(prev => prev.map(f =>
+            f.id === fileId ? {
+              ...f,
               status: 'pending' as const,
               error: `Language detection error: ${error instanceof Error ? error.message : 'Unknown error'}`
             } : f
@@ -1376,9 +1388,10 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
   };
 
   const pollForCompletion = async (correlationId: string, type: 'transcription' | 'translation', file: BatchFile): Promise<any> => {
-    const maxAttempts = 60; // 5 minutes with 5-second intervals
-    let attempts = 0;
-    
+    const startTime = Date.now();
+    const pollingInterval = (config.pollingIntervalSeconds || 10) * 1000; // Convert to milliseconds
+    const timeoutMs = (config.pollingTimeoutSeconds || 7200) * 1000; // Default 2 hours
+
     return new Promise((resolve, reject) => {
       const poll = async () => {
         if (shouldStopRef.current) {
@@ -1386,16 +1399,17 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
           return;
         }
 
-        attempts++;
-        
+        const elapsedMs = Date.now() - startTime;
+        const elapsedSeconds = Math.floor(elapsedMs / 1000);
+
         try {
-          const result = type === 'transcription' 
+          const result = type === 'transcription'
             ? await checkTranscriptionStatus(correlationId)
             : await checkTranslationStatus(correlationId);
-            
-          logger.info('BatchScreen', `${type} status check (attempt ${attempts}):`, result);
-          setAppProcessing(true, `${type.charAt(0).toUpperCase() + type.slice(1)} in progress... (attempt ${attempts}/${maxAttempts})`);
-          
+
+          logger.info('BatchScreen', `${type} status check (${elapsedSeconds}s elapsed):`, result);
+          setAppProcessing(true, `${type.charAt(0).toUpperCase() + type.slice(1)} in progress... (${elapsedSeconds}s elapsed)`);
+
           if (result.status === 'COMPLETED') {
             // Extract credits used from the completed result
             if (result.data && typeof result.data.total_price === 'number' && result.data.total_price > 0) {
@@ -1408,7 +1422,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
               }
               logger.info('BatchScreen', `Credits used for ${type} of ${file.name}: ${result.data.total_price}`);
             }
-            
+
             setAppProcessing(true, `${type.charAt(0).toUpperCase() + type.slice(1)} completed successfully!`);
             resolve(result);
           } else if (result.status === 'ERROR') {
@@ -1417,25 +1431,27 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
           } else if (result.status === 'TIMEOUT') {
             setAppProcessing(true, `${type.charAt(0).toUpperCase() + type.slice(1)} timed out`);
             reject(new Error(`${type} timed out`));
-          } else if (attempts >= maxAttempts) {
+          } else if (elapsedMs >= timeoutMs) {
+            const timeoutMinutes = Math.floor(timeoutMs / 60000);
             setAppProcessing(true, `${type.charAt(0).toUpperCase() + type.slice(1)} polling timeout`);
-            reject(new Error(`${type} polling timeout after ${maxAttempts} attempts (${attempts * 5} seconds)`));
+            reject(new Error(`${type} polling timeout after ${timeoutMinutes} minutes`));
           } else {
-            // Update progress during polling
+            // Update progress during polling - use elapsed time for more accurate progress
             const progressBase = type === 'transcription' ? 25 : 50;
-            const progressIncrement = (attempts / maxAttempts) * 30; // 30% of progress during polling
-            setQueue(prev => prev.map(f => 
+            const timeProgressRatio = Math.min(elapsedMs / (5 * 60 * 1000), 1); // 5 minutes expected max
+            const progressIncrement = timeProgressRatio * 30; // 30% of progress during polling
+            setQueue(prev => prev.map(f =>
               f.id === file.id ? { ...f, progress: Math.min(90, progressBase + progressIncrement) } : f
             ));
-            
-            // Continue polling after 5 seconds
-            setTimeout(() => poll(), 5000);
+
+            // Continue polling
+            setTimeout(() => poll(), pollingInterval);
           }
         } catch (error) {
           reject(error);
         }
       };
-      
+
       poll();
     });
   };

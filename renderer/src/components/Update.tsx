@@ -221,7 +221,7 @@ function Update({}: UpdateProps) {
                   }}>
                     <h4 style={{
                       fontSize: '16px',
-                      color: 'var(--text-primary)',
+                      color: index === 0 ? 'var(--bg-primary)' : 'var(--text-primary)',
                       margin: 0,
                       display: 'flex',
                       alignItems: 'center',
@@ -243,7 +243,8 @@ function Update({}: UpdateProps) {
                     </h4>
                     <span style={{
                       fontSize: '12px',
-                      color: 'var(--text-secondary)'
+                      color: index === 0 ? 'var(--bg-primary)' : 'var(--text-secondary)',
+                      opacity: index === 0 ? 0.8 : 1
                     }}>
                       {formatDate(release.published_at)}
                     </span>
@@ -251,7 +252,7 @@ function Update({}: UpdateProps) {
                   
                   <div style={{
                     fontSize: '14px',
-                    color: 'var(--text-secondary)',
+                    color: index === 0 ? 'var(--bg-primary)' : 'var(--text-secondary)',
                     lineHeight: '1.5'
                   }}>
                     {parseChangelog(release.body).map((line, lineIndex) => (

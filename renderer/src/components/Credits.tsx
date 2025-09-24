@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { CreditPackage } from '../services/api';
 import { useAPI } from '../contexts/APIContext';
 
@@ -20,21 +20,52 @@ interface AppConfig {
 interface CreditsProps {
   config: AppConfig;
   setAppProcessing: (processing: boolean, task?: string) => void;
+  isVisible?: boolean;
 }
 
-function Credits({ config, setAppProcessing }: CreditsProps) {
+function Credits({ config, setAppProcessing, isVisible = true }: CreditsProps) {
   const { credits, refreshCredits, getCreditPackages, isAuthenticated } = useAPI();
   
   const [creditPackages, setCreditPackages] = useState<CreditPackage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoadingCredits, setIsLoadingCredits] = useState(false);
+  const loadingRef = useRef(false);
+
+  const loadCreditPackages = useCallback(async () => {
+    // Prevent multiple simultaneous calls using ref
+    if (loadingRef.current) {
+      return;
+    }
+
+    loadingRef.current = true;
+    setIsLoading(true);
+    setError(null);
+    setAppProcessing(true, 'Loading credit packages...');
+
+    try {
+      const result = await getCreditPackages(config.username);
+
+      if (result.success && result.data) {
+        setCreditPackages(result.data);
+      } else {
+        throw new Error(result.error || 'Failed to load credit packages');
+      }
+    } catch (error: any) {
+      console.error('Error loading credit packages:', error);
+      setError(error.message || 'Failed to load credit packages');
+    } finally {
+      loadingRef.current = false;
+      setIsLoading(false);
+      setAppProcessing(false);
+    }
+  }, [getCreditPackages, config.username, setAppProcessing]);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && isVisible) {
       loadCreditPackages();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isVisible, loadCreditPackages]);
 
   const loadCurrentCredits = async () => {
     if (refreshCredits) {
@@ -46,28 +77,6 @@ function Credits({ config, setAppProcessing }: CreditsProps) {
       } finally {
         setIsLoadingCredits(false);
       }
-    }
-  };
-
-  const loadCreditPackages = async () => {
-    setIsLoading(true);
-    setError(null);
-    setAppProcessing(true, 'Loading credit packages...');
-
-    try {
-      const result = await getCreditPackages(config.username);
-      
-      if (result.success && result.data) {
-        setCreditPackages(result.data);
-      } else {
-        throw new Error(result.error || 'Failed to load credit packages');
-      }
-    } catch (error: any) {
-      console.error('Error loading credit packages:', error);
-      setError(error.message || 'Failed to load credit packages');
-    } finally {
-      setIsLoading(false);
-      setAppProcessing(false);
     }
   };
 

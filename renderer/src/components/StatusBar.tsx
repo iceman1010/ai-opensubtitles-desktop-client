@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { setupNetworkListeners, isOnline } from '../utils/networkUtils';
 import { activityTracker } from '../utils/activityTracker';
 
@@ -24,6 +24,10 @@ const StatusBar: React.FC<StatusBarProps> = ({
   const [displayedTask, setDisplayedTask] = useState<string | undefined>(currentTask);
   const [shouldShowProcessing, setShouldShowProcessing] = useState(isProcessing);
   const [lastUpdateTime, setLastUpdateTime] = useState(Date.now());
+
+  // Dynamic width calculation for smart truncation
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [availableChars, setAvailableChars] = useState(40); // fallback
 
   useEffect(() => {
     const cleanup = setupNetworkListeners(
@@ -126,6 +130,85 @@ const StatusBar: React.FC<StatusBarProps> = ({
     };
   }, []);
 
+  // Calculate available space for dynamic truncation
+  const calculateAvailableChars = useCallback(() => {
+    if (!containerRef.current) return;
+
+    const containerWidth = containerRef.current.offsetWidth;
+
+    // Estimate space taken by fixed elements
+    let fixedWidth = 24; // base padding
+
+    // Network status: ~70px
+    fixedWidth += 70;
+
+    // API indicator (when active): ~50px + separator
+    if (isApiActive) {
+      fixedWidth += 58; // 50px + 8px separator
+    }
+
+    // Update status (when active): ~20px for icon + separator
+    if (showUpdateStatus) {
+      fixedWidth += 28; // 20px + 8px separator
+    }
+
+    // Processing separator: ~8px
+    if (shouldShowProcessing) {
+      fixedWidth += 8;
+    }
+
+    // Processing icon and spacing: ~20px
+    if (shouldShowProcessing) {
+      fixedWidth += 20;
+    }
+
+    const remainingWidth = Math.max(0, containerWidth - fixedWidth);
+
+    // Convert to character count (approximately 7px per character at 12px font)
+    const charWidth = 7;
+    const availableCharCount = Math.floor(remainingWidth / charWidth);
+
+    // Responsive behavior based on screen size
+    let minChars = 20;
+    let maxChars = 120;
+
+    // Mobile/small screens: more conservative limits
+    if (containerWidth <= 768) {
+      minChars = 15;
+      maxChars = 35;
+    }
+    // Tablet/medium screens: moderate limits
+    else if (containerWidth <= 1200) {
+      minChars = 25;
+      maxChars = 60;
+    }
+    // Large screens: generous limits
+    else {
+      minChars = 30;
+      maxChars = 120;
+    }
+
+    // Set bounds based on screen size
+    const boundedChars = Math.max(minChars, Math.min(maxChars, availableCharCount));
+
+    setAvailableChars(boundedChars);
+  }, [isApiActive, showUpdateStatus, shouldShowProcessing]);
+
+  // Recalculate on mount and window resize
+  useEffect(() => {
+    calculateAvailableChars();
+
+    const handleResize = () => calculateAvailableChars();
+    window.addEventListener('resize', handleResize);
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, [calculateAvailableChars]);
+
+  // Recalculate when status elements change
+  useEffect(() => {
+    calculateAvailableChars();
+  }, [isApiActive, showUpdateStatus, shouldShowProcessing, displayedTask, updateStatus, calculateAvailableChars]);
+
   const getNetworkStatusDisplay = () => {
     if (!online) {
       return (
@@ -188,10 +271,20 @@ const StatusBar: React.FC<StatusBarProps> = ({
     display: 'inline-block',
   };
 
-  // Helper function to truncate long text
-  const truncateText = (text: string, maxLength: number = 50): string => {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength - 3) + '...';
+  // Helper function to truncate long text with dynamic sizing
+  const truncateText = (text: string, maxLength?: number): string => {
+    // Use dynamic availableChars unless maxLength is specifically provided
+    const effectiveMaxLength = maxLength ?? availableChars;
+
+    if (text.length <= effectiveMaxLength) return text;
+    return text.substring(0, effectiveMaxLength - 3) + '...';
+  };
+
+  // Helper function for update status with slightly shorter limit
+  const truncateUpdateText = (text: string): string => {
+    // Use slightly less space for update status to account for icon
+    const updateMaxLength = Math.max(15, availableChars - 5);
+    return truncateText(text, updateMaxLength);
   };
 
   // Helper function to extract API endpoint name from context
@@ -236,7 +329,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
   };
 
   return (
-    <div style={statusBarStyles}>
+    <div ref={containerRef} style={statusBarStyles}>
       <style>{`
         @keyframes spin {
           from { transform: rotate(0deg); }
@@ -315,7 +408,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
         <>
           <span style={statusSeparatorStyles}>|</span>
           <span style={{...statusItemStyles, color: '#6f42c1', fontWeight: 500, fontSize: 11}}>
-            <i className="fas fa-sync-alt" style={{...statusIconStyles, color: '#6f42c1'}} className="status-pulsing"></i>
+            <i className="fas fa-sync-alt status-pulsing" style={{...statusIconStyles, color: '#6f42c1'}}></i>
             {currentApiContext ? getEndpointDisplay(currentApiContext) : 'API'}
           </span>
         </>
@@ -326,8 +419,8 @@ const StatusBar: React.FC<StatusBarProps> = ({
         <>
           <span style={statusSeparatorStyles}>|</span>
           <span style={{...statusItemStyles, color: '#007bff', fontWeight: 600}}>
-            <i className="fas fa-spinner" style={{...statusIconStyles, color: '#007bff'}} className="status-spinning"></i>
-            <span title={displayedTask}>{truncateText(displayedTask, 40)}</span>
+            <i className="fas fa-spinner status-spinning" style={{...statusIconStyles, color: '#007bff'}}></i>
+            <span title={displayedTask}>{truncateText(displayedTask)}</span>
           </span>
         </>
       )}
@@ -345,7 +438,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
                 updateStatus.includes('error') ? 'fa-times' : 'fa-sync-alt'
               }`} style={{...statusIconStyles, color: '#fd7e14'}}></i>
             </span>
-            <span title={updateStatus}>{truncateText(updateStatus, 35)}</span>
+            <span title={updateStatus}>{truncateUpdateText(updateStatus)}</span>
           </span>
         </>
       )}

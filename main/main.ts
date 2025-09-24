@@ -279,6 +279,13 @@ class MainApp {
               }
             }
           },
+          {
+            label: 'Check for Updates...',
+            accelerator: 'Command+U',
+            click: async () => {
+              await this.checkForUpdates();
+            }
+          },
           { type: 'separator' as const },
           { role: 'hide' as const },
           { role: 'hideOthers' as const },
@@ -324,6 +331,13 @@ class MainApp {
                 if (this.mainWindow && this.mainWindow.webContents) {
                   this.mainWindow.webContents.send('keyboard-shortcut', 'navigate-preferences');
                 }
+              }
+            },
+            {
+              label: 'Check for Updates...',
+              accelerator: 'Ctrl+U',
+              click: async () => {
+                await this.checkForUpdates();
               }
             },
             { type: 'separator' as const },

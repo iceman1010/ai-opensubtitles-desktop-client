@@ -53,6 +53,8 @@ interface AppConfig {
   apiBaseUrl?: string;
   autoLanguageDetection?: boolean;
   darkMode?: boolean;
+  pollingIntervalSeconds?: number;
+  pollingTimeoutSeconds?: number;
   credits?: {
     used: number;
     remaining: number;
@@ -389,18 +391,28 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
   };
 
   const pollLanguageDetection = async (correlationId: string) => {
-    const maxAttempts = 24; // 2 minutes with 5-second intervals
-    let attempts = 0;
+    const startTime = Date.now();
+    const pollingInterval = (config.pollingIntervalSeconds || 10) * 1000; // Convert to milliseconds
+    const timeoutMs = (config.pollingTimeoutSeconds || 7200) * 1000; // Default 2 hours
 
     const poll = async () => {
       try {
-        attempts++;
+        const elapsedMs = Date.now() - startTime;
+        const elapsedSeconds = Math.floor(elapsedMs / 1000);
+
+        // Update status with elapsed time
+        setStatusMessage({
+          type: 'info',
+          message: `Processing audio for language detection... (${elapsedSeconds}s elapsed)`
+        });
+        setAppProcessing(true, `Processing audio for language detection... (${elapsedSeconds}s elapsed)`);
+
         const result = await checkLanguageDetectionStatus(correlationId);
-        
+
         if (result.status === 'COMPLETED' && result.data?.language) {
           await handleDetectedLanguage(result.data.language);
           setLanguageDetectionCorrelationId(null);
-          
+
           // Clean up temporary audio file if it exists
           if ((window as any).tempAudioFile) {
             try {
@@ -414,23 +426,24 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           throw new Error(result.errors?.join(', ') || 'Language detection failed');
         } else if (result.status === 'TIMEOUT') {
           throw new Error('Language detection timed out');
-        } else if (attempts >= maxAttempts) {
-          throw new Error('Language detection timed out after 2 minutes');
+        } else if (elapsedMs >= timeoutMs) {
+          const timeoutMinutes = Math.floor(timeoutMs / 60000);
+          throw new Error(`Language detection timed out after ${timeoutMinutes} minutes`);
         } else {
           // Still processing, poll again
-          setTimeout(poll, 5000);
+          setTimeout(poll, pollingInterval);
         }
       } catch (error) {
         logger.error('MainScreen', 'Language detection polling failed', error);
-        setStatusMessage({ 
-          type: 'error', 
-          message: `Language detection failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
+        setStatusMessage({
+          type: 'error',
+          message: `Language detection failed: ${error instanceof Error ? error.message : 'Unknown error'}`
         });
         setIsDetectingLanguage(false);
         setLanguageDetectionCorrelationId(null);
         setAppProcessing(false);
         clearLanguageDetectionTimeout();
-        
+
         // Clean up temporary audio file if it exists
         if ((window as any).tempAudioFile) {
           try {
@@ -1013,48 +1026,56 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
   };
 
   const pollForCompletion = async (correlationId: string, type: 'transcription' | 'translation') => {
-    const maxAttempts = 60; // 5 minutes with 5-second intervals
-    let attempts = 0;
-    
+    const startTime = Date.now();
+    const pollingInterval = (config.pollingIntervalSeconds || 10) * 1000; // Convert to milliseconds
+    const timeoutMs = (config.pollingTimeoutSeconds || 7200) * 1000; // Default 2 hours
+
     const poll = async (): Promise<void> => {
-      attempts++;
-      
       try {
-        const result = type === 'transcription' 
+        const elapsedMs = Date.now() - startTime;
+        const elapsedSeconds = Math.floor(elapsedMs / 1000);
+
+        // Update status with elapsed time
+        setStatusMessage({
+          type: 'info',
+          message: `${type === 'transcription' ? 'Transcription' : 'Translation'} in progress... (${elapsedSeconds}s elapsed)`
+        });
+
+        const result = type === 'transcription'
           ? await checkTranscriptionStatus(correlationId)
           : await checkTranslationStatus(correlationId);
-          
+
         logger.info('MainScreen', `${type} status check:`, result);
-        
+
         if (result.status === 'COMPLETED' && result.data) {
           // Calculate credits used and create message
           let message = `${type === 'transcription' ? 'Transcription' : 'Translation'} completed successfully!`;
           if (typeof result.data.total_price === 'number' && result.data.total_price > 0) {
             message += ` (${result.data.total_price} credits used)`;
           }
-          
-          setStatusMessage({ 
-            type: 'success', 
+
+          setStatusMessage({
+            type: 'success',
             message: message
           });
-          
+
           // Update credits from the response with animation trigger
           if (typeof result.data.credits_left === 'number') {
             const oldCredits = credits;
             const usedCredits = result.data.total_price || 0;
-            
+
             // Update centralized credits
             updateCredits({
               used: usedCredits,
               remaining: result.data.credits_left
             });
-            
+
             // Update global config with credits
             onCreditsUpdate?.({
               used: usedCredits,
               remaining: result.data.credits_left
             });
-            
+
             // Trigger animation if credits actually changed
             if (oldCredits !== null && oldCredits !== result.data.credits_left) {
               try {
@@ -1064,7 +1085,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
               }
             }
           }
-          
+
           // Download the result file content
           if (result.data.url) {
             const downloadResult = await downloadFile(result.data.url);
@@ -1077,34 +1098,30 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         } else if (result.status === 'ERROR') {
           throw new Error(result.errors?.join(', ') || `${type} failed`);
         } else if (result.status === 'PENDING' || result.status === 'CREATED') {
-          if (attempts >= maxAttempts) {
-            throw new Error(`${type} timed out after ${maxAttempts * 5} seconds`);
+          if (elapsedMs >= timeoutMs) {
+            const timeoutMinutes = Math.floor(timeoutMs / 60000);
+            throw new Error(`${type} timed out after ${timeoutMinutes} minutes`);
           }
-          
-          setStatusMessage({ 
-            type: 'info', 
-            message: `${type === 'transcription' ? 'Transcription' : 'Translation'} in progress... (${attempts}/${maxAttempts})` 
-          });
-          
-          // Wait 5 seconds before next check
-          setTimeout(poll, 5000);
+
+          // Wait before next check
+          setTimeout(poll, pollingInterval);
         }
       } catch (error: any) {
         logger.error('MainScreen', `${type} polling error:`, error);
-        
+
         // Show detailed error only in debug mode, simple message otherwise
         let errorMessage = 'Processing failed. Please try again.';
         if (config.debugMode) {
           errorMessage = error.message || errorMessage;
         }
-        
-        setStatusMessage({ 
-          type: 'error', 
-          message: `${type === 'transcription' ? 'Transcription' : 'Translation'} failed: ${errorMessage}` 
+
+        setStatusMessage({
+          type: 'error',
+          message: `${type === 'transcription' ? 'Transcription' : 'Translation'} failed: ${errorMessage}`
         });
       }
     };
-    
+
     poll();
   };
 

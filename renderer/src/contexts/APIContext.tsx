@@ -224,26 +224,79 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     logger.info('APIContext', `Credits updated: ${newCredits.remaining} remaining, ${newCredits.used} used`);
   }, []);
 
+  // Centralized error handling wrapper
+  const handleAPICall = useCallback(async <T>(
+    apiCall: () => Promise<T>,
+    context: string = 'API Call'
+  ): Promise<T> => {
+    try {
+      return await apiCall();
+    } catch (error: any) {
+      const status = error.status || 0;
+
+      // Handle authentication errors
+      if (status === 401 || status === 403) {
+        logger.warn('APIContext', `${context}: Authentication error detected, re-authenticating...`);
+
+        // Only clear token and re-authenticate if not already in progress
+        if (!authenticationInProgress && api && initialConfig?.username && initialConfig?.password) {
+          await api.clearCachedToken();
+          setIsAuthenticated(false);
+
+          // Attempt re-authentication
+          const success = await authenticateUser(api, initialConfig.username, initialConfig.password);
+          if (success) {
+            logger.info('APIContext', `${context}: Re-authentication successful, retrying original call`);
+            // Retry the original call once
+            return await apiCall();
+          } else {
+            logger.error('APIContext', `${context}: Re-authentication failed`);
+            throw new Error('Authentication failed after retry');
+          }
+        } else {
+          logger.warn('APIContext', `${context}: Authentication already in progress or missing credentials`);
+          throw error;
+        }
+      }
+
+      // Handle rate limiting - coordinate globally
+      if (status === 429) {
+        logger.warn('APIContext', `${context}: Rate limit hit, error will be handled by network utils retry logic`);
+        // Let the existing networkUtils retry logic handle this with proper delays
+        throw error;
+      }
+
+      // Handle server errors and other errors
+      if (status >= 500) {
+        logger.warn('APIContext', `${context}: Server error ${status}, error will be handled by network utils retry logic`);
+        throw error;
+      }
+
+      // For all other errors, just pass through
+      throw error;
+    }
+  }, [api, authenticationInProgress, initialConfig, authenticateUser]);
+
   // Centralized API methods
   const getServicesInfo = useCallback(async () => {
     if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };
-    return await api.getServicesInfo();
-  }, [api, isAuthenticated]);
+    return await handleAPICall(() => api.getServicesInfo(), 'Get Services Info');
+  }, [api, isAuthenticated, handleAPICall]);
 
   const getCreditPackages = useCallback(async (email?: string) => {
     if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };
-    return await api.getCreditPackages(email);
-  }, [api, isAuthenticated]);
+    return await handleAPICall(() => api.getCreditPackages(email), 'Get Credit Packages');
+  }, [api, isAuthenticated, handleAPICall]);
 
   const getTranslationLanguagesForApi = useCallback(async (apiId: string) => {
     if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };
-    return await api.getTranslationLanguagesForApi(apiId);
-  }, [api, isAuthenticated]);
+    return await handleAPICall(() => api.getTranslationLanguagesForApi(apiId), 'Get Translation Languages');
+  }, [api, isAuthenticated, handleAPICall]);
 
   const getTranscriptionLanguagesForApi = useCallback(async (apiId: string) => {
     if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };
-    return await api.getTranscriptionLanguagesForApi(apiId);
-  }, [api, isAuthenticated]);
+    return await handleAPICall(() => api.getTranscriptionLanguagesForApi(apiId), 'Get Transcription Languages');
+  }, [api, isAuthenticated, handleAPICall]);
 
   const getTranslationApisForLanguage = useCallback(async (sourceLanguage: string, targetLanguage: string) => {
     if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };

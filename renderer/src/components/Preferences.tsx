@@ -19,6 +19,8 @@ interface AppConfig {
   apiUrlParameter?: string;
   autoLanguageDetection?: boolean;
   darkMode?: boolean;
+  pollingIntervalSeconds?: number;
+  pollingTimeoutSeconds?: number;
   credits?: {
     used: number;
     remaining: number;
@@ -43,6 +45,8 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
   const [betaTest, setBetaTest] = useState(config.betaTest ?? false);
   const [ffmpegPath, setFfmpegPath] = useState(config.ffmpegPath || '');
   const [audioLanguageDetectionTime, setAudioLanguageDetectionTime] = useState(config.audio_language_detection_time ?? 240);
+  const [pollingIntervalSeconds, setPollingIntervalSeconds] = useState(config.pollingIntervalSeconds ?? 10);
+  const [pollingTimeoutSeconds, setPollingTimeoutSeconds] = useState(config.pollingTimeoutSeconds ?? 7200);
   const [apiBaseUrl, setApiBaseUrl] = useState(config.apiBaseUrl || 'https://api.opensubtitles.com/api/v1');
   const [apiUrlParameter, setApiUrlParameter] = useState(config.apiUrlParameter || '');
   const [autoLanguageDetection, setAutoLanguageDetection] = useState(config.autoLanguageDetection ?? false);
@@ -401,32 +405,39 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
           </div>
         </div>
 
-        {/* Auto-Save Settings Section */}
+        {/* Application Settings Section Divider */}
         <div style={{
-          marginBottom: '20px'
+          margin: '30px 0',
+          height: '1px',
+          background: 'linear-gradient(to right, transparent, var(--border-color) 20%, var(--border-color) 80%, transparent)',
+          position: 'relative'
         }}>
-          <h3 style={{
-            marginTop: '0',
-            marginBottom: '12px',
-            fontSize: '16px',
-            color: 'var(--text-primary)',
-            fontWeight: 'bold',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
+          <div style={{
+            position: 'absolute',
+            top: '-10px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: 'var(--bg-primary)',
+            padding: '0 15px',
+            fontSize: '12px',
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '1px'
           }}>
-            <i className="fas fa-cog"></i>
+            <i className="fas fa-cog" style={{marginRight: '6px'}}></i>
             Application Settings
-          </h3>
-          <p style={{
-            fontSize: '13px',
-            color: 'var(--text-secondary)',
-            marginBottom: '20px',
-            lineHeight: '1.4'
-          }}>
-            These settings save automatically when changed - no save button required.
-          </p>
+          </div>
         </div>
+
+        <p style={{
+          fontSize: '13px',
+          color: 'var(--text-secondary)',
+          marginBottom: '20px',
+          lineHeight: '1.4',
+          textAlign: 'center'
+        }}>
+          These settings save automatically when changed - no save button required.
+        </p>
 
         <div className="form-group">
           <div style={{ 
@@ -722,6 +733,30 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
             </div>
           </div>
 
+        {/* Processing Settings Section Divider */}
+        <div style={{
+          margin: '30px 0',
+          height: '1px',
+          background: 'linear-gradient(to right, transparent, var(--border-color) 20%, var(--border-color) 80%, transparent)',
+          position: 'relative'
+        }}>
+          <div style={{
+            position: 'absolute',
+            top: '-10px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: 'var(--bg-primary)',
+            padding: '0 15px',
+            fontSize: '12px',
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '1px'
+          }}>
+            <i className="fas fa-brain" style={{marginRight: '6px'}}></i>
+            Processing Settings
+          </div>
+        </div>
+
           {/* Cache Expiration Setting */}
           <div style={{ 
             display: 'flex', 
@@ -797,6 +832,131 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
                   {isClearingCache ? 'Clearing...' : 'Clear Cache Now'}
                 </button>
               </div>
+            </div>
+          </div>
+
+          {/* API Polling Interval Setting */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '12px',
+            padding: '8px 0'
+          }}>
+            <div style={{ flex: 1 }}>
+              <label
+                htmlFor="polling-interval-seconds"
+                style={{
+                  margin: 0,
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  display: 'block',
+                  marginBottom: '4px'
+                }}
+              >
+                API Polling Interval (seconds)
+              </label>
+              <div style={{
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                lineHeight: '1.4',
+                maxWidth: '400px',
+                marginBottom: '8px'
+              }}>
+                How often to check for completion of transcription and translation tasks.
+              </div>
+              <input
+                id="polling-interval-seconds"
+                type="number"
+                min="5"
+                max="60"
+                step="1"
+                value={pollingIntervalSeconds}
+                onChange={(e) => {
+                  const newValue = Math.max(5, Math.min(60, Number(e.target.value)));
+                  setPollingIntervalSeconds(newValue);
+                  handleInstantSave('pollingIntervalSeconds', newValue);
+                }}
+                disabled={isLoading}
+                style={{
+                  padding: '8px 12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  backgroundColor: 'var(--bg-secondary)',
+                  width: '120px'
+                }}
+                placeholder="10"
+              />
+              <span style={{
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                marginLeft: '8px'
+              }}>
+                Default: 10 seconds
+              </span>
+            </div>
+          </div>
+
+          {/* API Polling Timeout Setting */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '12px',
+            padding: '8px 0'
+          }}>
+            <div style={{ flex: 1 }}>
+              <label
+                htmlFor="polling-timeout-seconds"
+                style={{
+                  margin: 0,
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  display: 'block',
+                  marginBottom: '4px'
+                }}
+              >
+                API Polling Timeout (minutes)
+              </label>
+              <div style={{
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                lineHeight: '1.4',
+                maxWidth: '400px',
+                marginBottom: '8px'
+              }}>
+                Maximum time to wait for task completion before giving up.
+              </div>
+              <input
+                id="polling-timeout-seconds"
+                type="number"
+                min="5"
+                max="1440"
+                step="5"
+                value={Math.floor(pollingTimeoutSeconds / 60)}
+                onChange={(e) => {
+                  const minutes = Math.max(5, Math.min(1440, Number(e.target.value)));
+                  const seconds = minutes * 60;
+                  setPollingTimeoutSeconds(seconds);
+                  handleInstantSave('pollingTimeoutSeconds', seconds);
+                }}
+                disabled={isLoading}
+                style={{
+                  padding: '8px 12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  backgroundColor: 'var(--bg-secondary)',
+                  width: '120px'
+                }}
+                placeholder="120"
+              />
+              <span style={{
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                marginLeft: '8px'
+              }}>
+                Default: 120 minutes (2 hours)
+              </span>
             </div>
           </div>
 
@@ -955,6 +1115,30 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
                 Default: Enabled • Note: This setting only affects batch processing, not single file processing
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* System Integration Section Divider */}
+        <div style={{
+          margin: '30px 0',
+          height: '1px',
+          background: 'linear-gradient(to right, transparent, var(--border-color) 20%, var(--border-color) 80%, transparent)',
+          position: 'relative'
+        }}>
+          <div style={{
+            position: 'absolute',
+            top: '-10px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: 'var(--bg-primary)',
+            padding: '0 15px',
+            fontSize: '12px',
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '1px'
+          }}>
+            <i className="fas fa-puzzle-piece" style={{marginRight: '6px'}}></i>
+            System Integration
           </div>
         </div>
 
@@ -1245,7 +1429,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
         <div style={{
           margin: '30px 0',
           height: '1px',
-          background: 'linear-gradient(to right, transparent, #ddd 20%, #ddd 80%, transparent)',
+          background: 'linear-gradient(to right, transparent, var(--border-color) 20%, var(--border-color) 80%, transparent)',
           position: 'relative'
         }}>
           <div style={{
@@ -1253,10 +1437,10 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
             top: '-10px',
             left: '50%',
             transform: 'translateX(-50%)',
-            backgroundColor: '#f5f5f5',
+            backgroundColor: 'var(--bg-primary)',
             padding: '0 15px',
             fontSize: '12px',
-            color: '#999',
+            color: 'var(--text-muted)',
             textTransform: 'uppercase',
             letterSpacing: '1px'
           }}>
@@ -1268,12 +1452,12 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
         <div className="form-group">
           <div style={{
             padding: '20px',
-            backgroundColor: '#fff8e1',
-            border: '2px solid #ffd54f',
+            backgroundColor: 'var(--warning-bg)',
+            border: '2px solid var(--warning-border)',
             borderRadius: '6px',
             marginBottom: '15px'
           }}>
-            <h3 style={{ marginBottom: '12px', fontSize: '16px', color: '#f57f17', fontWeight: 'bold' }}>Beta Testing</h3>
+            <h3 style={{ marginBottom: '12px', fontSize: '16px', color: 'var(--warning-text)', fontWeight: 'bold' }}>Beta Testing</h3>
             <label style={{ 
               display: 'flex !important', 
               alignItems: 'center', 
@@ -1295,11 +1479,11 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
                   flexShrink: 0
                 }}
               />
-              <span style={{ fontSize: '14px', color: '#e65100', textAlign: 'left' }}>
+              <span style={{ fontSize: '14px', color: 'var(--warning-text)', textAlign: 'left' }}>
                 Enable beta testing features and updates
               </span>
             </label>
-            <p style={{ fontSize: '12px', color: '#ef6c00', marginTop: '8px', lineHeight: '1.4' }}>
+            <p style={{ fontSize: '12px', color: 'var(--warning-text)', marginTop: '8px', lineHeight: '1.4', opacity: 0.8 }}>
               Receive prerelease versions and experimental features. May contain bugs.
             </p>
           </div>
@@ -1309,13 +1493,13 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
         <div className="form-group">
           <div style={{
             padding: '20px',
-            backgroundColor: '#fff5f5',
-            border: '2px solid #fed7d7',
+            backgroundColor: 'var(--danger-bg)',
+            border: '2px solid var(--danger-border)',
             borderRadius: '6px',
             marginBottom: '15px'
           }}>
-            <h3 style={{ marginBottom: '12px', fontSize: '16px', color: '#c53030', fontWeight: 'bold' }}>Reset Settings</h3>
-            <p style={{ fontSize: '14px', color: '#742a2a', marginBottom: '18px', lineHeight: '1.4' }}>
+            <h3 style={{ marginBottom: '12px', fontSize: '16px', color: 'var(--danger-text)', fontWeight: 'bold' }}>Reset Settings</h3>
+            <p style={{ fontSize: '14px', color: 'var(--danger-text)', marginBottom: '18px', lineHeight: '1.4', opacity: 0.8 }}>
               This will permanently clear all your login credentials and preferences. Use this to test the fresh install experience or when switching to a different OpenSubtitles account.
             </p>
             <button
