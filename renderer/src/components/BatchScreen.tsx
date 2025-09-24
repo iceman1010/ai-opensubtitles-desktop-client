@@ -173,6 +173,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
   const processingRef = useRef<boolean>(false);
   const shouldStopRef = useRef<boolean>(false);
   const processedPendingFilesRef = useRef<string[]>([]);
+  const queueRef = useRef<BatchFile[]>([]);
 
   // API initialization now handled by APIContext
 
@@ -604,19 +605,27 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
         return;
       }
 
-      logger.info('BatchScreen', `Starting sequential language detection for ${filesToDetect.length} files`);
-      setAppProcessing(true, `Detecting languages for ${filesToDetect.length} files...`);
+      logger.info('BatchScreen', `Starting dynamic language detection for ${filesToDetect.length} initial files`);
+      setAppProcessing(true, `Detecting languages dynamically...`);
 
       // Process files one by one to avoid server overload
-      for (let i = 0; i < filesToDetect.length; i++) {
-        const file = filesToDetect[i];
-        logger.debug(3, 'BatchScreen', `🔍 BatchScreen: Processing file ${i + 1}/${filesToDetect.length}: ${file.name}`);
+      // Use dynamic queue monitoring instead of static snapshot
+      while (true) {
+        // Find next file that needs detection from current queue
+        const currentQueue = queueRef.current;
+        const file = currentQueue.find(f =>
+          f.status === 'pending' && !f.detectedLanguage &&
+          (isAudioVideoFile(f.name) ? (config.autoLanguageDetection ?? false) : true) &&
+          !detectionInProgressRef.current.has(f.id)
+        );
 
-        // Skip if already being processed
-        if (detectionInProgressRef.current.has(file.id)) {
-          logger.debug(3, 'BatchScreen', `🔍 BatchScreen: File ${file.name} already being processed, skipping`);
-          continue;
+        // If no file needs detection, break the loop
+        if (!file) {
+          logger.debug(3, 'BatchScreen', '🔍 BatchScreen: No more files need detection - exiting loop');
+          break;
         }
+
+        logger.debug(3, 'BatchScreen', `🔍 BatchScreen: Processing file: ${file.name}`);
 
         // Mark as being processed
         detectionInProgressRef.current.add(file.id);
@@ -638,8 +647,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
         try {
           // Check if file still exists in queue before processing
           logger.debug(3, 'BatchScreen', '🔍 BatchScreen: Checking if file still exists in queue before processing:', file.name);
-          const currentQueue = queueToProcess; // Use the queue passed to function, not stale state
-          const fileStillInQueue = currentQueue.find(f => f.id === file.id);
+          const fileStillInQueue = queueRef.current.find(f => f.id === file.id);
           if (!fileStillInQueue) {
             logger.debug(3, 'BatchScreen', '🔍 BatchScreen: File was removed from queue during processing, skipping:', file.name);
             continue;
@@ -798,6 +806,11 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
       }
     };
   }, []);
+
+  // Keep queueRef in sync with queue state for dynamic queue monitoring
+  useEffect(() => {
+    queueRef.current = queue;
+  }, [queue]);
 
   // File selection handlers
   const handleSingleFileSelect = async (filePath: string) => {
