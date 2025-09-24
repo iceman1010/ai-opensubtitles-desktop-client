@@ -225,7 +225,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
   }, []);
 
   // Centralized error handling wrapper
-  const handleAPICall = useCallback(async <T>(
+  const handleAPICall = useCallback(async <T,>(
     apiCall: () => Promise<T>,
     context: string = 'API Call'
   ): Promise<T> => {
