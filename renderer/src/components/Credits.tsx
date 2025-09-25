@@ -62,10 +62,10 @@ function Credits({ config, setAppProcessing, isVisible = true }: CreditsProps) {
   }, [getCreditPackages, config.username, setAppProcessing]);
 
   useEffect(() => {
-    if (isAuthenticated && isVisible) {
+    if (isAuthenticated && isVisible && creditPackages.length === 0) {
       loadCreditPackages();
     }
-  }, [isAuthenticated, isVisible, loadCreditPackages]);
+  }, [isAuthenticated, isVisible, loadCreditPackages, creditPackages.length]);
 
   const loadCurrentCredits = async () => {
     if (refreshCredits) {

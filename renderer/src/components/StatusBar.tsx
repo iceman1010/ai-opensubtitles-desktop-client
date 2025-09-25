@@ -240,14 +240,14 @@ const StatusBar: React.FC<StatusBarProps> = ({
     left: 0,
     right: 0,
     height: 26,
-    background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-    borderTop: '1px solid #dee2e6',
+    background: 'var(--bg-tertiary)',
+    borderTop: '1px solid var(--border-color)',
     display: 'flex',
     alignItems: 'center',
     padding: '0 12px',
     fontSize: 12,
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    color: '#495057',
+    color: 'var(--text-secondary)',
     zIndex: 998,
     userSelect: 'none' as const,
   };
@@ -261,7 +261,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
 
   const statusSeparatorStyles: React.CSSProperties = {
     margin: '0 8px',
-    color: '#adb5bd',
+    color: 'var(--text-muted)',
     fontWeight: 'normal' as const,
   };
 
