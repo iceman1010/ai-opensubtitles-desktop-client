@@ -1364,6 +1364,63 @@ export class OpenSubtitlesAPI {
     }
   }
 
+  async downloadRecentMediaFile(
+    mediaId: number,
+    fileName: string
+  ): Promise<{ success: boolean; content?: string; contentType?: string; error?: string }> {
+    if (!this.apiKey) {
+      const error = 'API Key is required to download recent media files';
+      logger.error('API', error);
+      return { success: false, error };
+    }
+
+    try {
+      const result = await apiRequestWithRetry(async () => {
+        logger.info('API', `Downloading recent media file: ${mediaId}/${fileName}`);
+
+        const headers = {
+          'Api-Key': this.apiKey || '',
+          'User-Agent': getUserAgent(),
+        };
+
+        if (this.token) {
+          headers['Authorization'] = `Bearer ${this.token}`;
+        }
+
+        const fileUrl = this.getAIUrl(`/files/${mediaId}/${fileName}`);
+        const response = await fetch(fileUrl, {
+          method: 'GET',
+          headers,
+        });
+
+        if (!response.ok) {
+          const error = new Error(`Request failed: ${response.status} ${response.statusText}`);
+          (error as any).status = response.status;
+          (error as any).responseText = await response.text().catch(() => '');
+          throw error;
+        }
+
+        const contentType = response.headers.get('content-type') || 'application/octet-stream';
+        const content = await response.text();
+
+        logger.info('API', `Successfully downloaded file: ${fileName}, content-type: ${contentType}`);
+        return { content, contentType };
+      }, `Download Recent Media File (${mediaId}/${fileName})`, 3);
+
+      return {
+        success: true,
+        content: result.content,
+        contentType: result.contentType,
+      };
+    } catch (error: any) {
+      logger.error('API', 'Error downloading recent media file after retries:', error);
+      return {
+        success: false,
+        error: getUserFriendlyErrorMessage(error),
+      };
+    }
+  }
+
   clearCache(): void {
     CacheManager.clear();
   }

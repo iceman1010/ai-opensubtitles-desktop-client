@@ -32,6 +32,7 @@ interface APIContextType {
   checkTranslationStatus: (correlationId: string) => Promise<any>;
   downloadFile: (url: string) => Promise<{ success: boolean; content?: string; error?: string }>;
   getRecentMedia: () => Promise<{ success: boolean; data?: any; error?: string }>;
+  downloadRecentMediaFile: (mediaId: number, fileName: string) => Promise<{ success: boolean; content?: string; contentType?: string; error?: string }>;
 }
 
 const APIContext = createContext<APIContextType | null>(null);
@@ -344,6 +345,11 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     return await api.getRecentMedia();
   }, [api, isAuthenticated]);
 
+  const downloadRecentMediaFile = useCallback(async (mediaId: number, fileName: string) => {
+    if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };
+    return await api.downloadRecentMediaFile(mediaId, fileName);
+  }, [api, isAuthenticated]);
+
   const contextValue: APIContextType = {
     api,
     isAuthenticated,
@@ -369,7 +375,8 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     checkTranscriptionStatus,
     checkTranslationStatus,
     downloadFile,
-    getRecentMedia
+    getRecentMedia,
+    downloadRecentMediaFile
   };
 
   return (

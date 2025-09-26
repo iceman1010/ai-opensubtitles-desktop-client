@@ -36,7 +36,7 @@ interface TreeData {
 }
 
 function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdate }: RecentMediaProps) {
-  const { getRecentMedia, isAuthenticated } = useAPI();
+  const { getRecentMedia, isAuthenticated, downloadRecentMediaFile } = useAPI();
 
   const [recentMedia, setRecentMedia] = useState<RecentMediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -157,7 +157,8 @@ function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdat
             data: {
               type: 'file',
               fileName: file,
-              icon: getFileIcon(file)
+              icon: getFileIcon(file),
+              mediaId: item.id
             }
           };
         });
@@ -187,6 +188,43 @@ function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdat
     setHasLoadedOnce(false);
     setRecentMedia([]);
     loadRecentMedia();
+  };
+
+  const handleDownloadFile = async (fileKey: string, fileName: string) => {
+    // Extract mediaId from fileKey (file-{mediaId}-{fileIndex})
+    const mediaIdMatch = fileKey.match(/^file-(\d+)-\d+$/);
+    if (!mediaIdMatch) {
+      setError('Invalid file reference');
+      return;
+    }
+
+    const mediaId = parseInt(mediaIdMatch[1]);
+
+    try {
+      setAppProcessing(true, `Downloading ${fileName}...`);
+      setError(null);
+
+      // Download file content
+      const result = await downloadRecentMediaFile(mediaId, fileName);
+
+      if (result.success && result.content) {
+        // Show save dialog
+        const savedPath = await window.electronAPI.saveFile(result.content, fileName);
+
+        if (savedPath) {
+          // Success - file was saved
+          console.log(`File saved successfully: ${savedPath}`);
+        }
+        // If savedPath is null, user cancelled the save dialog - no error needed
+      } else {
+        setError(`Failed to download ${fileName}: ${result.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      setError(`Failed to download ${fileName}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setAppProcessing(false);
+    }
   };
 
   return (
@@ -431,6 +469,20 @@ function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdat
             .rct-tree-item-title-container {
               user-select: none !important;
             }
+
+            /* Override any hover backgrounds on download button area */
+            .rct-tree-item-title-container:hover {
+              background: var(--bg-primary) !important;
+            }
+
+            /* Specifically prevent background changes on the download button container */
+            [role="button"][aria-label="Download file"] {
+              background: transparent !important;
+            }
+
+            [role="button"][aria-label="Download file"]:hover {
+              background: transparent !important;
+            }
           `}</style>
           <UncontrolledTreeEnvironment
             dataProvider={new StaticTreeDataProvider(treeData)}
@@ -501,27 +553,99 @@ function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdat
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '10px',
+                    gap: '8px',
                     padding: '4px 8px',
-                    minHeight: '32px'
+                    minHeight: '32px',
+                    width: '100%',
+                    justifyContent: 'space-between'
                   }}>
-                    <i
-                      className={`fas ${item.data.icon}`}
-                      style={{
-                        color: '#28a745',
-                        fontSize: '16px',
-                        minWidth: '16px',
-                        textAlign: 'center'
-                      }}
-                    ></i>
-                    <span style={{
-                      color: 'var(--text-primary)',
-                      fontSize: '13px',
-                      fontWeight: '400',
-                      lineHeight: '1.3'
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      flex: 1,
+                      minWidth: 0,
+                      maxWidth: 'calc(100% - 32px)' // Reserve space for download button
                     }}>
-                      {item.data.fileName}
-                    </span>
+                      <i
+                        className={`fas ${item.data.icon}`}
+                        style={{
+                          color: '#28a745',
+                          fontSize: '16px',
+                          minWidth: '16px',
+                          textAlign: 'center'
+                        }}
+                      ></i>
+                      <span style={{
+                        color: 'var(--text-primary)',
+                        fontSize: '13px',
+                        fontWeight: '400',
+                        lineHeight: '1.3',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {item.data.fileName}
+                      </span>
+                    </div>
+
+                    {/* Download Button */}
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent tree selection
+                        handleDownloadFile(item.index as string, item.data.fileName);
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleDownloadFile(item.index as string, item.data.fileName);
+                        }
+                      }}
+                      style={{
+                        background: 'transparent !important',
+                        cursor: 'pointer',
+                        padding: '4px 6px',
+                        borderRadius: '3px',
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        width: '24px',
+                        height: '24px',
+                        position: 'relative',
+                        zIndex: 10
+                      }}
+                      onMouseOver={(e) => {
+                        const target = e.currentTarget;
+                        const icon = target.querySelector('i');
+                        if (icon) {
+                          icon.style.transform = 'scale(1.3)';
+                          icon.style.textShadow = document.documentElement.classList.contains('dark-mode')
+                            ? '0 0 8px rgba(255, 255, 0, 0.6)'
+                            : '0 0 8px rgba(0, 150, 255, 0.8)';
+                        }
+                      }}
+                      onMouseOut={(e) => {
+                        const target = e.currentTarget;
+                        const icon = target.querySelector('i');
+                        if (icon) {
+                          icon.style.transform = 'scale(1)';
+                          icon.style.textShadow = 'none';
+                        }
+                      }}
+                      title="Download file"
+                      aria-label="Download file"
+                    >
+                      <i className="fas fa-download" style={{
+                        fontSize: '12px',
+                        color: 'var(--text-secondary)',
+                        transition: 'all 0.2s ease'
+                      }} />
+                    </div>
                   </div>
                 );
               }
