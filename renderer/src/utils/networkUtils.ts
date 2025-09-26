@@ -360,13 +360,26 @@ export async function apiRequestWithRetry<T>(
       });
     }
     
+    // Check if this is an API error with specific error details
+    // If so, preserve the original error message instead of using generic network error message
+    if (error.message && error.message !== 'An unexpected error occurred' &&
+        error.message !== networkError.message) {
+      // This is likely an API error with specific details, preserve it
+      const enhancedError = new Error(error.message);
+      (enhancedError as any).type = networkError.type;
+      (enhancedError as any).isRetryable = networkError.isRetryable;
+      (enhancedError as any).originalError = error;
+      (enhancedError as any).simulated = (error as any).simulated || false;
+      throw enhancedError;
+    }
+
     // Re-throw with enhanced error information
     const enhancedError = new Error(networkError.message);
     (enhancedError as any).type = networkError.type;
     (enhancedError as any).isRetryable = networkError.isRetryable;
     (enhancedError as any).originalError = error;
     (enhancedError as any).simulated = (error as any).simulated || false;
-    
+
     throw enhancedError;
   } finally {
     // End activity tracking

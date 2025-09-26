@@ -132,6 +132,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
     format?: string;
     subtitleInfo?: ParsedSubtitle;
   } | null>(null);
+  const [isDragOverWindow, setIsDragOverWindow] = useState(false);
   const [isLoadingFileInfo, setIsLoadingFileInfo] = useState(false);
   const [isNetworkOnline, setIsNetworkOnline] = useState(isOnline());
   const hasAttemptedLogin = useRef(false);
@@ -277,6 +278,80 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       }
     }
   }, [contextTranscriptionInfo]);
+
+  // Window-level drag and drop handlers
+  useEffect(() => {
+    const handleWindowDragEnter = (e: DragEvent) => {
+      e.preventDefault();
+      if (isProcessing || isDetectingLanguage) return;
+
+      // Check if the drag is happening over a FileSelector
+      const target = e.target as HTMLElement;
+      if (target?.closest('.file-selector') || target?.closest('.file-drop-zone')) {
+        return; // Let FileSelector handle this
+      }
+
+      setIsDragOverWindow(true);
+    };
+
+    const handleWindowDragOver = (e: DragEvent) => {
+      e.preventDefault();
+      if (isProcessing || isDetectingLanguage) return;
+
+      // Check if the drag is happening over a FileSelector
+      const target = e.target as HTMLElement;
+      if (target?.closest('.file-selector') || target?.closest('.file-drop-zone')) {
+        return; // Let FileSelector handle this
+      }
+    };
+
+    const handleWindowDragLeave = (e: DragEvent) => {
+      e.preventDefault();
+      // Only hide if we're leaving the window entirely
+      if (!e.relatedTarget || !document.contains(e.relatedTarget as Node)) {
+        setIsDragOverWindow(false);
+      }
+    };
+
+    const handleWindowDrop = (e: DragEvent) => {
+      e.preventDefault();
+      setIsDragOverWindow(false);
+
+      if (isProcessing || isDetectingLanguage) return;
+
+      // Check if the drop is happening over a FileSelector
+      const target = e.target as HTMLElement;
+      if (target?.closest('.file-selector') || target?.closest('.file-drop-zone')) {
+        return; // Let FileSelector handle this
+      }
+
+      const files = Array.from(e.dataTransfer?.files || []);
+      if (files.length > 0) {
+        if (files.length === 1) {
+          // Single file - use existing logic
+          const filePath = files[0].path || files[0].name;
+          handleFileSelect(filePath);
+        } else {
+          // Multiple files - redirect to batch screen
+          const filePaths = files.map(file => file.path || file.name);
+          handleMultipleFileSelect(filePaths);
+        }
+      }
+    };
+
+    // Add listeners to document to capture window-wide events
+    document.addEventListener('dragenter', handleWindowDragEnter);
+    document.addEventListener('dragover', handleWindowDragOver);
+    document.addEventListener('dragleave', handleWindowDragLeave);
+    document.addEventListener('drop', handleWindowDrop);
+
+    return () => {
+      document.removeEventListener('dragenter', handleWindowDragEnter);
+      document.removeEventListener('dragover', handleWindowDragOver);
+      document.removeEventListener('dragleave', handleWindowDragLeave);
+      document.removeEventListener('drop', handleWindowDrop);
+    };
+  }, [isProcessing, isDetectingLanguage]);
 
   // Credits loading now handled by APIContext
 
@@ -938,7 +1013,12 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       logger.info('MainScreen', `${fileType} result:`, result);
       
       if (result.status === 'ERROR') {
-        throw new Error(result.errors?.join(', ') || `${fileType} failed`);
+        // Extract error messages properly, handling both string and object errors
+        const errorMessages = result.errors?.map(error =>
+          typeof error === 'string' ? error : error.message || error.toString()
+        ).join(', ') || `${fileType} failed`;
+
+        throw new Error(errorMessages);
       }
       
       if (result.status === 'COMPLETED' && result.data) {
@@ -957,12 +1037,6 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         if (typeof result.data.credits_left === 'number') {
           const oldCredits = credits;
           const usedCredits = result.data.total_price || 0;
-          
-          // Update centralized credits
-          updateCredits({
-            used: usedCredits,
-            remaining: result.data.credits_left
-          });
           
           // Update global config with credits
           onCreditsUpdate?.({
@@ -1000,10 +1074,10 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
     } catch (error: any) {
       logger.error('MainScreen', `${fileType} error:`, error);
       
-      // Show detailed error only in debug mode, simple message otherwise
+      // Always show API error details, fallback to generic message for other errors
       let errorMessage = 'Processing failed. Please try again.';
-      if (config.debugMode) {
-        errorMessage = error.message || errorMessage;
+      if (error.message && error.message !== 'An unexpected error occurred') {
+        errorMessage = error.message;
       }
       
       setStatusMessage({ 
@@ -1063,12 +1137,6 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           if (typeof result.data.credits_left === 'number') {
             const oldCredits = credits;
             const usedCredits = result.data.total_price || 0;
-
-            // Update centralized credits
-            updateCredits({
-              used: usedCredits,
-              remaining: result.data.credits_left
-            });
 
             // Update global config with credits
             onCreditsUpdate?.({
@@ -1183,8 +1251,40 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
-      gap: '20px'
+      gap: '20px',
+      position: 'relative'
     }}>
+      {/* Window-wide drag overlay */}
+      {isDragOverWindow && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(52, 152, 219, 0.1)',
+          border: '3px dashed #3498db',
+          zIndex: 999,
+          pointerEvents: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            backgroundColor: 'rgba(52, 152, 219, 0.9)',
+            color: 'white',
+            padding: '20px 40px',
+            borderRadius: '10px',
+            fontSize: '18px',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
+          }}>
+            <i className="fas fa-upload" style={{ marginRight: '10px', fontSize: '24px' }}></i>
+            Drop files here to process
+          </div>
+        </div>
+      )}
       <h1>{appConfig.name}</h1>
       <p>Select a file to transcribe or translate:</p>
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Login from './components/Login';
 import MainScreen from './components/MainScreen';
 import BatchScreen from './components/BatchScreen';
+import RecentMedia from './components/RecentMedia';
 import Preferences from './components/Preferences';
 import Update from './components/Update';
 import Info from './components/Info';
@@ -32,6 +33,7 @@ interface AppConfig {
   apiUrlParameter?: string;
   autoLanguageDetection?: boolean;
   darkMode?: boolean;
+  hideRecentMediaInfoPanel?: boolean;
   credits?: {
     used: number;
     remaining: number;
@@ -265,7 +267,7 @@ function AppContent({
     updateCredits
   } = useAPI();
 
-  const [currentScreen, setCurrentScreen] = useState<'login' | 'main' | 'batch' | 'preferences' | 'update' | 'info' | 'credits' | 'help'>('main');
+  const [currentScreen, setCurrentScreen] = useState<'login' | 'main' | 'batch' | 'recent-media' | 'preferences' | 'update' | 'info' | 'credits' | 'help'>('main');
   const [pendingBatchFiles, setPendingBatchFiles] = useState<string[]>([]);
   const [pendingMainFile, setPendingMainFile] = useState<string | null>(null);
   
@@ -377,7 +379,7 @@ function AppContent({
   const handleCreditsUpdate = (creditsData: { used: number; remaining: number }) => {
     // Update credits in centralized context
     updateCredits(creditsData);
-    
+
     // Also update local config for backwards compatibility
     setConfig(prevConfig => {
       if (!prevConfig) return prevConfig;
@@ -386,6 +388,19 @@ function AppContent({
         credits: creditsData
       };
     });
+  };
+
+  const handleConfigUpdate = async (newConfig: Partial<AppConfig>): Promise<void> => {
+    try {
+      // Save config without validation (for simple UI preferences)
+      const success = await window.electronAPI.saveConfig(newConfig);
+      if (success) {
+        const updatedConfig = await window.electronAPI.getConfig();
+        setConfig(updatedConfig);
+      }
+    } catch (error) {
+      console.error('Failed to update config:', error);
+    }
   };
 
   const handlePreferencesSave = async (newConfig: Partial<AppConfig>): Promise<boolean> => {
@@ -477,6 +492,14 @@ function AppContent({
                   onClick={() => handleScreenChange('batch')}
                 >
                   <i className="fas fa-layer-group"></i>Batch
+                </button>
+              </li>
+              <li>
+                <button
+                  className={currentScreen === 'recent-media' ? 'active' : ''}
+                  onClick={() => handleScreenChange('recent-media')}
+                >
+                  <i className="fas fa-history"></i>Recent Media
                 </button>
               </li>
               <li>
@@ -635,6 +658,14 @@ function AppContent({
             pendingFiles={pendingBatchFiles}
             onFilesPending={() => setPendingBatchFiles([])}
             isVisible={true}
+          />
+        )}
+        {currentScreen === 'recent-media' && config && (
+          <RecentMedia
+            setAppProcessing={setAppProcessing}
+            isVisible={true}
+            config={config}
+            onConfigUpdate={handleConfigUpdate}
           />
         )}
         {currentScreen === 'info' && config && (

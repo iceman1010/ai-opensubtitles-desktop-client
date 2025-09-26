@@ -105,6 +105,13 @@ export interface LanguageDetectionResult {
   media?: string;
 }
 
+export interface RecentMediaItem {
+  id: number;
+  time: number;
+  time_str: string;
+  files?: string[];
+}
+
 export class OpenSubtitlesAPI {
   private baseURL = 'https://api.opensubtitles.com/api/v1';
   private apiKey: string = '';
@@ -450,6 +457,10 @@ export class OpenSubtitlesAPI {
         api: options.api,
         language: options.language
       });
+
+      // Clear recent media cache since we're creating new media
+      CacheManager.remove('recent_media');
+
       return await apiRequestWithRetry(async () => {
         const formData = new FormData();
 
@@ -522,9 +533,31 @@ export class OpenSubtitlesAPI {
         return await response.json();
       }, 'Initiate Transcription', 3);
     } catch (error: any) {
+      logger.error('API', 'Transcription initiation failed:', error);
+
+      // Try to get more specific error details from response
+      let errorMessage = error.message || 'Transcription failed';
+
+      // If we have response text, try to parse it for more details
+      if (error.responseText) {
+        try {
+          const parsed = JSON.parse(error.responseText);
+          if (parsed.error) {
+            errorMessage = parsed.error;
+          } else if (parsed.message) {
+            errorMessage = parsed.message;
+          } else if (parsed.errors && Array.isArray(parsed.errors)) {
+            errorMessage = parsed.errors.join(', ');
+          }
+        } catch (parseError) {
+          // If parsing fails, use the original error message
+          errorMessage = error.responseText || errorMessage;
+        }
+      }
+
       return {
         status: 'ERROR',
-        errors: [getUserFriendlyErrorMessage(error)],
+        errors: [errorMessage],
       };
     }
   }
@@ -541,6 +574,10 @@ export class OpenSubtitlesAPI {
         sourceLanguage: options.source_language,
         targetLanguage: options.target_language
       });
+
+      // Clear recent media cache since we're creating new media
+      CacheManager.remove('recent_media');
+
       return await apiRequestWithRetry(async () => {
         const formData = new FormData();
 
@@ -588,9 +625,31 @@ export class OpenSubtitlesAPI {
         return await response.json();
       }, 'Initiate Translation', 3);
     } catch (error: any) {
+      logger.error('API', 'Translation initiation failed:', error);
+
+      // Try to get more specific error details from response
+      let errorMessage = error.message || 'Translation failed';
+
+      // If we have response text, try to parse it for more details
+      if (error.responseText) {
+        try {
+          const parsed = JSON.parse(error.responseText);
+          if (parsed.error) {
+            errorMessage = parsed.error;
+          } else if (parsed.message) {
+            errorMessage = parsed.message;
+          } else if (parsed.errors && Array.isArray(parsed.errors)) {
+            errorMessage = parsed.errors.join(', ');
+          }
+        } catch (parseError) {
+          // If parsing fails, use the original error message
+          errorMessage = error.responseText || errorMessage;
+        }
+      }
+
       return {
         status: 'ERROR',
-        errors: [getUserFriendlyErrorMessage(error)],
+        errors: [errorMessage],
       };
     }
   }
@@ -728,9 +787,30 @@ export class OpenSubtitlesAPI {
       }, 'Detect Language', 3);
     } catch (error: any) {
       logger.error('API', 'Language detection error after retries:', error);
+
+      // Try to get more specific error details from response
+      let errorMessage = error.message || 'Language detection failed';
+
+      // If we have response text, try to parse it for more details
+      if (error.responseText) {
+        try {
+          const parsed = JSON.parse(error.responseText);
+          if (parsed.error) {
+            errorMessage = parsed.error;
+          } else if (parsed.message) {
+            errorMessage = parsed.message;
+          } else if (parsed.errors && Array.isArray(parsed.errors)) {
+            errorMessage = parsed.errors.join(', ');
+          }
+        } catch (parseError) {
+          // If parsing fails, use the original error message
+          errorMessage = error.responseText || errorMessage;
+        }
+      }
+
       return {
         status: 'ERROR',
-        errors: [getUserFriendlyErrorMessage(error)],
+        errors: [errorMessage],
       };
     }
   }
@@ -770,9 +850,31 @@ export class OpenSubtitlesAPI {
         return data;
       }, `Check Language Detection Status (${correlationId})`);
     } catch (error: any) {
+      logger.error('API', 'Language detection status check error:', error);
+
+      // Try to get more specific error details from response
+      let errorMessage = error.message || 'Language detection status check failed';
+
+      // If we have response text, try to parse it for more details
+      if (error.responseText) {
+        try {
+          const parsed = JSON.parse(error.responseText);
+          if (parsed.error) {
+            errorMessage = parsed.error;
+          } else if (parsed.message) {
+            errorMessage = parsed.message;
+          } else if (parsed.errors && Array.isArray(parsed.errors)) {
+            errorMessage = parsed.errors.join(', ');
+          }
+        } catch (parseError) {
+          // If parsing fails, use the original error message
+          errorMessage = error.responseText || errorMessage;
+        }
+      }
+
       return {
         status: 'ERROR',
-        errors: [getUserFriendlyErrorMessage(error)],
+        errors: [errorMessage],
       };
     }
   }
@@ -1189,6 +1291,72 @@ export class OpenSubtitlesAPI {
       return result;
     } catch (error: any) {
       logger.error('API', 'Error fetching credit packages after retries:', error);
+      return {
+        success: false,
+        error: getUserFriendlyErrorMessage(error),
+      };
+    }
+  }
+
+  async getRecentMedia(): Promise<{ success: boolean; data?: RecentMediaItem[]; error?: string }> {
+    const cacheKey = 'recent_media';
+    const cached = CacheManager.get<RecentMediaItem[]>(cacheKey);
+
+    if (cached) {
+      logger.info('API', 'Using cached recent media data');
+      return { success: true, data: cached };
+    }
+
+    if (!this.apiKey) {
+      const error = 'API Key is required to fetch recent media';
+      logger.error('API', error);
+      return { success: false, error };
+    }
+
+    try {
+      const result = await apiRequestWithRetry(async () => {
+        logger.info('API', 'Fetching recent media from API...');
+
+        const headers = {
+          'Accept': 'application/json',
+          'Api-Key': this.apiKey || '',
+          'Content-Type': 'application/json',
+          'User-Agent': getUserAgent(),
+        };
+
+        if (this.token) {
+          headers['Authorization'] = `Bearer ${this.token}`;
+        }
+
+        const response = await fetch(this.getAIUrl('/recent_media'), {
+          method: 'POST',
+          headers,
+        });
+
+        if (!response.ok) {
+          const error = new Error(`Request failed: ${response.status} ${response.statusText}`);
+          (error as any).status = response.status;
+          (error as any).responseText = await response.text().catch(() => '');
+          throw error;
+        }
+
+        const responseData = await response.json();
+        logger.info('API', 'Recent media response:', responseData);
+
+        const data: RecentMediaItem[] = responseData.data || responseData;
+
+        CacheManager.set(cacheKey, data);
+        logger.info('API', 'Recent media cached successfully');
+
+        return {
+          success: true,
+          data,
+        };
+      }, 'Get Recent Media', 3);
+
+      return result;
+    } catch (error: any) {
+      logger.error('API', 'Error fetching recent media after retries:', error);
       return {
         success: false,
         error: getUserFriendlyErrorMessage(error),

@@ -147,6 +147,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     successfulFiles: 0,
     outputFiles: []
   });
+  const [isDragOverWindow, setIsDragOverWindow] = useState(false);
 
   const [showCompletionSummary, setShowCompletionSummary] = useState(false);
   
@@ -223,6 +224,72 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     }
   }, [contextTranslationInfo, isVisible, languagesLoaded]);
 
+  // Window-level drag and drop handlers
+  useEffect(() => {
+    const handleWindowDragEnter = (e: DragEvent) => {
+      e.preventDefault();
+      if (isProcessing) return;
+
+      // Check if the drag is happening over a FileSelector
+      const target = e.target as HTMLElement;
+      if (target?.closest('.file-selector') || target?.closest('.file-drop-zone')) {
+        return; // Let FileSelector handle this
+      }
+
+      setIsDragOverWindow(true);
+    };
+
+    const handleWindowDragOver = (e: DragEvent) => {
+      e.preventDefault();
+      if (isProcessing) return;
+
+      // Check if the drag is happening over a FileSelector
+      const target = e.target as HTMLElement;
+      if (target?.closest('.file-selector') || target?.closest('.file-drop-zone')) {
+        return; // Let FileSelector handle this
+      }
+    };
+
+    const handleWindowDragLeave = (e: DragEvent) => {
+      e.preventDefault();
+      // Only hide if we're leaving the window entirely
+      if (!e.relatedTarget || !document.contains(e.relatedTarget as Node)) {
+        setIsDragOverWindow(false);
+      }
+    };
+
+    const handleWindowDrop = (e: DragEvent) => {
+      e.preventDefault();
+      setIsDragOverWindow(false);
+
+      if (isProcessing) return;
+
+      // Check if the drop is happening over a FileSelector
+      const target = e.target as HTMLElement;
+      if (target?.closest('.file-selector') || target?.closest('.file-drop-zone')) {
+        return; // Let FileSelector handle this
+      }
+
+      const files = Array.from(e.dataTransfer?.files || []);
+      if (files.length > 0) {
+        const filePaths = files.map(file => file.path || file.name);
+        handleMultipleFileSelect(filePaths);
+      }
+    };
+
+    // Add listeners to document to capture window-wide events
+    document.addEventListener('dragenter', handleWindowDragEnter);
+    document.addEventListener('dragover', handleWindowDragOver);
+    document.addEventListener('dragleave', handleWindowDragLeave);
+    document.addEventListener('drop', handleWindowDrop);
+
+    return () => {
+      document.removeEventListener('dragenter', handleWindowDragEnter);
+      document.removeEventListener('dragover', handleWindowDragOver);
+      document.removeEventListener('dragleave', handleWindowDragLeave);
+      document.removeEventListener('drop', handleWindowDrop);
+    };
+  }, [isProcessing]);
 
   const loadLanguagesForTranscriptionModel = async (modelId: string, transcriptionData?: TranscriptionInfo) => {
     setIsLoadingLanguages(true);
@@ -1508,8 +1575,40 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
-      gap: '20px'
+      gap: '20px',
+      position: 'relative'
     }}>
+      {/* Window-wide drag overlay */}
+      {isDragOverWindow && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(52, 152, 219, 0.1)',
+          border: '3px dashed #3498db',
+          zIndex: 999,
+          pointerEvents: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            backgroundColor: 'rgba(52, 152, 219, 0.9)',
+            color: 'white',
+            padding: '20px 40px',
+            borderRadius: '10px',
+            fontSize: '18px',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
+          }}>
+            <i className="fas fa-upload" style={{ marginRight: '10px', fontSize: '24px' }}></i>
+            Drop files here for batch processing
+          </div>
+        </div>
+      )}
       <h1>Batch Processing</h1>
       <p>Select multiple files to transcribe or translate:</p>
 
