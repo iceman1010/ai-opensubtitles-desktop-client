@@ -1147,24 +1147,24 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
           <div style={{
             padding: '20px',
             backgroundColor: 'var(--bg-tertiary)',
-            border: '2px solid #e9ecef',
+            border: '2px solid var(--border-color)',
             borderRadius: '6px',
             marginBottom: '15px'
           }}>
-            <h3 style={{ marginBottom: '12px', fontSize: '16px', color: '#495057', fontWeight: 'bold' }}>FFmpeg Configuration</h3>
-            <p style={{ fontSize: '14px', color: '#6c757d', marginBottom: '18px', lineHeight: '1.4' }}>
+            <h3 style={{ marginBottom: '12px', fontSize: '16px', color: 'var(--text-primary)', fontWeight: 'bold' }}>FFmpeg Configuration</h3>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '18px', lineHeight: '1.4' }}>
               FFmpeg is required for media processing. Leave blank to use automatic detection, or specify a custom path if auto-detection fails.
             </p>
             
             <div style={{ marginBottom: '15px' }}>
-              <label 
+              <label
                 htmlFor="ffmpeg-path"
-                style={{ 
+                style={{
                   display: 'block',
                   marginBottom: '8px',
                   fontSize: '14px',
                   fontWeight: '500',
-                  color: '#495057'
+                  color: 'var(--text-primary)'
                 }}
               >
                 Custom FFmpeg Path (optional)
@@ -1186,10 +1186,12 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
                     style={{
                       flex: 1,
                       padding: '8px 12px',
-                      border: '1px solid #ddd',
+                      border: '1px solid var(--input-border)',
                       borderRadius: '4px',
                       fontSize: '14px',
-                      fontFamily: 'monospace'
+                      fontFamily: 'monospace',
+                      backgroundColor: 'var(--input-bg)',
+                      color: 'var(--text-primary)'
                     }}
                   />
                   <button
@@ -1272,16 +1274,18 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
             
             <div style={{
               fontSize: '12px',
-              color: '#6c757d',
+              color: 'var(--text-secondary)',
               lineHeight: '1.4'
             }}>
               <strong>macOS users:</strong> If FFmpeg is not found automatically, try installing it with:
               <div style={{
-                backgroundColor: '#e9ecef',
+                backgroundColor: 'var(--bg-secondary)',
                 padding: '8px',
                 borderRadius: '4px',
                 fontFamily: 'monospace',
-                margin: '8px 0'
+                margin: '8px 0',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-color)'
               }}>
                 brew install ffmpeg
               </div>
@@ -1295,13 +1299,13 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
           <div style={{
             padding: '20px',
             backgroundColor: 'var(--bg-tertiary)',
-            border: '2px solid #e9ecef',
+            border: '2px solid var(--border-color)',
             borderRadius: '6px',
             marginBottom: '15px',
             marginTop: '15px'
           }}>
-            <h3 style={{ marginBottom: '12px', fontSize: '16px', color: '#495057', fontWeight: 'bold' }}>File Type Associations</h3>
-            <p style={{ fontSize: '14px', color: '#6c757d', marginBottom: '18px', lineHeight: '1.4' }}>
+            <h3 style={{ marginBottom: '12px', fontSize: '16px', color: 'var(--text-primary)', fontWeight: 'bold' }}>File Type Associations</h3>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '18px', lineHeight: '1.4' }}>
               Register the app to handle media files so you can right-click any supported file and "Open with" this application.
             </p>
             
@@ -1386,7 +1390,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
                 disabled={isCheckingAssociations || isLoading}
                 style={{
                   backgroundColor: 'transparent',
-                  borderColor: '#6c757d',
+                  borderColor: 'var(--text-secondary)',
                   color: 'var(--text-secondary)',
                   padding: '8px 16px',
                   border: '2px solid',
@@ -1399,14 +1403,14 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
                 }}
                 onMouseOver={(e) => {
                   if (!isCheckingAssociations && !isLoading) {
-                    e.currentTarget.style.backgroundColor = '#6c757d';
-                    e.currentTarget.style.color = 'white';
+                    e.currentTarget.style.backgroundColor = 'var(--text-secondary)';
+                    e.currentTarget.style.color = 'var(--bg-primary)';
                   }
                 }}
                 onMouseOut={(e) => {
                   if (!isCheckingAssociations && !isLoading) {
                     e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = '#6c757d';
+                    e.currentTarget.style.color = 'var(--text-secondary)';
                   }
                 }}
               >
@@ -1416,7 +1420,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
             
             <div style={{
               fontSize: '12px',
-              color: '#6c757d',
+              color: 'var(--text-secondary)',
               marginTop: '10px',
               lineHeight: '1.4'
             }}>

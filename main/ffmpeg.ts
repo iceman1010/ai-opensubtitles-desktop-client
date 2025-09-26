@@ -58,14 +58,7 @@ export class FFmpegManager {
         return true;
       }
 
-      console.error('=== FFmpeg INITIALIZATION FAILED ===');
-      console.error('FFmpeg could not be found or downloaded.');
-      console.error('This will prevent media file processing and language detection.');
-      console.error('Possible solutions:');
-      console.error('1. Install FFmpeg using your package manager (brew install ffmpeg, apt install ffmpeg, etc.)');
-      console.error('2. Set a custom FFmpeg path in Preferences');
-      console.error('3. Ensure FFmpeg is in your system PATH');
-      console.error('=== END FFmpeg ERROR ===');
+      this.logPlatformSpecificError();
       return false;
     } catch (error) {
       console.error('=== FFmpeg INITIALIZATION ERROR ===');
@@ -81,31 +74,25 @@ export class FFmpegManager {
   }
 
   private async findFFmpeg(): Promise<string | null> {
-    // Try multiple approaches for better macOS compatibility
-    const possiblePaths = [
-      'ffmpeg', // System PATH
-      '/usr/local/bin/ffmpeg', // Homebrew default (Intel)
-      '/opt/homebrew/bin/ffmpeg', // Homebrew default (Apple Silicon)
-      '/usr/bin/ffmpeg', // System default
-      '/usr/local/Cellar/ffmpeg', // Alternative Homebrew location
-      process.env.FFMPEG_PATH // User-defined environment variable
-    ].filter(Boolean); // Remove any undefined values
+    // Get platform-specific possible paths
+    const possiblePaths = this.getPlatformSpecificPaths();
 
     this.debug(3, 'FFmpeg', '=== FFmpeg PATH DETECTION START ===');
+    this.debug(3, 'FFmpeg', `Platform: ${process.platform}, Architecture: ${process.arch}`);
     this.debug(3, 'FFmpeg', 'Searching for FFmpeg in multiple locations...');
     this.debug(3, 'FFmpeg', 'Possible paths to check:', possiblePaths);
 
-    // First try the traditional 'which' command
-    this.debug(3, 'FFmpeg', 'Step 1: Trying which/where command...');
+    // Step 1: Try system PATH via which/where command
+    this.debug(3, 'FFmpeg', 'Step 1: Trying system PATH via which/where command...');
     const whichResult = await this.tryWhichCommand();
     if (whichResult) {
-      this.debug(2, 'FFmpeg', `✅ FFmpeg found via 'which' command: ${whichResult}`);
+      this.debug(2, 'FFmpeg', `✅ FFmpeg found via system PATH: ${whichResult}`);
       return whichResult;
     }
-    this.debug(3, 'FFmpeg', '❌ which/where command failed or returned no result');
+    this.debug(3, 'FFmpeg', '❌ System PATH search failed');
 
-    // Then try each possible path
-    this.debug(3, 'FFmpeg', 'Step 2: Testing predefined paths...');
+    // Step 2: Try predefined platform-specific paths
+    this.debug(3, 'FFmpeg', 'Step 2: Testing platform-specific predefined paths...');
     for (const testPath of possiblePaths) {
       if (testPath) {
         this.debug(3, 'FFmpeg', `  Testing: ${testPath}`);
@@ -117,24 +104,88 @@ export class FFmpegManager {
       }
     }
 
-    // If all else fails, try to find it via Homebrew
-    this.debug(3, 'FFmpeg', 'Step 3: Trying Homebrew detection...');
-    const brewResult = await this.tryHomebrewPath();
-    if (brewResult) {
-      this.debug(2, 'FFmpeg', `✅ FFmpeg found via Homebrew: ${brewResult}`);
-      return brewResult;
+    // Step 3: Try package manager detection (Homebrew on macOS)
+    if (process.platform === 'darwin') {
+      this.debug(3, 'FFmpeg', 'Step 3: Trying Homebrew detection...');
+      const brewResult = await this.tryHomebrewPath();
+      if (brewResult) {
+        this.debug(2, 'FFmpeg', `✅ FFmpeg found via Homebrew: ${brewResult}`);
+        return brewResult;
+      }
+      this.debug(3, 'FFmpeg', '❌ Homebrew detection failed');
     }
-    this.debug(3, 'FFmpeg', '❌ Homebrew detection failed');
 
     this.debug(3, 'FFmpeg', '=== FFmpeg PATH DETECTION END ===');
     this.debug(1, 'FFmpeg', '⚠️  FFmpeg not found in any standard locations');
     return null;
   }
 
+  private getPlatformSpecificPaths(): string[] {
+    const paths: string[] = [];
+
+    // Always include user-defined environment variable first
+    if (process.env.FFMPEG_PATH) {
+      paths.push(process.env.FFMPEG_PATH);
+    }
+
+    switch (process.platform) {
+      case 'win32':
+        // Windows-specific paths
+        paths.push(
+          'ffmpeg', // System PATH (if user installed)
+          'C:\\ffmpeg\\bin\\ffmpeg.exe', // Common manual installation
+          'C:\\Program Files\\ffmpeg\\bin\\ffmpeg.exe',
+          'C:\\Program Files (x86)\\ffmpeg\\bin\\ffmpeg.exe',
+          path.join(process.env.LOCALAPPDATA || '', 'ffmpeg', 'bin', 'ffmpeg.exe'),
+          path.join(process.env.PROGRAMFILES || '', 'ffmpeg', 'bin', 'ffmpeg.exe'),
+          path.join(process.env['PROGRAMFILES(X86)'] || '', 'ffmpeg', 'bin', 'ffmpeg.exe')
+        );
+        break;
+
+      case 'darwin':
+        // macOS-specific paths (Intel + Apple Silicon)
+        paths.push(
+          'ffmpeg', // System PATH
+          '/usr/local/bin/ffmpeg', // Homebrew Intel Mac
+          '/opt/homebrew/bin/ffmpeg', // Homebrew Apple Silicon Mac
+          '/usr/bin/ffmpeg', // System default
+          '/usr/local/Cellar/ffmpeg', // Alternative Homebrew location (will be tested with bin/ appended)
+          '/opt/local/bin/ffmpeg', // MacPorts
+          '/Applications/ffmpeg', // Some app-style installations
+          path.join(process.env.HOME || '', 'bin', 'ffmpeg') // User local installation
+        );
+        break;
+
+      case 'linux':
+      default:
+        // Linux and other Unix-like systems
+        paths.push(
+          'ffmpeg', // System PATH
+          '/usr/bin/ffmpeg', // System package manager
+          '/usr/local/bin/ffmpeg', // Manual/source installation
+          '/opt/ffmpeg/bin/ffmpeg', // Alternative installation
+          '/snap/bin/ffmpeg', // Snap package
+          '/var/lib/flatpak/exports/bin/ffmpeg', // Flatpak
+          path.join(process.env.HOME || '', 'bin', 'ffmpeg'), // User local installation
+          path.join(process.env.HOME || '', '.local', 'bin', 'ffmpeg') // User local installation (newer convention)
+        );
+        break;
+    }
+
+    return paths.filter(Boolean); // Remove any undefined/empty paths
+  }
+
   private async tryWhichCommand(): Promise<string | null> {
     return new Promise((resolve) => {
-      const child = spawn('which', ['ffmpeg'], { stdio: 'pipe' });
-      
+      // Use platform-appropriate command for finding executables
+      const isWindows = process.platform === 'win32';
+      const command = isWindows ? 'where' : 'which';
+      const args = ['ffmpeg'];
+
+      this.debug(3, 'FFmpeg', `Using ${command} command for platform: ${process.platform}`);
+
+      const child = spawn(command, args, { stdio: 'pipe' });
+
       let output = '';
       child.stdout.on('data', (data) => {
         output += data.toString();
@@ -142,13 +193,18 @@ export class FFmpegManager {
 
       child.on('close', (code) => {
         if (code === 0 && output.trim()) {
-          resolve(output.trim());
+          // Windows 'where' command can return multiple paths, take the first one
+          const firstPath = output.trim().split('\n')[0].trim();
+          this.debug(3, 'FFmpeg', `${command} command found: ${firstPath}`);
+          resolve(firstPath);
         } else {
+          this.debug(3, 'FFmpeg', `${command} command failed with code: ${code}`);
           resolve(null);
         }
       });
 
-      child.on('error', () => {
+      child.on('error', (error) => {
+        this.debug(3, 'FFmpeg', `${command} command error:`, error.message);
         resolve(null);
       });
     });
@@ -176,41 +232,84 @@ export class FFmpegManager {
 
   private async tryHomebrewPath(): Promise<string | null> {
     return new Promise((resolve) => {
-      const child = spawn('brew', ['--prefix', 'ffmpeg'], { stdio: 'pipe' });
-      
+      // First, get the general Homebrew prefix (more reliable than ffmpeg-specific prefix)
+      const child = spawn('brew', ['--prefix'], { stdio: 'pipe' });
+
       let output = '';
       child.stdout.on('data', (data) => {
         output += data.toString();
       });
 
-      child.on('close', (code) => {
+      child.on('close', async (code) => {
         if (code === 0 && output.trim()) {
-          const brewPath = path.join(output.trim(), 'bin', 'ffmpeg');
-          this.testFFmpegPath(brewPath).then((isValid) => {
-            resolve(isValid ? brewPath : null);
-          });
+          const brewPrefix = output.trim();
+          const brewPath = path.join(brewPrefix, 'bin', 'ffmpeg');
+
+          this.debug(3, 'FFmpeg', `Testing Homebrew path: ${brewPath}`);
+
+          const isValid = await this.testFFmpegPath(brewPath);
+          if (isValid) {
+            this.debug(3, 'FFmpeg', `✅ Found FFmpeg via Homebrew: ${brewPath}`);
+            resolve(brewPath);
+          } else {
+            this.debug(3, 'FFmpeg', `❌ Homebrew FFmpeg not found at: ${brewPath}`);
+            resolve(null);
+          }
         } else {
+          this.debug(3, 'FFmpeg', `❌ Homebrew not found or failed (exit code: ${code})`);
           resolve(null);
         }
       });
 
-      child.on('error', () => {
+      child.on('error', (error) => {
+        this.debug(3, 'FFmpeg', `❌ Homebrew command error: ${error.message}`);
         resolve(null);
       });
     });
   }
 
   private async downloadFFmpeg(): Promise<void> {
+    this.debug(2, 'FFmpeg', 'Attempting to use ffmpeg-static fallback...');
+
     try {
       const ffmpegStatic = require('ffmpeg-static');
-      if (ffmpegStatic && fs.existsSync(ffmpegStatic)) {
-        this.ffmpegPath = ffmpegStatic;
-        this.debug(2, 'FFmpeg', 'Using ffmpeg-static binary');
+      this.debug(3, 'FFmpeg', `ffmpeg-static returned path: ${ffmpegStatic}`);
+
+      if (ffmpegStatic) {
+        // Verify the path exists and is accessible
+        if (fs.existsSync(ffmpegStatic)) {
+          // Test if the binary is executable
+          const isExecutable = await this.testFFmpegPath(ffmpegStatic);
+          if (isExecutable) {
+            this.ffmpegPath = ffmpegStatic;
+            this.debug(2, 'FFmpeg', `✅ Using ffmpeg-static binary: ${ffmpegStatic}`);
+            return;
+          } else {
+            this.debug(1, 'FFmpeg', `❌ ffmpeg-static binary exists but is not executable: ${ffmpegStatic}`);
+          }
+        } else {
+          this.debug(1, 'FFmpeg', `❌ ffmpeg-static binary path does not exist: ${ffmpegStatic}`);
+        }
+      } else {
+        this.debug(1, 'FFmpeg', '❌ ffmpeg-static returned null/undefined path');
       }
     } catch (error) {
-      console.error('Failed to use ffmpeg-static:', error);
-      throw new Error('FFmpeg is required but not available');
+      this.debug(1, 'FFmpeg', `❌ Error loading ffmpeg-static module:`, error instanceof Error ? error.message : 'Unknown error');
+
+      // More detailed error information
+      if (error instanceof Error) {
+        if (error.message.includes('Cannot find module')) {
+          this.debug(1, 'FFmpeg', '❌ ffmpeg-static dependency is missing from node_modules');
+        } else if (error.message.includes('ENOENT') || error.message.includes('not found')) {
+          this.debug(1, 'FFmpeg', '❌ ffmpeg-static binary download failed or file system error');
+        }
+      }
     }
+
+    // If we reach here, ffmpeg-static failed
+    const errorMsg = 'FFmpeg is required but not available. Please install FFmpeg on your system or check the application logs for details.';
+    this.debug(1, 'FFmpeg', `❌ ${errorMsg}`);
+    throw new Error(errorMsg);
   }
 
   isReady(): boolean {
@@ -355,6 +454,58 @@ export class FFmpegManager {
   private generateOutputPath(inputPath: string, extension: string): string {
     const parsedPath = path.parse(inputPath);
     return path.join(parsedPath.dir, `${parsedPath.name}_converted${extension}`);
+  }
+
+  private logPlatformSpecificError(): void {
+    console.error('=== FFmpeg INITIALIZATION FAILED ===');
+    console.error('FFmpeg could not be found or downloaded.');
+    console.error('This will prevent media file processing and language detection.');
+    console.error('');
+
+    switch (process.platform) {
+      case 'win32':
+        console.error('🪟 Windows Solutions:');
+        console.error('1. Download FFmpeg from https://ffmpeg.org/download.html#build-windows');
+        console.error('2. Extract to C:\\ffmpeg\\ and add C:\\ffmpeg\\bin to your PATH');
+        console.error('3. Or install via package manager:');
+        console.error('   • Chocolatey: choco install ffmpeg');
+        console.error('   • Winget: winget install FFmpeg');
+        console.error('   • Scoop: scoop install ffmpeg');
+        console.error('4. Alternatively, set a custom FFmpeg path in Preferences');
+        break;
+
+      case 'darwin':
+        console.error('🍎 macOS Solutions:');
+        console.error('1. Install via Homebrew (recommended): brew install ffmpeg');
+        console.error('2. Install via MacPorts: sudo port install ffmpeg');
+        console.error('3. Download binary from https://evermeet.cx/ffmpeg/');
+        console.error('4. Set a custom FFmpeg path in Preferences');
+        console.error('');
+        console.error('💡 Note: If using Homebrew, make sure it\'s properly configured:');
+        console.error('   • Intel Mac: FFmpeg should be in /usr/local/bin/');
+        console.error('   • Apple Silicon Mac: FFmpeg should be in /opt/homebrew/bin/');
+        break;
+
+      case 'linux':
+      default:
+        console.error('🐧 Linux Solutions:');
+        console.error('1. Install via package manager:');
+        console.error('   • Ubuntu/Debian: sudo apt install ffmpeg');
+        console.error('   • RHEL/CentOS/Fedora: sudo dnf install ffmpeg (or yum)');
+        console.error('   • Arch: sudo pacman -S ffmpeg');
+        console.error('   • openSUSE: sudo zypper install ffmpeg');
+        console.error('2. Install via Snap: sudo snap install ffmpeg');
+        console.error('3. Install via Flatpak: flatpak install org.ffmpeg.FFmpeg');
+        console.error('4. Set a custom FFmpeg path in Preferences');
+        break;
+    }
+
+    console.error('');
+    console.error('💡 Troubleshooting:');
+    console.error('• Enable debug logging in Preferences to see detailed detection attempts');
+    console.error('• Check if FFmpeg works in terminal/command prompt: ffmpeg -version');
+    console.error('• Restart the application after installing FFmpeg');
+    console.error('=== END FFmpeg ERROR ===');
   }
 
   getFFmpegPath(): string | null {

@@ -1439,10 +1439,10 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
 
       {/* Language Detection Section */}
       {selectedFile && (
-        <div style={{ 
-          marginTop: '20px', 
-          padding: '15px', 
-          border: '1px solid #ddd', 
+        <div style={{
+          marginTop: '20px',
+          padding: '15px',
+          border: '1px solid var(--border-color)',
           borderRadius: '6px',
           backgroundColor: 'var(--bg-tertiary)',
           opacity: selectedFile ? 1 : 0,
@@ -1451,7 +1451,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           transitionDelay: '0.1s'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '10px' }}>
-            <h4 style={{ margin: 0 }}>Language Detection</h4>
+            <h4 style={{ margin: 0, color: 'var(--text-primary)' }}>Language Detection</h4>
             <button 
               onClick={detectLanguageForFile}
               disabled={isDetectingLanguage || isProcessing}
@@ -1489,10 +1489,10 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
             </button>
           </div>
           
-          <p style={{ 
-            margin: '0 0 15px 0', 
-            color: '#666', 
-            fontSize: '14px' 
+          <p style={{
+            margin: '0 0 15px 0',
+            color: 'var(--text-secondary)',
+            fontSize: '14px'
           }}>
             Click "Detect Language" to automatically identify the source language and see which AI models support it.
           </p>
@@ -1502,15 +1502,15 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
             <div style={{
               marginTop: '15px',
               padding: '12px',
-              backgroundColor: 'var(--success-color)',
-              border: '1px solid #4CAF50',
+              backgroundColor: 'var(--success-bg)',
+              border: '1px solid var(--success-border)',
               borderRadius: '4px'
             }}>
-              <h5 style={{ margin: '0 0 10px 0', color: '#2E7D32' }}>
+              <h5 style={{ margin: '0 0 10px 0', color: 'var(--success-text)' }}>
                 Language Detected: {detectedLanguage.name}
               </h5>
               
-              <div style={{ display: 'flex', gap: '20px', marginBottom: '15px', fontSize: '14px' }}>
+              <div style={{ display: 'flex', gap: '20px', marginBottom: '15px', fontSize: '14px', color: 'var(--success-text)' }}>
                 <div><strong>Native Name:</strong> {detectedLanguage.native}</div>
                 <div><strong>ISO Code:</strong> {detectedLanguage.ISO_639_1}</div>
                 <div><strong>W3C Code:</strong> {detectedLanguage.W3C}</div>
@@ -1527,17 +1527,17 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
                     {/* Show translation models for subtitle files */}
                     {isSubtitle && (
                       <div style={{ marginBottom: '15px' }}>
-                        <h6 style={{ margin: '0 0 8px 0', color: '#1976D2' }}>
+                        <h6 style={{ margin: '0 0 8px 0', color: 'var(--text-primary)' }}>
                           Compatible Translation Models ({compatibleModels.translation.length})
                         </h6>
                         {compatibleModels.translation.length > 0 ? (
-                          <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px' }}>
+                          <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: 'var(--success-text)' }}>
                             {compatibleModels.translation.map(model => (
                               <li key={model}>{model}</li>
                             ))}
                           </ul>
                         ) : (
-                          <p style={{ margin: 0, fontSize: '13px', color: '#666', fontStyle: 'italic' }}>
+                          <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
                             No translation models support this language
                           </p>
                         )}
@@ -1547,17 +1547,17 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
                     {/* Show transcription models for audio/video files */}
                     {isAudioVideo && (
                       <div style={{ marginBottom: '15px' }}>
-                        <h6 style={{ margin: '0 0 8px 0', color: '#1976D2' }}>
+                        <h6 style={{ margin: '0 0 8px 0', color: 'var(--text-primary)' }}>
                           Compatible Transcription Models ({compatibleModels.transcription.length})
                         </h6>
                         {compatibleModels.transcription.length > 0 ? (
-                          <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px' }}>
+                          <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: 'var(--success-text)' }}>
                             {compatibleModels.transcription.map(model => (
                               <li key={model}>{model}</li>
                             ))}
                           </ul>
                         ) : (
-                          <p style={{ margin: 0, fontSize: '13px', color: '#666', fontStyle: 'italic' }}>
+                          <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
                             No transcription models support this language
                           </p>
                         )}
@@ -1573,12 +1573,13 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
                 <div style={{
                   marginTop: '10px',
                   padding: '8px',
-                  backgroundColor: 'var(--success-color)',
+                  backgroundColor: 'var(--success-bg)',
                   borderRadius: '3px',
                   fontSize: '12px',
-                  color: '#2e7d32'
+                  color: 'var(--success-text)',
+                  border: '1px solid var(--success-border)'
                 }}>
-                  <i className="fas fa-check-circle text-success"></i> Language selection has been automatically updated below
+                  <i className="fas fa-check-circle" style={{ color: 'var(--success-text)' }}></i> Language selection has been automatically updated below
                 </div>
               )}
             </div>
