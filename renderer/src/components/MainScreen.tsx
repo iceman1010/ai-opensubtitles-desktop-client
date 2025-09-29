@@ -721,10 +721,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         const currentDestLang = translationOptions.destinationLanguage;
         const isCurrentLangAvailable = modelLanguages.some(lang => lang.language_code === currentDestLang);
         
-        if (!isCurrentLangAvailable && modelLanguages.length > 0) {
-          const defaultLang = modelLanguages.find(lang => lang.language_code === 'en') || modelLanguages[0];
-          setTranslationOptions(prev => ({ ...prev, destinationLanguage: defaultLang.language_code }));
-        }
+        // Don't auto-select destination language - let user choose explicitly
         setIsLoadingDynamicOptions(false);
         return;
       }
@@ -746,10 +743,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           const currentDestLang = translationOptions.destinationLanguage;
           const isCurrentLangAvailable = languagesArray.some(lang => lang.language_code === currentDestLang);
           
-          if (!isCurrentLangAvailable) {
-            const defaultLang = languagesArray.find(lang => lang.language_code === 'en') || languagesArray[0];
-            setTranslationOptions(prev => ({ ...prev, destinationLanguage: defaultLang.language_code }));
-          }
+          // Don't auto-select destination language - let user choose explicitly
         } else {
           logger.warn('MainScreen', `No languages returned for model ${modelId}, keeping current languages`);
         }
@@ -794,11 +788,23 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
   };
 
   const handleTranslationLanguageChange = (field: 'sourceLanguage' | 'destinationLanguage', newLanguage: string) => {
+    logger.debug(2, 'MainScreen', 'handleTranslationLanguageChange called', {
+      field,
+      newLanguage,
+      currentOptions: translationOptions
+    });
+
     const updatedOptions = { ...translationOptions, [field]: newLanguage };
+    logger.debug(2, 'MainScreen', 'Setting updated options', updatedOptions);
+
     setTranslationOptions(updatedOptions);
-    
+
     // Load compatible models for this language pair
     if (updatedOptions.sourceLanguage && updatedOptions.destinationLanguage) {
+      logger.debug(2, 'MainScreen', 'Loading models for language pair', {
+        source: updatedOptions.sourceLanguage,
+        dest: updatedOptions.destinationLanguage
+      });
       loadModelsForTranslationLanguage(updatedOptions.sourceLanguage, updatedOptions.destinationLanguage);
     }
   };

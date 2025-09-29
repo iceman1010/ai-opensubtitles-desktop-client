@@ -1,15 +1,16 @@
 import React, { useMemo } from 'react';
 import { TranslationInfo } from '../services/api';
 import SmartSelect, { SmartSelectOption } from './SmartSelect';
-import { 
-  consolidateLanguages, 
-  buildCompatibilityMatrix, 
+import {
+  consolidateLanguages,
+  buildCompatibilityMatrix,
   getBestVariantForApi,
   getConsolidatedLanguageById,
   getConsolidatedLanguageByCode,
   ConsolidatedLanguage
 } from '../utils/languageMapper';
 import * as fileFormatsConfig from '../../../shared/fileFormats.json';
+import { logger } from '../utils/errorLogger';
 
 interface ImprovedTranslationOptionsProps {
   options: {
@@ -87,10 +88,24 @@ const ImprovedTranslationOptions: React.FC<ImprovedTranslationOptionsProps> = ({
 
   // Get current consolidated language for source and destination
   const currentSourceConsolidated = useMemo(() => {
+    logger.debug(2, 'ImprovedTranslationOptions', 'Calculating currentSourceConsolidated', {
+      sourceLanguage: options.sourceLanguage,
+      consolidatedLanguagesCount: consolidatedLanguages.length
+    });
+
     if (options.sourceLanguage === 'auto') {
-      return consolidatedLanguages.find(lang => lang.id === 'auto-detect');
+      const autoDetect = consolidatedLanguages.find(lang => lang.id === 'auto-detect');
+      logger.debug(2, 'ImprovedTranslationOptions', 'Auto-detect found', autoDetect);
+      return autoDetect;
     }
-    return getConsolidatedLanguageByCode(consolidatedLanguages, options.sourceLanguage);
+
+    const found = getConsolidatedLanguageByCode(consolidatedLanguages, options.sourceLanguage);
+    logger.debug(2, 'ImprovedTranslationOptions', 'getConsolidatedLanguageByCode result', {
+      searchCode: options.sourceLanguage,
+      found: found ? { id: found.id, name: found.name, primaryCode: found.primaryCode } : null
+    });
+
+    return found;
   }, [consolidatedLanguages, options.sourceLanguage]);
 
   const currentDestConsolidated = useMemo(() => {
@@ -99,19 +114,63 @@ const ImprovedTranslationOptions: React.FC<ImprovedTranslationOptionsProps> = ({
 
   // Handle language selection
   const handleLanguageSelection = (field: 'sourceLanguage' | 'destinationLanguage', consolidatedId: string) => {
+    logger.debug(2, 'ImprovedTranslationOptions', 'handleLanguageSelection called', {
+      field,
+      consolidatedId,
+      currentModel: options.model,
+      currentOptions: options
+    });
+
     const consolidatedLang = getConsolidatedLanguageById(consolidatedLanguages, consolidatedId);
-    if (!consolidatedLang) return;
+    if (!consolidatedLang) {
+      logger.error('ImprovedTranslationOptions', `No consolidated language found for ID: ${consolidatedId}`);
+      return;
+    }
+
+    logger.debug(2, 'ImprovedTranslationOptions', 'Found consolidated language', {
+      name: consolidatedLang.name,
+      primaryCode: consolidatedLang.primaryCode,
+      variants: consolidatedLang.variants
+    });
 
     // Special handling for auto-detect
     if (consolidatedId === 'auto-detect') {
+      logger.debug(2, 'ImprovedTranslationOptions', `Setting auto-detect for ${field}`);
       onLanguageChange(field, 'auto');
       return;
     }
 
     // Get the best variant code for the current model
     const bestVariant = getBestVariantForApi(consolidatedLang, options.model);
+    logger.debug(2, 'ImprovedTranslationOptions', 'getBestVariantForApi result', {
+      model: options.model,
+      bestVariant,
+      availableVariants: consolidatedLang.variants.filter(v => v.api === options.model)
+    });
+
     if (bestVariant) {
+      logger.debug(2, 'ImprovedTranslationOptions', 'Calling onLanguageChange with', { field, bestVariant });
       onLanguageChange(field, bestVariant);
+    } else {
+      // If no variant found for current model, use fallbacks in order of preference
+      const fallbackCode = consolidatedLang.primaryCode ||
+                           (consolidatedLang.variants.length > 0 ? consolidatedLang.variants[0].code : null);
+
+      if (fallbackCode) {
+        logger.warn('ImprovedTranslationOptions', `No variant found for model ${options.model}, using fallback: ${fallbackCode}`, {
+          primaryCode: consolidatedLang.primaryCode,
+          firstVariantCode: consolidatedLang.variants[0]?.code,
+          chosenFallback: fallbackCode
+        });
+        onLanguageChange(field, fallbackCode);
+      } else {
+        logger.error('ImprovedTranslationOptions', `Cannot select language ${consolidatedId}: no valid language code found`, {
+          consolidatedLang,
+          model: options.model
+        });
+        // Don't call onLanguageChange with undefined/null - just abort the selection
+        return;
+      }
     }
   };
 
