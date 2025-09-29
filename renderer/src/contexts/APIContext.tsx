@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { OpenSubtitlesAPI, TranscriptionInfo, TranslationInfo } from '../services/api';
 import { logger } from '../utils/errorLogger';
+import { isOnline } from '../utils/networkUtils';
 
 interface APIContextType {
   api: OpenSubtitlesAPI | null;
@@ -97,6 +98,15 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
       const hasCachedToken = await apiInstance.loadCachedToken();
       if (hasCachedToken) {
         logger.info('APIContext', 'Using cached token, verifying with credits check');
+
+        // Check if device is online before making network request
+        if (!isOnline()) {
+          logger.warn('APIContext', 'Device is offline, skipping credits verification');
+          setAuthenticationInProgress(false);
+          setIsLoading(false);
+          return false;
+        }
+
         // Verify token is still valid with a credits check
         const creditsResult = await apiInstance.getCredits();
         if (creditsResult.success) {
