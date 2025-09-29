@@ -69,9 +69,10 @@ interface MainScreenProps {
   pendingExternalFile?: string | null;
   onExternalFileProcessed?: () => void;
   onCreditsUpdate?: (credits: { used: number; remaining: number }) => void;
+  onProcessingStateChange?: (isProcessing: boolean) => void;
 }
 
-function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateToBatch, pendingExternalFile, onExternalFileProcessed, onCreditsUpdate }: MainScreenProps) {
+function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateToBatch, pendingExternalFile, onExternalFileProcessed, onCreditsUpdate, onProcessingStateChange }: MainScreenProps) {
   const {
     isAuthenticated,
     credits,
@@ -146,6 +147,11 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       languageDetectionTimeoutRef.current = null;
     }
   };
+
+  // Report processing state changes to parent component
+  useEffect(() => {
+    onProcessingStateChange?.(isProcessing);
+  }, [isProcessing, onProcessingStateChange]);
 
   // Initialize API info when context provides data
   useEffect(() => {

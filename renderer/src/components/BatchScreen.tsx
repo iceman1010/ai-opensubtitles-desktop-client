@@ -103,9 +103,10 @@ interface BatchScreenProps {
   pendingFiles?: string[];
   onFilesPending?: () => void;
   isVisible?: boolean;
+  onProcessingStateChange?: (isProcessing: boolean) => void;
 }
 
-const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pendingFiles, onFilesPending, isVisible = true }) => {
+const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pendingFiles, onFilesPending, isVisible = true, onProcessingStateChange }) => {
   const [queue, setQueue] = useState<BatchFile[]>([]);
   const detectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const detectionInProgressRef = useRef<Set<string>>(new Set());
@@ -177,6 +178,11 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
   const queueRef = useRef<BatchFile[]>([]);
 
   // API initialization now handled by APIContext
+
+  // Report processing state changes to parent component
+  useEffect(() => {
+    onProcessingStateChange?.(isProcessing);
+  }, [isProcessing, onProcessingStateChange]);
 
   // Handle pending files from MainScreen redirect
   useEffect(() => {

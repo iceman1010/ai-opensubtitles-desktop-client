@@ -571,8 +571,8 @@ export class OpenSubtitlesAPI {
         fileType: typeof subtitleFile,
         fileName: typeof subtitleFile === 'string' ? subtitleFile.split('/').pop() : subtitleFile.name,
         api: options.api,
-        sourceLanguage: options.source_language,
-        targetLanguage: options.target_language
+        translateFrom: options.translateFrom,
+        translateTo: options.translateTo
       });
 
       // Clear recent media cache since we're creating new media

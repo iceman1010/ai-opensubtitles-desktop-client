@@ -270,6 +270,10 @@ function AppContent({
   const [currentScreen, setCurrentScreen] = useState<'login' | 'main' | 'batch' | 'recent-media' | 'preferences' | 'update' | 'info' | 'credits' | 'help'>('main');
   const [pendingBatchFiles, setPendingBatchFiles] = useState<string[]>([]);
   const [pendingMainFile, setPendingMainFile] = useState<string | null>(null);
+
+  // Track processing states from child screens
+  const [mainScreenProcessing, setMainScreenProcessing] = useState(false);
+  const [batchScreenProcessing, setBatchScreenProcessing] = useState(false);
   
   // Centralized status state
   const [isNetworkOnline, setIsNetworkOnline] = useState(true);
@@ -449,6 +453,20 @@ function AppContent({
   };
 
   const handleScreenChange = (screen: typeof currentScreen) => {
+    // Check if a process is currently running and warn user
+    const isCurrentlyProcessing =
+      (currentScreen === 'main' && mainScreenProcessing) ||
+      (currentScreen === 'batch' && batchScreenProcessing);
+
+    if (isCurrentlyProcessing) {
+      const confirmed = window.confirm(
+        "A process is currently running. Navigating away will lose the current state. Continue anyway?"
+      );
+      if (!confirmed) {
+        return; // Cancel navigation
+      }
+    }
+
     setCurrentScreen(screen);
     // Reset scroll position to top when changing screens
     setTimeout(() => {
@@ -649,6 +667,7 @@ function AppContent({
             pendingExternalFile={pendingMainFile}
             onExternalFileProcessed={() => setPendingMainFile(null)}
             onCreditsUpdate={handleCreditsUpdate}
+            onProcessingStateChange={setMainScreenProcessing}
           />
         )}
         {currentScreen === 'batch' && config && (
@@ -658,6 +677,7 @@ function AppContent({
             pendingFiles={pendingBatchFiles}
             onFilesPending={() => setPendingBatchFiles([])}
             isVisible={true}
+            onProcessingStateChange={setBatchScreenProcessing}
           />
         )}
         {currentScreen === 'recent-media' && config && (
