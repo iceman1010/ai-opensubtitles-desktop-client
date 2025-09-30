@@ -11,6 +11,7 @@ import Help from './components/Help';
 import StatusBar from './components/StatusBar';
 import ErrorLogControls from './components/ErrorLogControls';
 import { APIProvider, useAPI } from './contexts/APIContext';
+import { PowerProvider, usePowerEvents, useHibernationRecovery } from './contexts/PowerContext';
 import { logger } from './utils/errorLogger'; // Initialize global error handlers
 import appConfig from './config/appConfig.json';
 import packageInfo from '../../package.json';
@@ -34,6 +35,7 @@ interface AppConfig {
   autoLanguageDetection?: boolean;
   darkMode?: boolean;
   hideRecentMediaInfoPanel?: boolean;
+  defaultFilenameFormat?: string;
   credits?: {
     used: number;
     remaining: number;
@@ -112,22 +114,24 @@ function App() {
       <>
         {/* Main app content loads behind splash screen - ready for reveal */}
         {!isLoading && (
-          <APIProvider
-            initialConfig={hasCredentials ? {
-              username: config.username,
-              password: config.password,
-              apiKey: config.apiKey,
-              apiBaseUrl: config.apiBaseUrl,
-              apiUrlParameter: config.apiUrlParameter
-            } : undefined}
-          >
-            <AppContent
-              config={config}
-              setConfig={setConfig}
-              hasCredentials={!!hasCredentials}
-              isLoading={isLoading}
-            />
-          </APIProvider>
+          <PowerProvider>
+            <APIProvider
+              initialConfig={hasCredentials ? {
+                username: config.username,
+                password: config.password,
+                apiKey: config.apiKey,
+                apiBaseUrl: config.apiBaseUrl,
+                apiUrlParameter: config.apiUrlParameter
+              } : undefined}
+            >
+              <AppContent
+                config={config}
+                setConfig={setConfig}
+                hasCredentials={!!hasCredentials}
+                isLoading={isLoading}
+              />
+            </APIProvider>
+          </PowerProvider>
         )}
 
         {/* Splash screen overlay */}
@@ -227,22 +231,24 @@ function App() {
 
   // Normal app flow after splash screen is hidden
   return (
-    <APIProvider
-      initialConfig={hasCredentials ? {
-        username: config.username,
-        password: config.password,
-        apiKey: config.apiKey,
-        apiBaseUrl: config.apiBaseUrl,
-        apiUrlParameter: config.apiUrlParameter
-      } : undefined}
-    >
-      <AppContent
-        config={config}
-        setConfig={setConfig}
-        hasCredentials={!!hasCredentials}
-        isLoading={isLoading}
-      />
-    </APIProvider>
+    <PowerProvider>
+      <APIProvider
+        initialConfig={hasCredentials ? {
+          username: config.username,
+          password: config.password,
+          apiKey: config.apiKey,
+          apiBaseUrl: config.apiBaseUrl,
+          apiUrlParameter: config.apiUrlParameter
+        } : undefined}
+      >
+        <AppContent
+          config={config}
+          setConfig={setConfig}
+          hasCredentials={!!hasCredentials}
+          isLoading={isLoading}
+        />
+      </APIProvider>
+    </PowerProvider>
   );
 }
 
@@ -258,14 +264,18 @@ function AppContent({
   hasCredentials: boolean;
   isLoading: boolean;
 }) {
-  const { 
-    isAuthenticated, 
-    credits, 
-    isLoading: apiLoading, 
+  const {
+    isAuthenticated,
+    credits,
+    isLoading: apiLoading,
     error: apiError,
     login,
     updateCredits
   } = useAPI();
+
+  // Power management hooks for hibernation recovery
+  const { onSystemSuspend, onSystemResume } = usePowerEvents();
+  const { preserveState, restoreState, clearPreservedState, isTokenExpired } = useHibernationRecovery();
 
   const [currentScreen, setCurrentScreen] = useState<'login' | 'main' | 'batch' | 'recent-media' | 'preferences' | 'update' | 'info' | 'credits' | 'help'>('main');
   const [pendingBatchFiles, setPendingBatchFiles] = useState<string[]>([]);
@@ -354,6 +364,62 @@ function AppContent({
       window.electronAPI?.removeExternalFilesListener?.(handleExternalFiles);
     };
   }, []);
+
+  // Hibernation recovery management
+  useEffect(() => {
+    const handleSuspend = () => {
+      logger.info('App', 'System suspending - preserving app state');
+
+      // Preserve critical app state
+      preserveState({
+        currentScreen,
+        isProcessing: mainScreenProcessing || batchScreenProcessing,
+        processingTask: isProcessing ? currentTask : undefined,
+        timestamp: Date.now()
+      });
+    };
+
+    const handleResume = async () => {
+      logger.info('App', 'System resumed - checking for hibernation recovery');
+
+      try {
+        // Check if token is expired after hibernation
+        const tokenExpired = await isTokenExpired();
+
+        if (tokenExpired && isAuthenticated) {
+          logger.warn('App', 'Token expired after hibernation, re-authentication needed');
+          // You can trigger re-authentication here or show a notification
+          // For now, we'll just log it and let the normal token validation handle it
+        }
+
+        // Restore preserved state if available
+        const savedState = restoreState();
+        if (savedState) {
+          logger.info('App', 'Restoring app state after hibernation:', savedState);
+
+          // Restore current screen if it was preserved
+          if (savedState.currentScreen !== currentScreen) {
+            setCurrentScreen(savedState.currentScreen as typeof currentScreen);
+          }
+
+          // Clear the preserved state after restoration
+          clearPreservedState();
+        }
+      } catch (error) {
+        logger.error('App', 'Error during hibernation recovery:', error);
+      }
+    };
+
+    // Register hibernation event handlers
+    onSystemSuspend(handleSuspend);
+    onSystemResume(handleResume);
+
+    logger.debug(2, 'App', 'Hibernation recovery handlers registered');
+
+    // No cleanup needed as PowerContext handles its own cleanup
+  }, [currentScreen, mainScreenProcessing, batchScreenProcessing, isProcessing, currentTask,
+      isAuthenticated, onSystemSuspend, onSystemResume, preserveState, restoreState,
+      clearPreservedState, isTokenExpired]);
 
   const handleLogin = async (username: string, password: string, apiKey: string): Promise<boolean> => {
     try {

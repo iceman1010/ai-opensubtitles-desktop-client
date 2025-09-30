@@ -124,12 +124,12 @@ export class ConfigManager {
         return null;
       }
       
-      // Check if token file is less than 12 hours old
+      // Check if token file is less than 6 hours old
       const stats = fs.statSync(tokenPath);
       const fileAge = Date.now() - stats.mtime.getTime();
-      const twelveHours = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
-      
-      if (fileAge > twelveHours) {
+      const sixHours = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
+
+      if (fileAge > sixHours) {
         // Token is too old, delete it
         fs.unlinkSync(tokenPath);
         return null;
@@ -140,6 +140,26 @@ export class ConfigManager {
     } catch (error) {
       console.error('Error reading token:', error);
       return null;
+    }
+  }
+
+  isTokenExpiredForHibernation(): boolean {
+    try {
+      const tokenPath = this.getTokenPath();
+
+      if (!fs.existsSync(tokenPath)) {
+        return true; // No token means expired
+      }
+
+      // Check if token file is older than 6 hours
+      const stats = fs.statSync(tokenPath);
+      const fileAge = Date.now() - stats.mtime.getTime();
+      const sixHours = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
+
+      return fileAge > sixHours;
+    } catch (error) {
+      console.error('Error checking token age:', error);
+      return true; // Assume expired on error
     }
   }
 

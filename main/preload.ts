@@ -22,6 +22,7 @@ const electronAPI = {
   deleteFile: (filePath: string) => ipcRenderer.invoke('delete-file', filePath),
   readTextFile: (filePath: string) => ipcRenderer.invoke('read-text-file', filePath),
   getValidToken: () => ipcRenderer.invoke('get-valid-token'),
+  isTokenExpiredForHibernation: () => ipcRenderer.invoke('is-token-expired-for-hibernation'),
   saveToken: (token: string) => ipcRenderer.invoke('save-token', token),
   clearToken: () => ipcRenderer.invoke('clear-token'),
   resetAllSettings: () => ipcRenderer.invoke('reset-all-settings'),
@@ -48,7 +49,26 @@ const electronAPI = {
   checkFileAssociations: () => ipcRenderer.invoke('check-file-associations'),
   registerFileAssociations: () => ipcRenderer.invoke('register-file-associations'),
   testFfmpegPath: (path: string) => ipcRenderer.invoke('test-ffmpeg-path', path),
+  preventSystemSleep: () => ipcRenderer.invoke('prevent-system-sleep'),
+  allowSystemSleep: () => ipcRenderer.invoke('allow-system-sleep'),
+  getActiveSleepBlockersCount: () => ipcRenderer.invoke('get-active-sleep-blockers-count'),
   openFfmpegDialog: () => ipcRenderer.invoke('open-ffmpeg-dialog'),
+  onSystemSuspend: (callback: (event: any) => void) =>
+    ipcRenderer.on('system-suspend', callback),
+  removeSystemSuspendListener: (callback: (event: any) => void) =>
+    ipcRenderer.removeListener('system-suspend', callback),
+  onSystemResume: (callback: (event: any) => void) =>
+    ipcRenderer.on('system-resume', callback),
+  removeSystemResumeListener: (callback: (event: any) => void) =>
+    ipcRenderer.removeListener('system-resume', callback),
+  onScreenLock: (callback: (event: any) => void) =>
+    ipcRenderer.on('screen-lock', callback),
+  removeScreenLockListener: (callback: (event: any) => void) =>
+    ipcRenderer.removeListener('screen-lock', callback),
+  onScreenUnlock: (callback: (event: any) => void) =>
+    ipcRenderer.on('screen-unlock', callback),
+  removeScreenUnlockListener: (callback: (event: any) => void) =>
+    ipcRenderer.removeListener('screen-unlock', callback),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);

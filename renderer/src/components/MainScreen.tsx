@@ -8,6 +8,7 @@ import ImprovedTranscriptionOptions from './ImprovedTranscriptionOptions';
 import ImprovedTranslationOptions from './ImprovedTranslationOptions';
 import { isOnline } from '../utils/networkUtils';
 import { useAPI } from '../contexts/APIContext';
+import { generateFilename } from '../utils/filenameGenerator';
 import appConfig from '../config/appConfig.json';
 import * as fileFormatsConfig from '../../../shared/fileFormats.json';
 
@@ -37,6 +38,7 @@ const needsAudioConversion = (fileName: string): boolean => {
   return ext ? !supportedAudioFormats.includes(ext) : false;
 };
 
+
 interface AppConfig {
   username: string;
   password: string;
@@ -55,6 +57,7 @@ interface AppConfig {
   darkMode?: boolean;
   pollingIntervalSeconds?: number;
   pollingTimeoutSeconds?: number;
+  defaultFilenameFormat?: string;
   credits?: {
     used: number;
     remaining: number;
@@ -985,6 +988,18 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
     setAppProcessing(true, fileType === 'transcription' ? 'Transcribing...' : 'Translating...');
     setStatusMessage({ type: 'info', message: 'Processing file...' });
 
+    // Prevent system sleep during processing
+    try {
+      const sleepPrevented = await window.electronAPI.preventSystemSleep();
+      if (sleepPrevented) {
+        logger.debug(3, 'MainScreen', 'System sleep prevention activated');
+      } else {
+        logger.warn('MainScreen', 'Failed to prevent system sleep');
+      }
+    } catch (error) {
+      logger.warn('MainScreen', 'Error preventing system sleep:', error);
+    }
+
     let tempAudioFile: string | null = null;
     let isPollingMode = false;
 
@@ -1160,6 +1175,18 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         console.log('Finally block - resetting isProcessing to false (not polling mode)');
         setIsProcessing(false);
         setAppProcessing(false);
+
+        // Allow system sleep when processing stops
+        try {
+          const sleepAllowed = await window.electronAPI.allowSystemSleep();
+          if (sleepAllowed) {
+            logger.debug(3, 'MainScreen', 'System sleep prevention deactivated');
+          } else {
+            logger.warn('MainScreen', 'Failed to allow system sleep');
+          }
+        } catch (error) {
+          logger.warn('MainScreen', 'Error allowing system sleep:', error);
+        }
       } else {
         console.log('Finally block - skipping isProcessing reset (polling mode active)');
       }
@@ -1237,6 +1264,18 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           console.log('Polling completed successfully - resetting isProcessing to false');
           setIsProcessing(false);
           setAppProcessing(false);
+
+          // Allow system sleep when processing completes successfully
+          try {
+            const sleepAllowed = await window.electronAPI.allowSystemSleep();
+            if (sleepAllowed) {
+              logger.debug(3, 'MainScreen', 'System sleep prevention deactivated after successful completion');
+            } else {
+              logger.warn('MainScreen', 'Failed to allow system sleep after completion');
+            }
+          } catch (error) {
+            logger.warn('MainScreen', 'Error allowing system sleep after completion:', error);
+          }
           return;
         } else if (result.status === 'ERROR') {
           throw new Error(result.errors?.join(', ') || `${type} failed`);
@@ -1267,6 +1306,18 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         });
         console.log('Polling failed - resetting isProcessing to false');
         setIsProcessing(false);
+
+        // Allow system sleep when processing fails
+        try {
+          const sleepAllowed = await window.electronAPI.allowSystemSleep();
+          if (sleepAllowed) {
+            logger.debug(3, 'MainScreen', 'System sleep prevention deactivated after failure');
+          } else {
+            logger.warn('MainScreen', 'Failed to allow system sleep after failure');
+          }
+        } catch (error) {
+          logger.warn('MainScreen', 'Error allowing system sleep after failure:', error);
+        }
         setAppProcessing(false);
       }
     };
@@ -1281,20 +1332,48 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       // Generate filename suggestion with language code and same directory as source
       const originalFileName = selectedFile.split('/').pop() || 'file';
       const originalDirectory = selectedFile.substring(0, selectedFile.lastIndexOf('/')) || '';
-      const fileNameWithoutExt = originalFileName.substring(0, originalFileName.lastIndexOf('.')) || originalFileName;
-      const originalExt = originalFileName.substring(originalFileName.lastIndexOf('.') + 1) || 'srt';
-      
+
       let languageCode = '';
-      let newFileName = '';
-      
+      let languageName = '';
+      let format = '';
+
       if (fileType === 'translation') {
         languageCode = translationOptions.destinationLanguage;
-        newFileName = `${fileNameWithoutExt}.${languageCode}.${translationOptions.format}`;
+        format = translationOptions.format;
+
+        // Find language name from translation info
+        if (translationOptions.api) {
+          const translationLanguages = getTranslationLanguagesForApi(translationOptions.api);
+          const langInfo = translationLanguages?.find(lang => lang.language_code === languageCode);
+          languageName = langInfo?.language_name || languageCode;
+        } else {
+          languageName = languageCode;
+        }
       } else {
         languageCode = transcriptionOptions.language;
-        newFileName = `${fileNameWithoutExt}.${languageCode}.${transcriptionOptions.format}`;
+        format = transcriptionOptions.format;
+
+        // Find language name from transcription info
+        if (transcriptionOptions.api) {
+          const transcriptionLanguages = getTranscriptionLanguagesForApi(transcriptionOptions.api);
+          const langInfo = transcriptionLanguages?.find(lang => lang.language_code === languageCode);
+          languageName = langInfo?.language_name || languageCode;
+        } else {
+          languageName = languageCode;
+        }
       }
-      
+
+      // Use custom filename format if available, otherwise fallback to default
+      const filenamePattern = config.defaultFilenameFormat || '{filename}.{language_code}.{type}.{extension}';
+      const newFileName = generateFilename(
+        filenamePattern,
+        originalFileName,
+        languageCode,
+        languageName,
+        fileType,
+        format
+      );
+
       // Combine directory path with new filename
       const suggestedFullPath = originalDirectory ? `${originalDirectory}/${newFileName}` : newFileName;
       

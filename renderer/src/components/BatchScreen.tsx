@@ -4,6 +4,7 @@ import { LanguageInfo, TranscriptionInfo, TranslationInfo, DetectedLanguage } fr
 import { logger } from '../utils/errorLogger';
 import { isOnline } from '../utils/networkUtils';
 import { useAPI } from '../contexts/APIContext';
+import { generateFilename } from '../utils/filenameGenerator';
 import * as fileFormatsConfig from '../../../shared/fileFormats.json';
 
 // Cache for file type checks to avoid repeated calculations
@@ -95,6 +96,7 @@ interface AppConfig {
   darkMode?: boolean;
   pollingIntervalSeconds?: number;
   pollingTimeoutSeconds?: number;
+  defaultFilenameFormat?: string;
 }
 
 interface BatchScreenProps {
@@ -1113,6 +1115,18 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     shouldStopRef.current = false;
     resetCreditTracking(); // Reset credit tracking for new batch
     resetBatchStats(); // Reset batch statistics
+
+    // Prevent system sleep during batch processing
+    try {
+      const sleepPrevented = await window.electronAPI.preventSystemSleep();
+      if (sleepPrevented) {
+        logger.debug(3, 'BatchScreen', 'System sleep prevention activated for batch processing');
+      } else {
+        logger.warn('BatchScreen', 'Failed to prevent system sleep during batch processing');
+      }
+    } catch (error) {
+      logger.warn('BatchScreen', 'Error preventing system sleep during batch processing:', error);
+    }
     const originalQueue = [...queue]; // Capture original queue to avoid issues with queue changes
     const totalFiles = originalQueue.length; // Store original queue length for progress calculation
     
@@ -1185,6 +1199,18 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
       setIsPaused(false);
       setCurrentFileIndex(-1);
       processingRef.current = false;
+
+      // Allow system sleep when batch processing completes
+      try {
+        const sleepAllowed = await window.electronAPI.allowSystemSleep();
+        if (sleepAllowed) {
+          logger.debug(3, 'BatchScreen', 'System sleep prevention deactivated after batch completion');
+        } else {
+          logger.warn('BatchScreen', 'Failed to allow system sleep after batch completion');
+        }
+      } catch (error) {
+        logger.warn('BatchScreen', 'Error allowing system sleep after batch completion:', error);
+      }
     }
   };
 
@@ -1329,7 +1355,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
       setAppProcessing(true, `Starting translation chain for ${file.name}...`);
 
       // Save transcription result to temporary file for translation
-      const tempFileName = await generateOutputFileName(file.path, 'temp', 'transcription');
+      const tempFileName = await generateOutputFileName(file.path, 'transcription', file.selectedSourceLanguage || file.detectedLanguage?.ISO_639_1);
       await writeFileDirectly(outputContent, tempFileName);
       setAppProcessing(true, `Initiating translation for ${file.name}...`);
       
@@ -1384,9 +1410,9 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
 
     // Save final output
     if (outputContent) {
-      const suffix = batchSettings.enableChaining ? 'translated' : 'transcribed';
-      const targetLang = batchSettings.enableChaining ? batchSettings.targetLanguage : undefined;
-      const outputPath = await generateOutputFileName(file.path, suffix, targetLang);
+      const type = batchSettings.enableChaining ? 'translation' : 'transcription';
+      const targetLang = batchSettings.enableChaining ? batchSettings.targetLanguage : (file.selectedSourceLanguage || file.detectedLanguage?.ISO_639_1);
+      const outputPath = await generateOutputFileName(file.path, type, targetLang);
       const savedPath = await writeFileDirectly(outputContent, outputPath);
 
       logger.info('BatchScreen', `File saved: ${savedPath}`);
@@ -1460,7 +1486,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     // Save output
     const outputContent = translationResult.translation || translationResult.data?.return_content;
     if (outputContent) {
-      const outputPath = await generateOutputFileName(file.path, 'translated', batchSettings.targetLanguage);
+      const outputPath = await generateOutputFileName(file.path, 'translation', batchSettings.targetLanguage);
       const savedPath = await writeFileDirectly(outputContent, outputPath);
       
       logger.info('BatchScreen', `File saved: ${savedPath}`);
@@ -1542,32 +1568,67 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     });
   };
 
-  const stopBatchProcessing = () => {
+  const stopBatchProcessing = async () => {
     shouldStopRef.current = true;
     setIsProcessing(false);
     setIsPaused(false);
     setCurrentFileIndex(-1);
     processingRef.current = false;
+
+    // Allow system sleep when batch processing is stopped
+    try {
+      const sleepAllowed = await window.electronAPI.allowSystemSleep();
+      if (sleepAllowed) {
+        logger.debug(3, 'BatchScreen', 'System sleep prevention deactivated after batch stop');
+      } else {
+        logger.warn('BatchScreen', 'Failed to allow system sleep after batch stop');
+      }
+    } catch (error) {
+      logger.warn('BatchScreen', 'Error allowing system sleep after batch stop:', error);
+    }
   };
 
-  // Helper function to generate output file name with language code and duplicate checking
-  const generateOutputFileName = async (originalFilePath: string, suffix: string, targetLanguage?: string): Promise<string> => {
+  // Helper function to generate output file name using user's filename pattern
+  const generateOutputFileName = async (originalFilePath: string, type: 'transcription' | 'translation', targetLanguage?: string): Promise<string> => {
     // Determine output directory
-    const outputDir = batchSettings.useCustomOutputDirectory && batchSettings.outputDirectory 
-      ? batchSettings.outputDirectory 
+    const outputDir = batchSettings.useCustomOutputDirectory && batchSettings.outputDirectory
+      ? batchSettings.outputDirectory
       : await window.electronAPI.getDirectoryName(originalFilePath);
-    
-    // Generate base name with language code
-    const originalName = originalFilePath.split('/').pop()?.replace(/\.[^/.]+$/, '') || 'file';
+
+    // Get original filename
+    const originalFileName = originalFilePath.split('/').pop() || 'file';
     const languageCode = targetLanguage || batchSettings.targetLanguage;
-    const baseName = `${originalName}_${suffix}${languageCode ? `_${languageCode}` : ''}`;
-    
+    const format = batchSettings.outputFormat;
+
+    // Find language name from API context
+    let languageName = languageCode;
+    if (type === 'translation') {
+      const translationLanguages = getTranslationLanguagesForApi(batchSettings.translationModel);
+      const langInfo = translationLanguages?.find(lang => lang.language_code === languageCode);
+      languageName = langInfo?.language_name || languageCode;
+    } else {
+      const transcriptionLanguages = getTranscriptionLanguagesForApi(batchSettings.transcriptionModel);
+      const langInfo = transcriptionLanguages?.find(lang => lang.language_code === languageCode);
+      languageName = langInfo?.language_name || languageCode;
+    }
+
+    // Use custom filename format if available, otherwise fallback to default
+    const filenamePattern = config.defaultFilenameFormat || '{filename}.{language_code}.{type}.{extension}';
+    const baseName = generateFilename(
+      filenamePattern,
+      originalFileName,
+      languageCode,
+      languageName,
+      type,
+      format
+    );
+
     // Create full base path for unique name generation
     const fullBasePath = `${outputDir}/${baseName}`;
-    
-    // Generate unique filename using IPC
-    const uniquePath = await window.electronAPI.generateUniqueFileName(fullBasePath, batchSettings.outputFormat);
-    
+
+    // Generate unique filename using IPC (this will handle adding numbers if file exists)
+    const uniquePath = await window.electronAPI.generateUniqueFileName(fullBasePath, format);
+
     return uniquePath;
   };
 

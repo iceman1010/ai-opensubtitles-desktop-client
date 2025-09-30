@@ -1,8 +1,9 @@
-import { app, BrowserWindow, ipcMain, dialog, session, shell, globalShortcut, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, session, shell, globalShortcut, Menu, powerMonitor } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import * as path from 'path';
 import { ConfigManager } from './config';
 import { FFmpegManager } from './ffmpeg';
+import { initializePowerSaveBlocker, cleanupPowerSaveBlocker } from './powerSaveBlocker';
 import * as fileFormatsConfig from '../shared/fileFormats.json';
 
 class MainApp {
@@ -633,7 +634,54 @@ class MainApp {
     autoUpdater.quitAndInstall();
   }
 
+  private setupPowerMonitoring(debugEnabled: boolean = false) {
+    const debug = (message: string, ...args: any[]) => {
+      if (debugEnabled) {
+        console.log(`[PowerMonitor] ${message}`, ...args);
+      }
+    };
+
+    // Set up power monitoring events
+    powerMonitor.on('suspend', () => {
+      debug('System is suspending');
+      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+        this.mainWindow.webContents.send('system-suspend');
+      }
+    });
+
+    powerMonitor.on('resume', () => {
+      debug('System is resuming from suspend');
+      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+        this.mainWindow.webContents.send('system-resume');
+      }
+    });
+
+    powerMonitor.on('lock-screen', () => {
+      debug('Screen is locked');
+      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+        this.mainWindow.webContents.send('screen-lock');
+      }
+    });
+
+    powerMonitor.on('unlock-screen', () => {
+      debug('Screen is unlocked');
+      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+        this.mainWindow.webContents.send('screen-unlock');
+      }
+    });
+
+    debug('Power monitoring initialized');
+  }
+
   private async setupIPC() {
+    // Initialize PowerSaveBlocker with debug mode based on config
+    const config = this.configManager.getConfig();
+    const debugEnabled = config.debugMode || false;
+    initializePowerSaveBlocker(debugEnabled);
+
+    // Setup power monitoring for hibernation detection
+    this.setupPowerMonitoring(debugEnabled);
+
     ipcMain.handle('get-config', () => {
       return this.configManager.getConfig();
     });
@@ -867,6 +915,10 @@ class MainApp {
     // Token management IPC handlers
     ipcMain.handle('get-valid-token', () => {
       return this.configManager.getValidToken();
+    });
+
+    ipcMain.handle('is-token-expired-for-hibernation', () => {
+      return this.configManager.isTokenExpiredForHibernation();
     });
 
     ipcMain.handle('save-token', (_, token: string) => {
@@ -1334,7 +1386,10 @@ app.on('ready', () => {
 app.on('window-all-closed', () => {
   // Unregister all global shortcuts
   globalShortcut.unregisterAll();
-  
+
+  // Cleanup PowerSaveBlocker
+  cleanupPowerSaveBlocker();
+
   if (process.platform !== 'darwin') {
     app.quit();
   }

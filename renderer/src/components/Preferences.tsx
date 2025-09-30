@@ -21,6 +21,7 @@ interface AppConfig {
   darkMode?: boolean;
   pollingIntervalSeconds?: number;
   pollingTimeoutSeconds?: number;
+  defaultFilenameFormat?: string;
   credits?: {
     used: number;
     remaining: number;
@@ -50,6 +51,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
   const [apiBaseUrl, setApiBaseUrl] = useState(config.apiBaseUrl || 'https://api.opensubtitles.com/api/v1');
   const [apiUrlParameter, setApiUrlParameter] = useState(config.apiUrlParameter || '');
   const [autoLanguageDetection, setAutoLanguageDetection] = useState(config.autoLanguageDetection ?? false);
+  const [defaultFilenameFormat, setDefaultFilenameFormat] = useState(config.defaultFilenameFormat || '{filename}.{language_code}.{type}.{extension}');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [isTestingFfmpeg, setIsTestingFfmpeg] = useState(false);
@@ -1113,6 +1115,173 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
                 fontStyle: 'italic'
               }}>
                 Default: Enabled • Note: This setting only affects batch processing, not single file processing
+              </div>
+            </div>
+          </div>
+
+          {/* Default Filename Format Setting */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '12px',
+            padding: '8px 0'
+          }}>
+            <div style={{ flex: 1 }}>
+              <label
+                htmlFor="default-filename-format"
+                style={{
+                  margin: 0,
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  display: 'block',
+                  marginBottom: '4px'
+                }}
+              >
+                Default Filename Format
+              </label>
+              <div style={{
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                lineHeight: '1.4',
+                maxWidth: '500px',
+                marginBottom: '12px'
+              }}>
+                Pattern for naming output files. Available placeholders: <code>{'{filename}'}</code>, <code>{'{timestamp}'}</code>, <code>{'{type}'}</code>, <code>{'{format}'}</code>, <code>{'{language_code}'}</code>, <code>{'{language_name}'}</code>, <code>{'{extension}'}</code>
+                <br />
+                <strong>Example:</strong> <code>movie.en.transcription.srt</code>
+              </div>
+
+              <input
+                type="text"
+                id="default-filename-format"
+                value={defaultFilenameFormat}
+                onChange={(e) => {
+                  const newValue = e.target.value;
+                  setDefaultFilenameFormat(newValue);
+                  handleInstantSave('defaultFilenameFormat', newValue);
+                }}
+                disabled={isLoading}
+                placeholder="{filename}.{language_code}.{type}{extension}"
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '4px',
+                  fontSize: '13px',
+                  fontFamily: 'monospace',
+                  backgroundColor: 'var(--bg-secondary)',
+                  color: 'var(--text-primary)',
+                  cursor: isLoading ? 'not-allowed' : 'text'
+                }}
+              />
+
+              {/* Placeholder Buttons */}
+              <div style={{
+                marginTop: '10px',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '6px'
+              }}>
+                {[
+                  { placeholder: '{filename}', label: 'Filename' },
+                  { placeholder: '{language_code}', label: 'Language Code' },
+                  { placeholder: '{language_name}', label: 'Language Name' },
+                  { placeholder: '{type}', label: 'Type' },
+                  { placeholder: '{format}', label: 'Format' },
+                  { placeholder: '{timestamp}', label: 'Timestamp' },
+                  { placeholder: '{extension}', label: 'Extension' }
+                ].map(({ placeholder, label }) => (
+                  <button
+                    key={placeholder}
+                    type="button"
+                    onClick={() => {
+                      const input = document.getElementById('default-filename-format') as HTMLInputElement;
+                      if (input) {
+                        const start = input.selectionStart || 0;
+                        const end = input.selectionEnd || 0;
+                        const newValue = defaultFilenameFormat.slice(0, start) + placeholder + defaultFilenameFormat.slice(end);
+                        setDefaultFilenameFormat(newValue);
+                        handleInstantSave('defaultFilenameFormat', newValue);
+                        // Set cursor position after the inserted placeholder
+                        setTimeout(() => {
+                          input.focus();
+                          input.setSelectionRange(start + placeholder.length, start + placeholder.length);
+                        }, 0);
+                      }
+                    }}
+                    style={{
+                      padding: '4px 8px',
+                      fontSize: '11px',
+                      backgroundColor: 'var(--bg-tertiary)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '4px',
+                      color: 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.backgroundColor = 'var(--button-bg)';
+                      e.currentTarget.style.color = 'var(--button-text)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)';
+                      e.currentTarget.style.color = 'var(--text-secondary)';
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Live Preview */}
+              <div style={{
+                marginTop: '10px',
+                padding: '8px 12px',
+                backgroundColor: 'var(--bg-tertiary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '4px',
+                fontSize: '12px'
+              }}>
+                <div style={{
+                  color: 'var(--text-secondary)',
+                  marginBottom: '4px',
+                  fontSize: '11px'
+                }}>
+                  Preview:
+                </div>
+                <div style={{
+                  fontFamily: 'monospace',
+                  color: 'var(--text-primary)',
+                  fontWeight: '500'
+                }}>
+                  {(() => {
+                    const sampleData = {
+                      filename: 'movie',
+                      language_code: 'en',
+                      language_name: 'English',
+                      type: 'transcription',
+                      format: 'srt',
+                      extension: 'srt',
+                      timestamp: '2025-09-30T14-30-15'
+                    };
+
+                    let preview = defaultFilenameFormat;
+                    Object.entries(sampleData).forEach(([key, value]) => {
+                      preview = preview.replace(new RegExp(`\\{${key}\\}`, 'g'), value);
+                    });
+
+                    return preview || 'Enter a format above';
+                  })()}
+                </div>
+              </div>
+
+              <div style={{
+                fontSize: '11px',
+                color: '#999',
+                marginTop: '6px',
+                fontStyle: 'italic'
+              }}>
+                Default: {'{filename}.{language_code}.{type}.{extension}'} • Use dots as separators
               </div>
             </div>
           </div>
