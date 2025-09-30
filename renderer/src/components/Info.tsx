@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { LanguageInfo, ServicesInfo, ServiceModel } from '../services/api';
 import { useAPI } from '../contexts/APIContext';
 import { logger } from '../utils/errorLogger';
@@ -29,8 +29,12 @@ function Info({ config, setAppProcessing }: InfoProps) {
   const [servicesInfo, setServicesInfo] = useState<ServicesInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Prevent double loading in React StrictMode
+  const dataLoadedRef = useRef(false);
+
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !dataLoadedRef.current) {
+      dataLoadedRef.current = true;
       loadModelInfo();
     }
   }, [isAuthenticated]);

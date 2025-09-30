@@ -139,6 +139,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
   const hasAttemptedLogin = useRef(false);
   const [showCreditModal, setShowCreditModal] = useState(false);
   const languageDetectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Helper function to clear language detection timeout
   const clearLanguageDetectionTimeout = () => {
@@ -146,6 +147,34 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       clearTimeout(languageDetectionTimeoutRef.current);
       languageDetectionTimeoutRef.current = null;
     }
+  };
+
+  // Helper function to clear polling timeout
+  const clearPollingTimeout = () => {
+    if (pollingTimeoutRef.current) {
+      clearTimeout(pollingTimeoutRef.current);
+      pollingTimeoutRef.current = null;
+    }
+  };
+
+  // Function to stop current processing
+  const handleStopProcess = () => {
+    console.log('handleStopProcess called');
+    logger.info('MainScreen', 'User requested to stop process');
+
+    // Clear any active polling
+    clearPollingTimeout();
+
+    // Reset processing states
+    console.log('Setting isProcessing to false');
+    setIsProcessing(false);
+    setAppProcessing(false);
+
+    // Show cancellation message
+    setStatusMessage({
+      type: 'info',
+      message: 'Process cancelled by user'
+    });
   };
 
   // Report processing state changes to parent component
@@ -951,11 +980,13 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       return;
     }
 
+    console.log('Setting isProcessing to true');
     setIsProcessing(true);
     setAppProcessing(true, fileType === 'transcription' ? 'Transcribing...' : 'Translating...');
     setStatusMessage({ type: 'info', message: 'Processing file...' });
 
     let tempAudioFile: string | null = null;
+    let isPollingMode = false;
 
     try {
       let fileToProcess = selectedFile;
@@ -1078,27 +1109,44 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       } else if (result.correlation_id) {
         // Task was created, need to poll for completion
         setStatusMessage({ type: 'info', message: 'Task created, waiting for completion...' });
+
+        // Clean up temporary files before polling
+        if (tempAudioFile && tempAudioFile !== selectedFile) {
+          try {
+            await window.electronAPI.deleteFile(tempAudioFile);
+            logger.info('MainScreen', 'Cleaned up temporary audio file:', tempAudioFile);
+          } catch (cleanupError) {
+            logger.warn('MainScreen', 'Failed to clean up temporary file:', cleanupError);
+          }
+        }
+
+        // Set flag to indicate we're entering polling mode
+        isPollingMode = true;
+        console.log('Entering polling mode - finally block will NOT reset isProcessing');
+
+        // Start polling - this will handle resetting isProcessing when done
         await pollForCompletion(result.correlation_id, fileType);
+        return; // Exit early to avoid finally block
       } else {
         throw new Error('Unexpected response format');
       }
-      
+
     } catch (error: any) {
       logger.error('MainScreen', `${fileType} error:`, error);
-      
+
       // Always show API error details, fallback to generic message for other errors
       let errorMessage = 'Processing failed. Please try again.';
       if (error.message && error.message !== 'An unexpected error occurred') {
         errorMessage = error.message;
       }
-      
-      setStatusMessage({ 
-        type: 'error', 
-        message: `${fileType === 'transcription' ? 'Transcription' : 'Translation'} failed: ${errorMessage}` 
+
+      setStatusMessage({
+        type: 'error',
+        message: `${fileType === 'transcription' ? 'Transcription' : 'Translation'} failed: ${errorMessage}`
       });
     } finally {
-      // Clean up temporary audio files
-      if (tempAudioFile && tempAudioFile !== selectedFile) {
+      // Clean up temporary audio files (only if not already done in polling path)
+      if (!isPollingMode && tempAudioFile && tempAudioFile !== selectedFile) {
         try {
           await window.electronAPI.deleteFile(tempAudioFile);
           logger.info('MainScreen', 'Cleaned up temporary audio file:', tempAudioFile);
@@ -1106,8 +1154,15 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           logger.warn('MainScreen', 'Failed to clean up temporary file:', cleanupError);
         }
       }
-      setIsProcessing(false);
-      setAppProcessing(false);
+
+      // Only reset processing if we're NOT in polling mode
+      if (!isPollingMode) {
+        console.log('Finally block - resetting isProcessing to false (not polling mode)');
+        setIsProcessing(false);
+        setAppProcessing(false);
+      } else {
+        console.log('Finally block - skipping isProcessing reset (polling mode active)');
+      }
     }
   };
 
@@ -1174,6 +1229,14 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
               setShowPreview(true);
             }
           }
+
+          // Clear the timeout reference on successful completion
+          clearPollingTimeout();
+
+          // Reset processing state on successful completion
+          console.log('Polling completed successfully - resetting isProcessing to false');
+          setIsProcessing(false);
+          setAppProcessing(false);
           return;
         } else if (result.status === 'ERROR') {
           throw new Error(result.errors?.join(', ') || `${type} failed`);
@@ -1183,11 +1246,14 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
             throw new Error(`${type} timed out after ${timeoutMinutes} minutes`);
           }
 
-          // Wait before next check
-          setTimeout(poll, pollingInterval);
+          // Wait before next check - store timeout ID for potential cancellation
+          pollingTimeoutRef.current = setTimeout(poll, pollingInterval);
         }
       } catch (error: any) {
         logger.error('MainScreen', `${type} polling error:`, error);
+
+        // Clear the timeout reference
+        clearPollingTimeout();
 
         // Show detailed error only in debug mode, simple message otherwise
         let errorMessage = 'Processing failed. Please try again.';
@@ -1199,6 +1265,9 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           type: 'error',
           message: `${type === 'transcription' ? 'Transcription' : 'Translation'} failed: ${errorMessage}`
         });
+        console.log('Polling failed - resetting isProcessing to false');
+        setIsProcessing(false);
+        setAppProcessing(false);
       }
     };
 
@@ -1650,11 +1719,24 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           }}
         >
           <button
-            className="button"
-            onClick={handleProcess}
-            disabled={isProcessing || isDetectingLanguage}
+            className={`button ${isProcessing ? 'button-stop' : ''}`}
+            onClick={isProcessing ? handleStopProcess : handleProcess}
+            disabled={isDetectingLanguage}
           >
-            {isProcessing ? 'Processing...' : isDetectingLanguage ? 'Detecting Language...' : `Start ${fileType === 'transcription' ? 'Transcription' : 'Translation'}`}
+            {(() => {
+              // Debug logging
+              console.log('Button render - isDetectingLanguage:', isDetectingLanguage);
+              console.log('Button render - isProcessing:', isProcessing);
+              console.log('Button render - fileType:', fileType);
+
+              if (isDetectingLanguage) {
+                return 'Detecting Language...';
+              } else if (isProcessing) {
+                return `Stop ${fileType === 'transcription' ? 'Transcription' : 'Translation'}`;
+              } else {
+                return `Start ${fileType === 'transcription' ? 'Transcription' : 'Translation'}`;
+              }
+            })()}
           </button>
         </div>
       )}
@@ -1819,20 +1901,35 @@ function PreviewDialog({ content, onClose, onSave }: PreviewDialogProps) {
       zIndex: 1000
     }}>
       <div style={{
-        backgroundColor: 'white',
+        backgroundColor: 'var(--bg-primary)',
         padding: '20px',
         borderRadius: '8px',
         maxWidth: '80%',
         maxHeight: '80%',
         overflow: 'auto',
         minWidth: '500px',
-        minHeight: '400px'
+        minHeight: '400px',
+        border: '1px solid var(--border-color)',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-          <h3>Result Preview</h3>
-          <button onClick={onClose} style={{ fontSize: '18px', padding: '5px 10px' }}><i className="fas fa-times"></i></button>
+          <h3 style={{ color: 'var(--text-primary)', margin: 0 }}>Result Preview</h3>
+          <button
+            onClick={onClose}
+            style={{
+              fontSize: '18px',
+              padding: '5px 10px',
+              backgroundColor: 'var(--bg-secondary)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            <i className="fas fa-times"></i>
+          </button>
         </div>
-        
+
         <textarea
           value={content}
           readOnly
@@ -1841,22 +1938,38 @@ function PreviewDialog({ content, onClose, onSave }: PreviewDialogProps) {
             height: '300px',
             fontFamily: 'monospace',
             fontSize: '12px',
-            border: '1px solid #ccc',
+            border: '1px solid var(--border-color)',
             padding: '10px',
-            resize: 'vertical'
+            resize: 'vertical',
+            backgroundColor: 'var(--bg-secondary)',
+            color: 'var(--text-primary)'
           }}
         />
-        
+
         <div style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
-          <button 
+          <button
             onClick={() => onSave(content)}
-            style={{ padding: '8px 16px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: 'var(--success-color)',
+              color: 'var(--bg-primary)',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
           >
             Save to File
           </button>
-          <button 
+          <button
             onClick={onClose}
-            style={{ padding: '8px 16px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px' }}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: 'var(--bg-tertiary)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
           >
             Close
           </button>

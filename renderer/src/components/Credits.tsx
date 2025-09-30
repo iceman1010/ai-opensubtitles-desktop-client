@@ -30,6 +30,7 @@ function Credits({ config, setAppProcessing, isVisible = true }: CreditsProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoadingCredits, setIsLoadingCredits] = useState(false);
+  const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
   const loadingRef = useRef(false);
 
   const loadCreditPackages = useCallback(async () => {
@@ -44,11 +45,14 @@ function Credits({ config, setAppProcessing, isVisible = true }: CreditsProps) {
     setAppProcessing(true, 'Loading credit packages...');
 
     try {
+      console.log('Credits: Starting getCreditPackages call, authenticated:', isAuthenticated);
       const result = await getCreditPackages(config.username);
 
       if (result.success && result.data) {
         setCreditPackages(result.data);
+        console.log('Credits: Successfully loaded', result.data.length, 'credit packages');
       } else {
+        console.log('Credits: getCreditPackages failed:', result.error);
         throw new Error(result.error || 'Failed to load credit packages');
       }
     } catch (error: any) {
@@ -58,14 +62,15 @@ function Credits({ config, setAppProcessing, isVisible = true }: CreditsProps) {
       loadingRef.current = false;
       setIsLoading(false);
       setAppProcessing(false);
+      setHasAttemptedLoad(true);
     }
   }, [getCreditPackages, config.username, setAppProcessing]);
 
   useEffect(() => {
-    if (isAuthenticated && isVisible && creditPackages.length === 0) {
+    if (isAuthenticated && isVisible && creditPackages.length === 0 && !hasAttemptedLoad) {
       loadCreditPackages();
     }
-  }, [isAuthenticated, isVisible, loadCreditPackages, creditPackages.length]);
+  }, [isAuthenticated, isVisible, loadCreditPackages, creditPackages.length, hasAttemptedLoad]);
 
   const loadCurrentCredits = async () => {
     if (refreshCredits) {
@@ -229,7 +234,10 @@ function Credits({ config, setAppProcessing, isVisible = true }: CreditsProps) {
           <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
             <p>No credit packages available at the moment.</p>
             <button
-              onClick={loadCreditPackages}
+              onClick={() => {
+                setHasAttemptedLoad(false);
+                loadCreditPackages();
+              }}
               style={{
                 padding: '8px 16px',
                 backgroundColor: '#007bff',

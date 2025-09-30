@@ -282,9 +282,11 @@ function AppContent({
 
   // Set initial screen based on authentication state
   useEffect(() => {
-    if (!hasCredentials || !isAuthenticated) {
+    if (!hasCredentials) {
+      // Only show login screen if no credentials exist at all
       setCurrentScreen('login');
     } else {
+      // If credentials exist, stay on main screen even if authentication temporarily failed
       setCurrentScreen('main');
     }
   }, [hasCredentials, isAuthenticated]);

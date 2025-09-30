@@ -245,6 +245,21 @@ input[type="file"][webkitdirectory]::-moz-file-upload-button {
   background-color: #7f8c8d;
 }
 
+.button-stop {
+  background-color: var(--danger-color) !important;
+  color: white !important;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.button-stop:hover {
+  background-color: #c82333 !important;
+  transform: scale(1.02);
+}
+
+.button-stop:active {
+  transform: scale(0.98);
+}
+
 .file-drop-zone {
   border: 2px dashed var(--border-color);
   border-radius: 8px;

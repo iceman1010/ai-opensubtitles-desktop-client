@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { OpenSubtitlesAPI, TranscriptionInfo, TranslationInfo } from '../services/api';
 import { logger } from '../utils/errorLogger';
 import { isOnline } from '../utils/networkUtils';
@@ -67,26 +67,56 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
   const [error, setError] = useState<string | null>(null);
   const [authenticationInProgress, setAuthenticationInProgress] = useState(false);
 
+  // Global promise to prevent concurrent authentication attempts
+  const authPromiseRef = useRef<Promise<boolean> | null>(null);
+
+  // Prevent multiple API instance creation in React StrictMode
+  const apiCreatedRef = useRef(false);
+
   // Initialize API instance when config is provided
   useEffect(() => {
-    if (initialConfig?.apiKey) {
+    if (initialConfig?.apiKey && !api && !apiCreatedRef.current) {
+      logger.info('APIContext', 'Creating initial API instance');
+      apiCreatedRef.current = true;
       const apiInstance = new OpenSubtitlesAPI(initialConfig.apiKey, initialConfig.apiBaseUrl, initialConfig.apiUrlParameter);
+      logger.info('APIContext', 'Setting API instance in state (initial)');
       setApi(apiInstance);
-      
+
       // Try to authenticate immediately if we have credentials
       if (initialConfig.username && initialConfig.password) {
-        authenticateUser(apiInstance, initialConfig.username, initialConfig.password);
+        logger.info('APIContext', 'Starting initial authentication on app startup');
+        authenticateUser(apiInstance, initialConfig.username, initialConfig.password)
+          .then(success => {
+            logger.info('APIContext', `Initial authentication completed: ${success}`);
+          })
+          .catch(error => {
+            logger.error('APIContext', 'Initial authentication failed:', error);
+          });
       }
     }
-  }, [initialConfig?.apiKey, initialConfig?.username, initialConfig?.password, initialConfig?.apiBaseUrl, initialConfig?.apiUrlParameter]);
+  }, [initialConfig?.apiKey, initialConfig?.username, initialConfig?.password, initialConfig?.apiBaseUrl, initialConfig?.apiUrlParameter, api]);
 
   const authenticateUser = async (apiInstance: OpenSubtitlesAPI, username: string, password: string) => {
-    // Prevent concurrent authentication attempts
-    if (authenticationInProgress) {
-      logger.warn('APIContext', 'Authentication already in progress, skipping duplicate attempt');
-      return false;
+    // Prevent concurrent authentication attempts using a promise-based approach
+    if (authPromiseRef.current) {
+      logger.warn('APIContext', 'Authentication already in progress, waiting for existing promise');
+      return await authPromiseRef.current;
     }
-    
+
+    // Create and store the authentication promise
+    const authPromise = performAuthentication(apiInstance, username, password);
+    authPromiseRef.current = authPromise;
+
+    try {
+      const result = await authPromise;
+      return result;
+    } finally {
+      // Clear the promise when done
+      authPromiseRef.current = null;
+    }
+  };
+
+  const performAuthentication = async (apiInstance: OpenSubtitlesAPI, username: string, password: string) => {
     setAuthenticationInProgress(true);
     setIsLoading(true);
     setError(null);
@@ -98,6 +128,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
       const hasCachedToken = await apiInstance.loadCachedToken();
       if (hasCachedToken) {
         logger.info('APIContext', 'Using cached token, verifying with credits check');
+        logger.info('APIContext', `Cached token loaded on instance: ${(apiInstance as any).token ? 'YES' : 'NO'}`);
 
         // Check if device is online before making network request
         if (!isOnline()) {
@@ -125,13 +156,14 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
       if (loginResult.success) {
         setIsAuthenticated(true);
         logger.info('APIContext', 'Fresh authentication successful');
-        
+        logger.info('APIContext', `Token set on instance: ${(apiInstance as any).token ? 'YES' : 'NO'}`);
+
         // Load credits and API info
         await Promise.all([
           refreshCredits(),
           loadAPIInfo(apiInstance)
         ]);
-        
+
         return true;
       } else {
         setError(loginResult.error || 'Authentication failed');
@@ -181,22 +213,27 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
       logger.warn('APIContext', 'Authentication already in progress, skipping duplicate login attempt');
       return false;
     }
-    
+
     logger.info('APIContext', `Starting login for user: ${username}`);
     setAuthenticationInProgress(true);
-    
+
     try {
-      // Create new API instance with the provided key
-      const apiInstance = new OpenSubtitlesAPI(apiKey, initialConfig?.apiBaseUrl, initialConfig?.apiUrlParameter);
-      setApi(apiInstance);
-      
+      // Reuse existing API instance or create one if none exists
+      let apiInstance = api;
+      if (!apiInstance || apiInstance.apiKey !== apiKey) {
+        // Only create new instance if none exists or API key changed
+        apiInstance = new OpenSubtitlesAPI(apiKey, initialConfig?.apiBaseUrl, initialConfig?.apiUrlParameter);
+        logger.info('APIContext', 'Setting API instance in state (login)');
+        setApi(apiInstance);
+      }
+
       const result = await authenticateUser(apiInstance, username, password);
       logger.info('APIContext', `Login completed for user: ${username}, success: ${result}`);
       return result;
     } finally {
       setAuthenticationInProgress(false);
     }
-  }, [authenticationInProgress]);
+  }, [authenticationInProgress, api, initialConfig]);
 
   const logout = useCallback(async (): Promise<void> => {
     try {
@@ -218,8 +255,9 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
 
   const refreshCredits = useCallback(async (): Promise<void> => {
     if (!api || !isAuthenticated) return;
-    
+
     try {
+      logger.info('APIContext', `refreshCredits: Using API instance with token: ${(api as any).token ? 'YES' : 'NO'}`);
       const result = await api.getCredits();
       if (result.success && typeof result.credits === 'number') {
         setCredits({ used: 0, remaining: result.credits });

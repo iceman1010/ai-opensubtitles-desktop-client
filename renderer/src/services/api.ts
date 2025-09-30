@@ -119,6 +119,7 @@ export class OpenSubtitlesAPI {
   private apiUrlParameter: string = '';
 
   constructor(apiKey?: string, baseUrl?: string, apiUrlParameter?: string) {
+    console.trace('[API] NEW OpenSubtitlesAPI instance created');
     if (apiKey) {
       this.setApiKey(apiKey);
     }
@@ -1120,14 +1121,13 @@ export class OpenSubtitlesAPI {
         const headers = {
           'Accept': 'application/json',
           'Api-Key': this.apiKey || '',
-          'Content-Type': 'application/json',
           'User-Agent': getUserAgent(),
         };
         
         if (this.token) {
           headers['Authorization'] = `Bearer ${this.token}`;
         }
-        
+
         const response = await fetch(this.getAIUrl('/credits'), {
           method: 'POST',
           headers,
@@ -1243,15 +1243,14 @@ export class OpenSubtitlesAPI {
         const headers = {
           'Accept': 'application/json',
           'Api-Key': this.apiKey || '',
-          'Content-Type': 'application/x-www-form-urlencoded',
           'User-Agent': getUserAgent(),
         };
-        
+
         if (this.token) {
           headers['Authorization'] = `Bearer ${this.token}`;
         }
-        
-        const body = new URLSearchParams();
+
+        const body = new FormData();
         if (email) {
           body.append('email', email);
         }
@@ -1259,7 +1258,7 @@ export class OpenSubtitlesAPI {
         const response = await fetch(this.getAIUrl('/credits/buy'), {
           method: 'POST',
           headers,
-          body: body.toString()
+          body: body
         });
         
         if (!response.ok) {
