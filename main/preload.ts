@@ -9,6 +9,7 @@ const electronAPI = {
   writeFileDirectly: (content: string, filePath: string) => ipcRenderer.invoke('write-file-directly', content, filePath),
   checkFileExists: (filePath: string) => ipcRenderer.invoke('check-file-exists', filePath),
   getDirectoryName: (filePath: string) => ipcRenderer.invoke('get-directory-name', filePath),
+  getBaseName: (filePath: string) => ipcRenderer.invoke('get-base-name', filePath),
   generateUniqueFileName: (basePath: string, extension: string) => ipcRenderer.invoke('generate-unique-filename', basePath, extension),
   readFile: (filePath: string) => ipcRenderer.invoke('read-file', filePath),
   readAudioFile: (filePath: string) => ipcRenderer.invoke('read-audio-file', filePath),

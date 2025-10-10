@@ -3,6 +3,12 @@ import { logger } from '../utils/errorLogger';
 import { apiRequestWithRetry, getUserFriendlyErrorMessage } from '../utils/networkUtils';
 import appConfig from '../config/appConfig.json';
 
+// Cross-platform filename extraction for logging (supports both / and \ separators)
+const getFileNameFromPath = (filePath: string): string => {
+  const lastSlash = Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\'));
+  return lastSlash >= 0 ? filePath.substring(lastSlash + 1) : filePath;
+};
+
 // Fallback in case import fails
 const getUserAgent = () => {
   if (appConfig && appConfig.userAgent) {
@@ -454,7 +460,7 @@ export class OpenSubtitlesAPI {
     try {
       logger.info('API', 'Initiating transcription', {
         fileType: typeof audioFile,
-        fileName: typeof audioFile === 'string' ? audioFile.split('/').pop() : audioFile.name,
+        fileName: typeof audioFile === 'string' ? getFileNameFromPath(audioFile) : audioFile.name,
         api: options.api,
         language: options.language
       });
@@ -570,7 +576,7 @@ export class OpenSubtitlesAPI {
     try {
       logger.info('API', 'Initiating translation', {
         fileType: typeof subtitleFile,
-        fileName: typeof subtitleFile === 'string' ? subtitleFile.split('/').pop() : subtitleFile.name,
+        fileName: typeof subtitleFile === 'string' ? getFileNameFromPath(subtitleFile) : subtitleFile.name,
         api: options.api,
         translateFrom: options.translateFrom,
         translateTo: options.translateTo

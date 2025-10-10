@@ -807,6 +807,12 @@ class MainApp {
       return path.dirname(filePath);
     });
 
+    ipcMain.handle('get-base-name', async (_, filePath: string) => {
+      // Cross-platform filename extraction that handles both / and \ separators
+      const lastSlash = Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\'));
+      return lastSlash >= 0 ? filePath.substring(lastSlash + 1) : filePath;
+    });
+
     ipcMain.handle('generate-unique-filename', async (_, basePath: string, extension: string) => {
       const fs = require('fs');
       const path = require('path');

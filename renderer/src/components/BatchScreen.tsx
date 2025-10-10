@@ -940,7 +940,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
 
 
   const addFileToQueue = async (filePath: string) => {
-    const fileName = filePath.split('/').pop() || filePath;
+    const fileName = await window.electronAPI.getBaseName(filePath);
     
     if (!isSupportedFile(fileName)) {
       logger.warn('BatchScreen', `Unsupported file format: ${fileName}`);
@@ -1597,8 +1597,8 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
       ? batchSettings.outputDirectory
       : await window.electronAPI.getDirectoryName(originalFilePath);
 
-    // Get original filename
-    const originalFileName = originalFilePath.split('/').pop() || 'file';
+    // Get original filename using cross-platform method
+    const originalFileName = await window.electronAPI.getBaseName(originalFilePath);
     const languageCode = targetLanguage || batchSettings.targetLanguage;
     const format = batchSettings.outputFormat;
 

@@ -1332,8 +1332,8 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
 
     try {
       // Generate filename suggestion with language code and same directory as source
-      const originalFileName = selectedFile.split('/').pop() || 'file';
-      const originalDirectory = selectedFile.substring(0, selectedFile.lastIndexOf('/')) || '';
+      const originalFileName = await window.electronAPI.getBaseName(selectedFile);
+      const originalDirectory = await window.electronAPI.getDirectoryName(selectedFile);
 
       let languageCode = '';
       let languageName = '';
