@@ -166,7 +166,9 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     checkTranscriptionStatus,
     checkTranslationStatus,
     getTranscriptionLanguagesForApi,
-    getTranslationLanguagesForApi
+    getTranslationLanguagesForApi,
+    getTranslationLanguageNameSync,
+    getTranscriptionLanguageNameSync
   } = useAPI();
 
   
@@ -1600,16 +1602,22 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     const languageCode = targetLanguage || batchSettings.targetLanguage;
     const format = batchSettings.outputFormat;
 
-    // Find language name from API context
+    // Find language name from API context using sync functions
     let languageName = languageCode;
     if (type === 'translation') {
-      const translationLanguages = getTranslationLanguagesForApi(batchSettings.translationModel);
-      const langInfo = translationLanguages?.find(lang => lang.language_code === languageCode);
-      languageName = langInfo?.language_name || languageCode;
+      if (batchSettings.translationModel) {
+        const syncLanguageName = getTranslationLanguageNameSync(batchSettings.translationModel, languageCode);
+        languageName = syncLanguageName || languageCode;
+      } else {
+        languageName = languageCode;
+      }
     } else {
-      const transcriptionLanguages = getTranscriptionLanguagesForApi(batchSettings.transcriptionModel);
-      const langInfo = transcriptionLanguages?.find(lang => lang.language_code === languageCode);
-      languageName = langInfo?.language_name || languageCode;
+      if (batchSettings.transcriptionModel) {
+        const syncLanguageName = getTranscriptionLanguageNameSync(batchSettings.transcriptionModel, languageCode);
+        languageName = syncLanguageName || languageCode;
+      } else {
+        languageName = languageCode;
+      }
     }
 
     // Use custom filename format if available, otherwise fallback to default

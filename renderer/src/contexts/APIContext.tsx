@@ -33,6 +33,10 @@ interface APIContextType {
   checkTranslationStatus: (correlationId: string) => Promise<any>;
   downloadFile: (url: string) => Promise<{ success: boolean; content?: string; error?: string }>;
   getRecentMedia: () => Promise<{ success: boolean; data?: any; error?: string }>;
+
+  // Sync helper functions for filename generation
+  getTranslationLanguageNameSync: (apiId: string, languageCode: string) => string | null;
+  getTranscriptionLanguageNameSync: (apiId: string, languageCode: string) => string | null;
 }
 
 const APIContext = createContext<APIContextType | null>(null);
@@ -392,6 +396,31 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     return await api.getRecentMedia();
   }, [api, isAuthenticated]);
 
+  // Sync helper functions for filename generation using cached data
+  const getTranslationLanguageNameSync = useCallback((apiId: string, languageCode: string): string | null => {
+    if (!translationInfo?.apis?.[apiId]?.supported_languages) {
+      return null;
+    }
+
+    const language = translationInfo.apis[apiId].supported_languages.find(
+      (lang: any) => lang.language_code === languageCode
+    );
+
+    return language?.language_name || null;
+  }, [translationInfo]);
+
+  const getTranscriptionLanguageNameSync = useCallback((apiId: string, languageCode: string): string | null => {
+    if (!transcriptionInfo?.apis?.[apiId]?.supported_languages) {
+      return null;
+    }
+
+    const language = transcriptionInfo.apis[apiId].supported_languages.find(
+      (lang: any) => lang.language_code === languageCode
+    );
+
+    return language?.language_name || null;
+  }, [transcriptionInfo]);
+
   const contextValue: APIContextType = {
     api,
     isAuthenticated,
@@ -417,7 +446,9 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     checkTranscriptionStatus,
     checkTranslationStatus,
     downloadFile,
-    getRecentMedia
+    getRecentMedia,
+    getTranslationLanguageNameSync,
+    getTranscriptionLanguageNameSync
   };
 
   return (

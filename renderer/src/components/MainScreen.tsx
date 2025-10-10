@@ -85,6 +85,8 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
     updateCredits,
     getTranslationLanguagesForApi,
     getTranscriptionLanguagesForApi,
+    getTranslationLanguageNameSync,
+    getTranscriptionLanguageNameSync,
     getTranslationApisForLanguage,
     detectLanguage,
     checkLanguageDetectionStatus,
@@ -1341,11 +1343,10 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         languageCode = translationOptions.destinationLanguage;
         format = translationOptions.format;
 
-        // Find language name from translation info
+        // Find language name from translation info using sync function
         if (translationOptions.api) {
-          const translationLanguages = getTranslationLanguagesForApi(translationOptions.api);
-          const langInfo = translationLanguages?.find(lang => lang.language_code === languageCode);
-          languageName = langInfo?.language_name || languageCode;
+          const syncLanguageName = getTranslationLanguageNameSync(translationOptions.api, languageCode);
+          languageName = syncLanguageName || languageCode;
         } else {
           languageName = languageCode;
         }
@@ -1353,11 +1354,10 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         languageCode = transcriptionOptions.language;
         format = transcriptionOptions.format;
 
-        // Find language name from transcription info
+        // Find language name from transcription info using sync function
         if (transcriptionOptions.api) {
-          const transcriptionLanguages = getTranscriptionLanguagesForApi(transcriptionOptions.api);
-          const langInfo = transcriptionLanguages?.find(lang => lang.language_code === languageCode);
-          languageName = langInfo?.language_name || languageCode;
+          const syncLanguageName = getTranscriptionLanguageNameSync(transcriptionOptions.api, languageCode);
+          languageName = syncLanguageName || languageCode;
         } else {
           languageName = languageCode;
         }
