@@ -201,11 +201,9 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
       // Show saving message in status bar
       setAppProcessing(true, `Saving ${displayName}...`);
 
-      const success = await window.electronAPI.saveConfig({ [settingKey]: value });
+      // Use onSave prop to properly update parent component state
+      const success = await onSave({ [settingKey]: value });
       if (success) {
-        // Update parent component state
-        const updatedConfig = await window.electronAPI.getConfig();
-
         // Show success message briefly
         setAppProcessing(true, `${displayName} saved`);
         setTimeout(() => {
@@ -279,10 +277,9 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
     try {
       setAppProcessing(true, 'Saving audio detection time...');
 
-      const success = await window.electronAPI.saveConfig({ audio_language_detection_time: newValue });
+      // Use onSave prop to properly update parent component state
+      const success = await onSave({ audio_language_detection_time: newValue });
       if (success) {
-        const updatedConfig = await window.electronAPI.getConfig();
-
         setAppProcessing(true, 'Audio detection time saved');
         setTimeout(() => {
           setAppProcessing(false);

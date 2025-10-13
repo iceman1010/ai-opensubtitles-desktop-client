@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 import { spawn } from 'child_process';
 import ffmpeg from 'fluent-ffmpeg';
 
@@ -453,7 +454,12 @@ export class FFmpegManager {
 
   private generateOutputPath(inputPath: string, extension: string): string {
     const parsedPath = path.parse(inputPath);
-    return path.join(parsedPath.dir, `${parsedPath.name}_converted${extension}`);
+    // Use system temp directory instead of input file directory for better cross-platform support
+    const tempDir = os.tmpdir();
+    // Generate unique filename with timestamp to prevent conflicts
+    const timestamp = Date.now();
+    const uniqueName = `${parsedPath.name}_converted_${timestamp}${extension}`;
+    return path.join(tempDir, uniqueName);
   }
 
   private logPlatformSpecificError(): void {

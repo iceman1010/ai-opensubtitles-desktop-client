@@ -833,7 +833,9 @@ class MainApp {
       try {
         const fs = require('fs');
         const buffer = fs.readFileSync(filePath);
-        const fileName = filePath.split('/').pop() || 'file';
+        // Cross-platform filename extraction that handles both / and \ separators
+        const lastSlash = Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\'));
+        const fileName = lastSlash >= 0 ? filePath.substring(lastSlash + 1) : filePath;
         return {
           buffer: Array.from(buffer),
           fileName: fileName
@@ -879,7 +881,9 @@ class MainApp {
       try {
         const fs = require('fs');
         const buffer = fs.readFileSync(filePath);
-        const fileName = filePath.split('/').pop() || 'file';
+        // Cross-platform filename extraction that handles both / and \ separators
+        const lastSlash = Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\'));
+        const fileName = lastSlash >= 0 ? filePath.substring(lastSlash + 1) : filePath;
         return {
           buffer: Array.from(buffer),
           fileName: fileName
