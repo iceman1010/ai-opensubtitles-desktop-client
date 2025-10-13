@@ -153,6 +153,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
   const [isDragOverWindow, setIsDragOverWindow] = useState(false);
 
   const [showCompletionSummary, setShowCompletionSummary] = useState(false);
+  const [showLanguageValidationModal, setShowLanguageValidationModal] = useState(false);
   
   // API and data states - now using centralized APIContext
   const { 
@@ -1105,9 +1106,34 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     }));
   };
 
+  // Validation function to check for missing source languages
+  const validateLanguageSelection = (): { isValid: boolean; missingLanguageFiles: BatchFile[] } => {
+    const missingLanguageFiles = queue.filter(file => {
+      // Only audio/video files need language selection for transcription/translation
+      if (!isAudioVideoFile(file.name)) {
+        return false; // Subtitle files auto-detect language, no manual selection needed
+      }
+
+      // Check if file needs language selection but doesn't have it
+      return file.status === 'pending' && !file.selectedSourceLanguage;
+    });
+
+    return {
+      isValid: missingLanguageFiles.length === 0,
+      missingLanguageFiles
+    };
+  };
+
   // Batch processing functions
   const startBatchProcessing = async () => {
     if (queue.length === 0 || !isAuthenticated) return;
+
+    // Validate language selection before starting
+    const validation = validateLanguageSelection();
+    if (!validation.isValid) {
+      setShowLanguageValidationModal(true);
+      return;
+    }
 
     setIsProcessing(true);
     setIsPaused(false);
@@ -2217,6 +2243,116 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
               transition: 'width 0.3s ease'
             }}
           />
+        </div>
+      )}
+
+      {/* Language Selection Validation Modal */}
+      {showLanguageValidationModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={() => setShowLanguageValidationModal(false)}
+        >
+          <div
+            style={{
+              backgroundColor: 'var(--bg-secondary)',
+              borderRadius: '8px',
+              padding: '24px',
+              maxWidth: '600px',
+              width: '90%',
+              maxHeight: '80vh',
+              overflow: 'auto',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+              border: '1px solid var(--border-color)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{
+              margin: '0 0 16px 0',
+              color: 'var(--text-primary)',
+              fontSize: '18px',
+              fontWeight: '600'
+            }}>
+              Source Language Selection Required
+            </h3>
+
+            <p style={{
+              margin: '0 0 20px 0',
+              color: 'var(--text-secondary)',
+              fontSize: '14px',
+              lineHeight: '1.5'
+            }}>
+              The following audio/video files need a source language selected before batch processing can start.
+              Please select the source language for each file using the dropdown menus in the file list.
+            </p>
+
+            <div style={{
+              maxHeight: '300px',
+              overflow: 'auto',
+              border: '1px solid var(--border-color)',
+              borderRadius: '4px',
+              padding: '12px',
+              backgroundColor: 'var(--bg-primary)',
+              marginBottom: '20px'
+            }}>
+              {(() => {
+                const validation = validateLanguageSelection();
+                return validation.missingLanguageFiles.map(file => (
+                  <div
+                    key={file.id}
+                    style={{
+                      padding: '8px 12px',
+                      margin: '4px 0',
+                      backgroundColor: 'var(--bg-secondary)',
+                      border: '1px solid #dc3545',
+                      borderRadius: '4px',
+                      fontSize: '14px'
+                    }}
+                  >
+                    <div style={{ fontWeight: '500', color: 'var(--text-primary)' }}>
+                      {file.name}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                      Type: {file.type}
+                      {file.detectedLanguage && ` | Detected: ${file.detectedLanguage.native || file.detectedLanguage.name}`}
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+
+            <div style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '12px'
+            }}>
+              <button
+                onClick={() => setShowLanguageValidationModal(false)}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#007bff',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
+              >
+                OK, I'll Select Languages
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
