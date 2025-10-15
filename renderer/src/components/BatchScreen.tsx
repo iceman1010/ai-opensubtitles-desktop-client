@@ -631,7 +631,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
   };
 
   // Sequential language detection to avoid server overload
-  const processLanguageDetectionQueue = useCallback(async (currentQueue?: BatchFile[]) => {
+  const processLanguageDetectionQueue = useCallback(async (currentQueue?: BatchFile[], isManualDetection: boolean = false) => {
     logger.debug(3, 'BatchScreen', '🔍 processLanguageDetectionQueue called');
     logger.debug(3, 'BatchScreen', `🔍 isDetectingLanguages: ${isDetectingLanguages} isProcessing: ${isProcessing}`);
 
@@ -663,7 +663,9 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
       // Get files that need language detection based on type and settings
       const filesToDetect = queueToProcess.filter(file =>
         file.status === 'pending' && !file.detectedLanguage &&
-        (isAudioVideoFile(file.name) ? (config.autoLanguageDetection ?? false) : true)
+        (isAudioVideoFile(file.name) ?
+          (isManualDetection || (config.autoLanguageDetection ?? false)) :
+          true)
       );
 
       logger.debug(3, 'BatchScreen', `🔍 Files that need detection: ${filesToDetect.length}`);
@@ -693,7 +695,9 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
         const currentQueue = queueRef.current;
         const file = currentQueue.find(f =>
           f.status === 'pending' && !f.detectedLanguage &&
-          (isAudioVideoFile(f.name) ? (config.autoLanguageDetection ?? false) : true) &&
+          (isAudioVideoFile(f.name) ?
+            (isManualDetection || (config.autoLanguageDetection ?? false)) :
+            true) &&
           !detectionInProgressRef.current.has(f.id)
         );
 
@@ -852,7 +856,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
       logger.debug(3, 'BatchScreen', '🔍 BatchScreen: Setting isDetectingLanguages to false (finally block)');
       setIsDetectingLanguages(false);
     }
-  }, [isDetectingLanguages, isProcessing, isAuthenticated, detectLanguage, checkLanguageDetectionStatus, setAppProcessing]);
+  }, [queue, isDetectingLanguages, isProcessing, isAuthenticated, detectLanguage, checkLanguageDetectionStatus, setAppProcessing, config.autoLanguageDetection]);
 
   // Trigger language detection when authentication becomes available (only if auto-detection is enabled)
   useEffect(() => {
@@ -2170,7 +2174,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
           {!(config.autoLanguageDetection ?? false) && !isProcessing && queue.length > 0 &&
            queue.some(file => isAudioVideoFile(file.name) && !file.detectedLanguage) && (
             <button
-              onClick={() => processLanguageDetectionQueue()}
+              onClick={() => processLanguageDetectionQueue(undefined, true)}
               disabled={isDetectingLanguages || !isAuthenticated || !isOnline()}
               style={{
                 padding: '10px 20px',
