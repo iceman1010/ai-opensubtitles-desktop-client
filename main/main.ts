@@ -813,6 +813,11 @@ class MainApp {
       return lastSlash >= 0 ? filePath.substring(lastSlash + 1) : filePath;
     });
 
+    ipcMain.handle('path-join', async (_, ...paths: string[]) => {
+      const path = require('path');
+      return path.join(...paths);
+    });
+
     ipcMain.handle('generate-unique-filename', async (_, basePath: string, extension: string) => {
       const fs = require('fs');
       const path = require('path');

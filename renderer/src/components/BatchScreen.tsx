@@ -1657,8 +1657,8 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
       format
     );
 
-    // Create full base path for unique name generation
-    const fullBasePath = `${outputDir}/${baseName}`;
+    // Create full base path for unique name generation using cross-platform path joining
+    const fullBasePath = await window.electronAPI.pathJoin(outputDir, baseName);
 
     // Generate unique filename using IPC (this will handle adding numbers if file exists)
     const uniquePath = await window.electronAPI.generateUniqueFileName(fullBasePath, format);
@@ -2314,7 +2314,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
                       padding: '8px 12px',
                       margin: '4px 0',
                       backgroundColor: 'var(--bg-secondary)',
-                      border: '1px solid #dc3545',
+                      border: '1px solid var(--danger-border)',
                       borderRadius: '4px',
                       fontSize: '14px'
                     }}
@@ -2340,8 +2340,8 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
                 onClick={() => setShowLanguageValidationModal(false)}
                 style={{
                   padding: '10px 20px',
-                  backgroundColor: '#007bff',
-                  color: 'white',
+                  backgroundColor: 'var(--button-bg)',
+                  color: 'var(--button-text)',
                   border: 'none',
                   borderRadius: '4px',
                   cursor: 'pointer',

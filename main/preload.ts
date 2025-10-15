@@ -10,6 +10,7 @@ const electronAPI = {
   checkFileExists: (filePath: string) => ipcRenderer.invoke('check-file-exists', filePath),
   getDirectoryName: (filePath: string) => ipcRenderer.invoke('get-directory-name', filePath),
   getBaseName: (filePath: string) => ipcRenderer.invoke('get-base-name', filePath),
+  pathJoin: (...paths: string[]) => ipcRenderer.invoke('path-join', ...paths),
   generateUniqueFileName: (basePath: string, extension: string) => ipcRenderer.invoke('generate-unique-filename', basePath, extension),
   readFile: (filePath: string) => ipcRenderer.invoke('read-file', filePath),
   readAudioFile: (filePath: string) => ipcRenderer.invoke('read-audio-file', filePath),
