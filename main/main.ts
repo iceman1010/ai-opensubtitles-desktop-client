@@ -26,7 +26,87 @@ class MainApp {
     }
   }
 
+  private checkForMultipleInstallations() {
+    if (process.platform !== 'win32') {
+      return;
+    }
+
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const os = require('os');
+
+      const currentExePath = process.execPath;
+      const appName = 'AI.Opensubtitles.com Client.exe';
+
+      // Common installation paths on Windows
+      const possiblePaths = [
+        // Per-machine installations
+        path.join('C:', 'Program Files', 'AI.Opensubtitles.com Client', appName),
+        path.join('C:', 'Program Files (x86)', 'AI.Opensubtitles.com Client', appName),
+
+        // Per-user installations
+        path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'AI.Opensubtitles.com Client', appName),
+        path.join(os.homedir(), 'AppData', 'Local', 'ai-opensubtitles-client', appName),
+
+        // Portable installations (common user locations)
+        path.join(os.homedir(), 'Desktop', appName),
+        path.join(os.homedir(), 'Downloads', appName),
+        path.join(os.homedir(), 'Documents', appName)
+      ];
+
+      const foundInstallations: string[] = [];
+
+      this.debug(2, 'MultiInstall', '=== CHECKING FOR MULTIPLE INSTALLATIONS ===');
+      this.debug(2, 'MultiInstall', 'Current executable path:', currentExePath);
+
+      for (const possiblePath of possiblePaths) {
+        try {
+          if (fs.existsSync(possiblePath)) {
+            // Get file stats to compare with current executable
+            const stats = fs.statSync(possiblePath);
+            const currentStats = fs.statSync(currentExePath);
+
+            foundInstallations.push(possiblePath);
+            this.debug(1, 'MultiInstall', 'Found installation:', possiblePath);
+            this.debug(2, 'MultiInstall', 'File size:', stats.size, 'bytes');
+            this.debug(2, 'MultiInstall', 'Modified:', stats.mtime.toISOString());
+
+            // Check if this is a different file than the current one
+            if (path.resolve(possiblePath) !== path.resolve(currentExePath)) {
+              if (stats.size !== currentStats.size || stats.mtime.getTime() !== currentStats.mtime.getTime()) {
+                this.debug(1, 'MultiInstall', '⚠️  DIFFERENT VERSION DETECTED:', possiblePath);
+              }
+            }
+          }
+        } catch (error) {
+          // Ignore access errors for paths we can't read
+          this.debug(3, 'MultiInstall', 'Cannot access:', possiblePath, error);
+        }
+      }
+
+      if (foundInstallations.length > 1) {
+        console.warn('⚠️  MULTIPLE INSTALLATIONS DETECTED:');
+        foundInstallations.forEach((installation, index) => {
+          console.warn(`  ${index + 1}. ${installation}`);
+        });
+        console.warn('This may cause update issues. Consider uninstalling old versions.');
+      } else if (foundInstallations.length === 1) {
+        this.debug(1, 'MultiInstall', '✅ Single installation detected:', foundInstallations[0]);
+      } else {
+        this.debug(1, 'MultiInstall', '❓ No standard installations found (possibly portable or development)');
+      }
+
+      this.debug(2, 'MultiInstall', '=== END MULTIPLE INSTALLATION CHECK ===');
+    } catch (error) {
+      this.debug(1, 'MultiInstall', 'Failed to check for multiple installations:', error);
+    }
+  }
+
   async initialize() {
+    // Check for multiple installations on Windows
+    this.checkForMultipleInstallations();
+
     // Parse command line arguments for file path
     this.parseCommandLineArguments(process.argv);
 
@@ -530,9 +610,34 @@ class MainApp {
       this.sendUpdateStatus('checking-for-update', 'Checking for updates...');
     });
 
-    autoUpdater.on('update-available', (info) => {
+    autoUpdater.on('update-available', async (info) => {
       this.debug(2, 'AutoUpdater', 'Update available:', info);
       this.sendUpdateStatus('update-available', `Update available: v${info.version}`);
+
+      // Show confirmation dialog before downloading
+      const response = await dialog.showMessageBox(this.mainWindow!, {
+        type: 'info',
+        buttons: ['Download Now', 'Later'],
+        defaultId: 0,
+        cancelId: 1,
+        title: 'Update Available',
+        message: `A new version (v${info.version}) is available.`,
+        detail: 'Would you like to download and install the update now? The application will restart after installation.'
+      });
+
+      if (response.response === 0) {
+        this.debug(2, 'AutoUpdater', 'User confirmed update download');
+        this.sendUpdateStatus('update-downloading', 'Starting download...');
+        try {
+          await autoUpdater.downloadUpdate();
+        } catch (error) {
+          console.error('Failed to download update:', error);
+          this.sendUpdateStatus('update-error', 'Failed to download update');
+        }
+      } else {
+        this.debug(2, 'AutoUpdater', 'User declined update download');
+        this.sendUpdateStatus('update-declined', 'Update download declined');
+      }
     });
 
     autoUpdater.on('update-not-available', (info) => {
@@ -616,6 +721,23 @@ class MainApp {
       return;
     }
 
+    // Show confirmation dialog before downloading
+    const response = await dialog.showMessageBox(this.mainWindow!, {
+      type: 'info',
+      buttons: ['Download Now', 'Cancel'],
+      defaultId: 0,
+      cancelId: 1,
+      title: 'Download Update',
+      message: 'Are you sure you want to download the update?',
+      detail: 'The update will be downloaded and you will be prompted to install it when ready.'
+    });
+
+    if (response.response !== 0) {
+      this.sendUpdateStatus('update-declined', 'Update download cancelled');
+      return;
+    }
+
+    this.sendUpdateStatus('update-downloading', 'Starting download...');
     try {
       await autoUpdater.downloadUpdate();
     } catch (error) {
@@ -624,14 +746,102 @@ class MainApp {
     }
   }
 
-  private installUpdate() {
+  private async checkUpdatePermissions(): Promise<{ canInstall: boolean; error?: string }> {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const os = require('os');
+
+      // Get the application path
+      const appPath = process.execPath;
+      const appDir = path.dirname(appPath);
+
+      this.debug(2, 'AutoUpdater', 'Checking permissions for app path:', appPath);
+      this.debug(2, 'AutoUpdater', 'App directory:', appDir);
+
+      // Check if we can write to the application directory
+      try {
+        fs.accessSync(appDir, fs.constants.W_OK);
+        this.debug(2, 'AutoUpdater', 'Write permission check passed for app directory');
+      } catch (error) {
+        this.debug(1, 'AutoUpdater', 'No write permission to app directory:', error);
+        return {
+          canInstall: false,
+          error: `No write permission to application directory: ${appDir}. The update may require administrator privileges. Please try running the application as administrator.`
+        };
+      }
+
+      // Check if we can write to temp directory (where update files are downloaded)
+      const tempDir = os.tmpdir();
+      try {
+        const testFile = path.join(tempDir, `update-test-${Date.now()}.tmp`);
+        fs.writeFileSync(testFile, 'test');
+        fs.unlinkSync(testFile);
+        this.debug(2, 'AutoUpdater', 'Temp directory write check passed');
+      } catch (error) {
+        this.debug(1, 'AutoUpdater', 'Cannot write to temp directory:', error);
+        return {
+          canInstall: false,
+          error: `Cannot write to temporary directory: ${tempDir}. Check disk space and permissions.`
+        };
+      }
+
+      return { canInstall: true };
+    } catch (error) {
+      this.debug(1, 'AutoUpdater', 'Permission check failed:', error);
+      return {
+        canInstall: false,
+        error: `Permission check failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
+    }
+  }
+
+  private async installUpdate() {
     const isDev = process.env.NODE_ENV === 'development';
     if (isDev) {
       this.sendUpdateStatus('update-error', 'Install not available in development mode');
       return;
     }
 
-    autoUpdater.quitAndInstall();
+    // Check permissions before installation
+    const permissionCheck = await this.checkUpdatePermissions();
+    if (!permissionCheck.canInstall) {
+      this.debug(1, 'AutoUpdater', 'Installation blocked due to insufficient permissions');
+      this.sendUpdateStatus('update-error', `Installation failed: ${permissionCheck.error}`);
+
+      // Show error dialog to user
+      await dialog.showMessageBox(this.mainWindow!, {
+        type: 'error',
+        title: 'Update Installation Failed',
+        message: 'Cannot install update due to insufficient permissions.',
+        detail: permissionCheck.error || 'Unknown permission error.'
+      });
+      return;
+    }
+
+    // Show final confirmation before installation
+    const response = await dialog.showMessageBox(this.mainWindow!, {
+      type: 'question',
+      buttons: ['Install & Restart', 'Cancel'],
+      defaultId: 0,
+      cancelId: 1,
+      title: 'Ready to Install Update',
+      message: 'The update has been downloaded and is ready to install.',
+      detail: 'The application will close and restart to complete the installation. Make sure to save any work before proceeding.'
+    });
+
+    if (response.response === 0) {
+      this.debug(2, 'AutoUpdater', 'User confirmed installation, proceeding...');
+      this.sendUpdateStatus('update-installing', 'Installing update and restarting...');
+
+      // Small delay to ensure the status message is sent
+      setTimeout(() => {
+        autoUpdater.quitAndInstall();
+      }, 500);
+    } else {
+      this.debug(2, 'AutoUpdater', 'User cancelled installation');
+      this.sendUpdateStatus('update-cancelled', 'Installation cancelled by user');
+    }
   }
 
   private setupPowerMonitoring(debugEnabled: boolean = false) {

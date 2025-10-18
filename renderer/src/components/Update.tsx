@@ -24,7 +24,7 @@ function Update({}: UpdateProps) {
     // Set up update status listener
     const handleUpdateStatus = (_event: any, status: { event: string, message: string }) => {
       setUpdateStatus(status.message);
-      setIsLoading(status.event === 'checking-for-update' || status.event === 'update-downloading');
+      setIsLoading(status.event === 'checking-for-update' || status.event === 'update-downloading' || status.event === 'update-installing');
     };
 
     window.electronAPI.onUpdateStatus(handleUpdateStatus);
@@ -154,10 +154,14 @@ function Update({}: UpdateProps) {
             <div style={{
               padding: '12px 16px',
               backgroundColor: updateStatus.includes('Update ready:') ? 'var(--success-color)' :
-                             updateStatus.includes('error') ? 'var(--danger-color)' : 'var(--info-color)',
+                             updateStatus.includes('error') || updateStatus.includes('failed') ? 'var(--danger-color)' :
+                             updateStatus.includes('declined') || updateStatus.includes('cancelled') ? 'var(--warning-color)' :
+                             'var(--info-color)',
               color: 'var(--bg-primary)',
               border: `1px solid ${updateStatus.includes('Update ready:') ? 'var(--success-color)' :
-                                  updateStatus.includes('error') ? 'var(--danger-color)' : 'var(--info-color)'}`,
+                                  updateStatus.includes('error') || updateStatus.includes('failed') ? 'var(--danger-color)' :
+                                  updateStatus.includes('declined') || updateStatus.includes('cancelled') ? 'var(--warning-color)' :
+                                  'var(--info-color)'}`,
               borderRadius: '4px',
               fontSize: '14px',
               fontWeight: '500',
