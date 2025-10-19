@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { OpenSubtitlesAPI, TranscriptionInfo, TranslationInfo } from '../services/api';
 import { logger } from '../utils/errorLogger';
-import { isOnline } from '../utils/networkUtils';
+import { isOnline, isFullyOnline, checkAPIConnectivity } from '../utils/networkUtils';
 
 interface APIContextType {
   api: OpenSubtitlesAPI | null;
@@ -12,6 +12,7 @@ interface APIContextType {
   userInfo: any | null;
   isLoading: boolean;
   error: string | null;
+  connectivityIssue: string | null;
   
   // Actions
   login: (username: string, password: string, apiKey: string) => Promise<boolean>;
@@ -69,6 +70,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
   const [userInfo, setUserInfo] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [connectivityIssue, setConnectivityIssue] = useState<string | null>(null);
   const [authenticationInProgress, setAuthenticationInProgress] = useState(false);
 
   // Global promise to prevent concurrent authentication attempts
@@ -134,13 +136,22 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
         logger.info('APIContext', 'Using cached token, verifying with credits check');
         logger.info('APIContext', `Cached token loaded on instance: ${(apiInstance as any).token ? 'YES' : 'NO'}`);
 
-        // Check if device is online before making network request
+        // Check if device is online and API is reachable before making network request
         if (!isOnline()) {
           logger.warn('APIContext', 'Device is offline, skipping credits verification');
           setAuthenticationInProgress(false);
           setIsLoading(false);
           return false;
         }
+
+        // Check cached connectivity status instead of making a real-time test
+        if (!isFullyOnline()) {
+          logger.warn('APIContext', 'API server appears unreachable based on cached connectivity status, skipping credits verification');
+          setAuthenticationInProgress(false);
+          setIsLoading(false);
+          return false;
+        }
+        logger.debug(1, 'APIContext', 'API connectivity appears good based on cached status, proceeding with authentication');
 
         // Verify token is still valid with a credits check
         const creditsResult = await apiInstance.getCredits();

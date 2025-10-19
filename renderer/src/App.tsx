@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Login from './components/Login';
 import MainScreen from './components/MainScreen';
 import BatchScreen from './components/BatchScreen';
@@ -417,9 +417,7 @@ function AppContent({
     logger.debug(2, 'App', 'Hibernation recovery handlers registered');
 
     // No cleanup needed as PowerContext handles its own cleanup
-  }, [currentScreen, mainScreenProcessing, batchScreenProcessing, isProcessing, currentTask,
-      isAuthenticated, onSystemSuspend, onSystemResume, preserveState, restoreState,
-      clearPreservedState, isTokenExpired]);
+  }, [onSystemSuspend, onSystemResume, preserveState, restoreState, clearPreservedState, isTokenExpired]);
 
   const handleLogin = async (username: string, password: string, apiKey: string): Promise<boolean> => {
     try {
@@ -511,9 +509,9 @@ function AppContent({
   };
 
   // Centralized status handlers
-  const handleNetworkChange = (isOnline: boolean) => {
+  const handleNetworkChange = useCallback((isOnline: boolean) => {
     setIsNetworkOnline(isOnline);
-  };
+  }, []);
 
   const setAppProcessing = (processing: boolean, task?: string) => {
     setIsProcessing(processing);
@@ -822,6 +820,10 @@ function AppContent({
         onNetworkChange={handleNetworkChange}
         isProcessing={isProcessing}
         currentTask={currentTask}
+        config={{
+          apiBaseUrl: config.apiBaseUrl,
+          apiConnectivityTestIntervalMinutes: config.apiConnectivityTestIntervalMinutes
+        }}
       />
 
       {/* Global Error Log Controls */}

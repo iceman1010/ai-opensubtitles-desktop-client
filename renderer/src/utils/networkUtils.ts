@@ -5,6 +5,42 @@ import { activityTracker } from './activityTracker';
 // Export activity tracker for external access
 export { activityTracker };
 
+// Session ID cache with promise to prevent race conditions
+let sessionIdCache: string | null = null;
+let sessionIdPromise: Promise<string> | null = null;
+
+/**
+ * Gets the session ID from the main process (race condition safe)
+ */
+async function getSessionId(): Promise<string> {
+  if (sessionIdCache) {
+    return sessionIdCache;
+  }
+
+  // If already fetching, wait for the existing promise
+  if (sessionIdPromise) {
+    return sessionIdPromise;
+  }
+
+  sessionIdPromise = (async () => {
+    try {
+      const sessionId = await window.electronAPI.getSessionId();
+      sessionIdCache = sessionId;
+      return sessionId;
+    } catch (error) {
+      logger.error('Failed to get session ID from main process', error);
+      // Fallback to random UUID
+      const fallbackId = crypto.randomUUID();
+      sessionIdCache = fallbackId;
+      return fallbackId;
+    } finally {
+      sessionIdPromise = null;
+    }
+  })();
+
+  return sessionIdPromise;
+}
+
 export enum NetworkErrorType {
   OFFLINE = 'offline',
   TIMEOUT = 'timeout',
@@ -220,11 +256,162 @@ export function getUserFriendlyErrorMessage(error: any): string {
   return categorized.message;
 }
 
+// Cache for API connectivity status to avoid excessive calls
+let apiConnectivityCache: {
+  connected: boolean;
+  lastChecked: number;
+  cacheValidMs: number;
+} = {
+  connected: true, // Assume connected initially
+  lastChecked: 0,
+  cacheValidMs: 30000 // 30 seconds cache by default
+};
+
 /**
- * Checks if the browser is currently online
+ * Checks if the browser is currently online (basic check)
  */
 export function isOnline(): boolean {
   return navigator.onLine;
+}
+
+/**
+ * Enhanced connectivity check that considers both network adapter and API server reachability
+ * This is used by UI components and API gating logic
+ */
+export function isFullyOnline(): boolean {
+  // First check basic network connectivity
+  if (!navigator.onLine) {
+    return false;
+  }
+
+  // Check cached API connectivity status
+  const now = Date.now();
+  const cacheExpired = (now - apiConnectivityCache.lastChecked) > apiConnectivityCache.cacheValidMs;
+
+  if (!cacheExpired) {
+    return apiConnectivityCache.connected;
+  }
+
+  // If cache expired, return last known status but don't block
+  // The actual connectivity test happens asynchronously in the background
+  return apiConnectivityCache.connected;
+}
+
+/**
+ * Updates the API connectivity cache
+ * Called by the StatusBar or other components that test connectivity
+ */
+export function updateAPIConnectivityCache(connected: boolean, cacheValidMs: number = 30000): void {
+  apiConnectivityCache = {
+    connected,
+    lastChecked: Date.now(),
+    cacheValidMs
+  };
+}
+
+/**
+ * Gets the current API connectivity status from cache
+ */
+export function getAPIConnectivityStatus(): { connected: boolean; lastChecked: number; cacheExpired: boolean } {
+  const now = Date.now();
+  const cacheExpired = (now - apiConnectivityCache.lastChecked) > apiConnectivityCache.cacheValidMs;
+
+  return {
+    connected: apiConnectivityCache.connected,
+    lastChecked: apiConnectivityCache.lastChecked,
+    cacheExpired
+  };
+}
+
+/**
+ * Enhanced connectivity check that tests actual API server connectivity
+ * by attempting to reach the configured API info/discovery endpoint
+ */
+export async function checkAPIConnectivity(
+  apiBaseUrl: string,
+  timeoutMs: number = 5000
+): Promise<{
+  connected: boolean;
+  error?: string;
+  responseTime?: number;
+}> {
+  // First check navigator.onLine for quick offline detection
+  if (!navigator.onLine) {
+    return {
+      connected: false,
+      error: 'Device is offline (no network adapter connection)'
+    };
+  }
+
+  const startTime = Date.now();
+
+  try {
+    // Get session ID for tracking
+    const sessionId = await getSessionId();
+
+    // Use discovery endpoint for connectivity testing with session ID
+    const discoveryUrl = `${apiBaseUrl}/ai/info/discovery?sessionId=${encodeURIComponent(sessionId)}`;
+    logger.debug(2, 'NetworkUtils', `Testing connectivity to: ${discoveryUrl}`);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    const response = await fetch(discoveryUrl, {
+      method: 'GET',
+      signal: controller.signal,
+      cache: 'no-cache',
+      mode: 'cors',
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'API_Test_AI.OS'
+      }
+    });
+
+    clearTimeout(timeoutId);
+    const responseTime = Date.now() - startTime;
+
+    logger.debug(2, 'NetworkUtils', `Response status: ${response.status}, time: ${responseTime}ms`);
+
+    if (response.ok) {
+      const responseText = await response.text();
+      logger.debug(2, 'NetworkUtils', 'Success response:', responseText);
+      return {
+        connected: true,
+        responseTime
+      };
+    } else {
+      const responseText = await response.text();
+      logger.debug(1, 'NetworkUtils', 'Error response:', responseText);
+      return {
+        connected: false,
+        error: `API server responded with status ${response.status}: ${responseText}`,
+        responseTime
+      };
+    }
+  } catch (error: any) {
+    const responseTime = Date.now() - startTime;
+
+    logger.debug(1, 'NetworkUtils', 'Connectivity test failed:', error);
+
+    // Categorize the error
+    let errorMessage = 'Unknown connectivity error';
+
+    if (error.name === 'AbortError') {
+      errorMessage = `Connection timeout after ${timeoutMs}ms`;
+    } else if (error.message?.toLowerCase().includes('failed to fetch')) {
+      errorMessage = 'Cannot reach API server (DNS resolution or connectivity issue)';
+    } else if (error.message?.toLowerCase().includes('network error')) {
+      errorMessage = 'Network error occurred';
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+
+    return {
+      connected: false,
+      error: errorMessage,
+      responseTime
+    };
+  }
 }
 
 /**
@@ -404,10 +591,16 @@ async function executeRequest<T>(requestFn: () => Promise<T>, context: string): 
     throw simulationResult.error;
   }
   
-  // Check if we're offline
-  if (!isOnline()) {
-    logger.warn('NetworkUtils', `${context}: Device is offline, skipping request`);
-    throw new Error('Device is offline');
+  // Check if we're offline or API is unreachable
+  if (!isFullyOnline()) {
+    const basicOnline = isOnline();
+    if (!basicOnline) {
+      logger.warn('NetworkUtils', `${context}: Device is offline, skipping request`);
+      throw new Error('Device is offline');
+    } else {
+      logger.warn('NetworkUtils', `${context}: API server unreachable, skipping request`);
+      throw new Error('API server unreachable');
+    }
   }
   
   try {

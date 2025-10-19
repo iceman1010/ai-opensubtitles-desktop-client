@@ -357,18 +357,95 @@ const Help: React.FC<HelpProps> = ({}) => {
         <div>
           <h3>Common Issues & Solutions</h3>
 
-          <h4>Connection Problems</h4>
+          <h4>Connection Status Indicators</h4>
+          <p>The status bar at the bottom shows real-time connection status:</p>
           <ul>
-            <li><strong>Offline Status:</strong> Check internet connection, status shows in bottom bar</li>
-            <li><strong>API Errors:</strong> Verify credentials in Preferences, test with simple files first</li>
-            <li><strong>Timeout Issues:</strong> Large files may take time, check progress in status bar</li>
+            <li><strong style={{color: '#28a745'}}>🟢 Connected:</strong> Full connectivity to API server - all features available</li>
+            <li><strong style={{color: '#fd7e14'}}>🟠 API Issues:</strong> Internet connected but API server unreachable</li>
+            <li><strong style={{color: '#dc3545'}}>🔴 Offline:</strong> No internet connection detected</li>
+            <li><strong style={{color: '#6c757d'}}>⚪ Unknown:</strong> Initial state or connectivity being tested</li>
+          </ul>
+
+          <h4>Specific Connection Issues</h4>
+
+          <h5>Network Offline (Red Status)</h5>
+          <ul>
+            <li><strong>Check Physical Connection:</strong> Verify ethernet cable or WiFi connection</li>
+            <li><strong>Router/Modem:</strong> Restart network equipment if needed</li>
+            <li><strong>Network Settings:</strong> Check Windows/macOS network configuration</li>
+            <li><strong>ISP Issues:</strong> Verify internet service with other applications</li>
+          </ul>
+
+          <h5>API Server Unreachable (Orange Status)</h5>
+          <ul>
+            <li><strong>DNS Issues:</strong> Try switching to public DNS (8.8.8.8, 1.1.1.1)</li>
+            <li><strong>Firewall/Antivirus:</strong> Temporarily disable to test connection</li>
+            <li><strong>Corporate Network:</strong> Check if proxy settings are required</li>
+            <li><strong>VPN/Proxy:</strong> Try connecting with/without VPN</li>
+            <li><strong>Regional Blocking:</strong> API server may be temporarily unreachable in your region</li>
+          </ul>
+
+          <h5>Rate Limiting Errors</h5>
+          <ul>
+            <li><strong>Wait Period:</strong> System enforces brief delays between requests</li>
+            <li><strong>Batch Processing:</strong> Process smaller groups of files at once</li>
+            <li><strong>Credit Usage:</strong> Check remaining credits - processing pauses when exhausted</li>
+            <li><strong>Multiple Sessions:</strong> Avoid running multiple app instances simultaneously</li>
+          </ul>
+
+          <h5>CloudFlare Protection Errors</h5>
+          <ul>
+            <li><strong>Automatic Retry:</strong> App automatically retries CloudFlare-protected requests</li>
+            <li><strong>Browser Check:</strong> CloudFlare may be performing security checks</li>
+            <li><strong>Wait and Retry:</strong> Usually resolves within 1-2 minutes</li>
+            <li><strong>Clear Browser Data:</strong> If persistent, clear DNS cache and restart app</li>
+          </ul>
+
+          <h5>Proxy/Gateway Errors</h5>
+          <ul>
+            <li><strong>Corporate Networks:</strong> Contact IT department for proxy configuration</li>
+            <li><strong>Gateway Timeouts:</strong> Temporary server issues, retry automatically</li>
+            <li><strong>Load Balancer Issues:</strong> Server infrastructure problems, usually resolve quickly</li>
+          </ul>
+
+          <h5>Timeout Errors</h5>
+          <ul>
+            <li><strong>Large Files:</strong> Processing may take several minutes for long audio/video</li>
+            <li><strong>Slow Connection:</strong> Check internet speed, consider smaller files first</li>
+            <li><strong>Server Load:</strong> Peak usage times may cause delays</li>
+            <li><strong>Retry Logic:</strong> App automatically retries failed requests</li>
+          </ul>
+
+          <h5>Authentication Errors</h5>
+          <ul>
+            <li><strong>Invalid Credentials:</strong> Verify username, password, and API key in Preferences</li>
+            <li><strong>Expired Token:</strong> App automatically refreshes tokens - restart if persistent</li>
+            <li><strong>Account Issues:</strong> Check OpenSubtitles account status on website</li>
+            <li><strong>API Key:</strong> Ensure API key is correctly copied without extra spaces</li>
+          </ul>
+
+          <h4>Advanced Troubleshooting</h4>
+          <ul>
+            <li><strong>Debug Logging:</strong> Use Ctrl+Shift+D to enable debug mode for detailed error information</li>
+            <li><strong>Connection Testing:</strong> Adjust connectivity test interval in Preferences (default: 5 minutes)</li>
+            <li><strong>Session Tracking:</strong> Each app session has unique ID for support purposes</li>
+            <li><strong>Network Configuration:</strong> App automatically detects and categorizes connection errors</li>
+          </ul>
+
+          <h4>When to Contact Support</h4>
+          <ul>
+            <li><strong>Persistent Orange Status:</strong> API unreachable for more than 30 minutes</li>
+            <li><strong>Repeated Authentication Errors:</strong> With verified correct credentials</li>
+            <li><strong>Specific Error Codes:</strong> Note any error codes shown in debug mode</li>
+            <li><strong>Regional Issues:</strong> If API appears blocked in your geographic region</li>
           </ul>
 
           <h4>General Issues</h4>
           <ul>
-            <li><strong>Processing Errors:</strong> Check network connection and file format compatibility</li>
-            <li><strong>Login Issues:</strong> Verify credentials and API key in Preferences</li>
+            <li><strong>Processing Errors:</strong> Check connection status first, then file format compatibility</li>
+            <li><strong>Login Issues:</strong> Verify all credentials in Preferences, check connection status</li>
             <li><strong>File Selection:</strong> Ensure selected files match supported format list above</li>
+            <li><strong>Batch Processing Stuck:</strong> Check per-file error messages, verify connection stability</li>
           </ul>
 
           <h4>Credits</h4>
@@ -376,6 +453,7 @@ const Help: React.FC<HelpProps> = ({}) => {
             <li><strong>Balance:</strong> Check remaining credits in the sidebar (visible on all screens except login)</li>
             <li><strong>Usage:</strong> Credits are consumed when processing files</li>
             <li><strong>Monitoring:</strong> Credit balance updates in real-time after each operation</li>
+            <li><strong>Depletion:</strong> Processing automatically stops when credits are exhausted</li>
           </ul>
         </div>
       )

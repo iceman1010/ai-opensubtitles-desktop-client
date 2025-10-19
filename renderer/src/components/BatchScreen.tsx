@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import FileSelector from './FileSelector';
 import { LanguageInfo, TranscriptionInfo, TranslationInfo, DetectedLanguage } from '../services/api';
 import { logger } from '../utils/errorLogger';
-import { isOnline } from '../utils/networkUtils';
+import { isOnline, isFullyOnline } from '../utils/networkUtils';
 import { useAPI } from '../contexts/APIContext';
 import { generateFilename } from '../utils/filenameGenerator';
 import * as fileFormatsConfig from '../../../shared/fileFormats.json';
@@ -2175,14 +2175,14 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
            queue.some(file => isAudioVideoFile(file.name) && !file.detectedLanguage) && (
             <button
               onClick={() => processLanguageDetectionQueue(undefined, true)}
-              disabled={isDetectingLanguages || !isAuthenticated || !isOnline()}
+              disabled={isDetectingLanguages || !isAuthenticated || !isFullyOnline()}
               style={{
                 padding: '10px 20px',
                 backgroundColor: isDetectingLanguages ? '#6c757d' : '#17a2b8',
                 color: 'white',
                 border: 'none',
                 borderRadius: '4px',
-                cursor: (isDetectingLanguages || !isAuthenticated || !isOnline()) ? 'not-allowed' : 'pointer',
+                cursor: (isDetectingLanguages || !isAuthenticated || !isFullyOnline()) ? 'not-allowed' : 'pointer',
                 fontSize: '16px',
                 minWidth: '160px',
                 display: 'flex',
@@ -2212,14 +2212,14 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
 
           <button
             onClick={!isProcessing ? startBatchProcessing : stopBatchProcessing}
-            disabled={!isProcessing && (queue.length === 0 || !isOnline() || (!batchSettings.transcriptionModel && !batchSettings.translationModel))}
+            disabled={!isProcessing && (queue.length === 0 || !isFullyOnline() || (!batchSettings.transcriptionModel && !batchSettings.translationModel))}
             style={{
               padding: '10px 20px',
               backgroundColor: isProcessing ? '#dc3545' : '#28a745',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
-              cursor: (!isProcessing && (queue.length === 0 || !isOnline() || (!batchSettings.transcriptionModel && !batchSettings.translationModel))) ? 'not-allowed' : 'pointer',
+              cursor: (!isProcessing && (queue.length === 0 || !isFullyOnline() || (!batchSettings.transcriptionModel && !batchSettings.translationModel))) ? 'not-allowed' : 'pointer',
               fontSize: '16px',
               minWidth: '180px'
             }}

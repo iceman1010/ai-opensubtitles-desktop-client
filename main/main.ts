@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog, session, shell, globalShortcut, Menu, powerMonitor } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import * as path from 'path';
+import * as crypto from 'crypto';
 import { ConfigManager } from './config';
 import { FFmpegManager } from './ffmpeg';
 import { initializePowerSaveBlocker, cleanupPowerSaveBlocker } from './powerSaveBlocker';
@@ -11,10 +12,12 @@ class MainApp {
   private configManager: ConfigManager;
   private ffmpegManager: FFmpegManager;
   private pendingFilePaths: string[] = [];
+  private sessionId: string;
 
   constructor() {
     this.configManager = new ConfigManager();
     this.ffmpegManager = new FFmpegManager();
+    this.sessionId = crypto.randomUUID();
   }
 
   private debug(level: number, category: string, message: string, ...args: any[]) {
@@ -909,6 +912,10 @@ class MainApp {
         await this.ffmpegManager.initialize(config.ffmpegPath);
       }
       return result;
+    });
+
+    ipcMain.handle('get-session-id', () => {
+      return this.sessionId;
     });
 
     ipcMain.handle('select-file', async () => {

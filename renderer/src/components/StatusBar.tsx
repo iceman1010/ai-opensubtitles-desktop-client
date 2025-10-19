@@ -1,19 +1,25 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { setupNetworkListeners, isOnline } from '../utils/networkUtils';
+import { setupNetworkListeners, isOnline, isFullyOnline, checkAPIConnectivity, updateAPIConnectivityCache, getAPIConnectivityStatus } from '../utils/networkUtils';
 import { activityTracker } from '../utils/activityTracker';
 
 interface StatusBarProps {
   onNetworkChange?: (isOnline: boolean) => void;
   isProcessing?: boolean;
   currentTask?: string;
+  config?: {
+    apiBaseUrl?: string;
+    apiConnectivityTestIntervalMinutes?: number;
+  };
 }
 
-const StatusBar: React.FC<StatusBarProps> = ({ 
-  onNetworkChange, 
+const StatusBar: React.FC<StatusBarProps> = ({
+  onNetworkChange,
   isProcessing = false,
-  currentTask
+  currentTask,
+  config
 }) => {
   const [online, setOnline] = useState(isOnline());
+  const [apiConnectivity, setApiConnectivity] = useState<'unknown' | 'connected' | 'unreachable'>('unknown');
   const [showConnectionChange, setShowConnectionChange] = useState(false);
   const [isApiActive, setIsApiActive] = useState(false);
   const [currentApiContext, setCurrentApiContext] = useState<string | null>(null);
@@ -52,6 +58,58 @@ const StatusBar: React.FC<StatusBarProps> = ({
 
     return cleanup;
   }, [onNetworkChange]);
+
+  // API Connectivity Testing
+  useEffect(() => {
+    const testAPIConnectivity = async () => {
+      if (!config?.apiBaseUrl || !online) {
+        setApiConnectivity(online ? 'unknown' : 'unreachable');
+        updateAPIConnectivityCache(false, 30000);
+        return;
+      }
+
+      try {
+        const result = await checkAPIConnectivity(config.apiBaseUrl);
+        const newConnectivity = result.connected ? 'connected' : 'unreachable';
+        setApiConnectivity(newConnectivity);
+
+        // Update cache with configured interval (convert minutes to ms)
+        const cacheValidMs = (config.apiConnectivityTestIntervalMinutes ?? 5) * 60 * 1000;
+        updateAPIConnectivityCache(result.connected, cacheValidMs);
+
+        // Notify parent component of connectivity change
+        if (onNetworkChange) {
+          onNetworkChange(result.connected);
+        }
+      } catch (error) {
+        setApiConnectivity('unreachable');
+        const cacheValidMs = (config.apiConnectivityTestIntervalMinutes ?? 5) * 60 * 1000;
+        updateAPIConnectivityCache(false, cacheValidMs);
+      }
+    };
+
+    // Set up periodic testing
+    const intervalMinutes = config?.apiConnectivityTestIntervalMinutes ?? 5;
+    const intervalMs = intervalMinutes * 60 * 1000;
+
+    // Debounce immediate test on config changes to prevent race conditions
+    const immediateTestTimeout = setTimeout(() => {
+      if (config?.apiBaseUrl) {
+        testAPIConnectivity();
+      }
+    }, 100);
+
+    const intervalId = setInterval(() => {
+      if (config?.apiBaseUrl) {
+        testAPIConnectivity();
+      }
+    }, intervalMs);
+
+    return () => {
+      clearTimeout(immediateTestTimeout);
+      clearInterval(intervalId);
+    };
+  }, [config?.apiBaseUrl, config?.apiConnectivityTestIntervalMinutes, online, onNetworkChange]);
 
   // Handle minimum display time for processing status
   useEffect(() => {
@@ -210,28 +268,43 @@ const StatusBar: React.FC<StatusBarProps> = ({
   }, [isApiActive, showUpdateStatus, shouldShowProcessing, displayedTask, updateStatus, calculateAvailableChars]);
 
   const getNetworkStatusDisplay = () => {
+    // Red: Device offline (no network adapter)
     if (!online) {
-      return (
-        <span className="status-item offline">
-          <span className="status-icon"><i className="fas fa-exclamation-triangle text-warning"></i></span>
-          Offline
-        </span>
-      );
-    } else if (showConnectionChange) {
-      return (
-        <span className="status-item online-restored">
-          <span className="status-icon"><i className="fas fa-check text-success"></i></span>
-          Connected
-        </span>
-      );
-    } else {
-      return (
-        <span className="status-item online">
-          <span className="status-icon"><i className="fas fa-circle text-success"></i></span>
-          Online
-        </span>
-      );
+      return {
+        color: '#dc3545',
+        icon: 'fas fa-exclamation-triangle',
+        text: 'Offline',
+        title: 'No network connection'
+      };
     }
+
+    // Orange: Online but API server unreachable
+    if (apiConnectivity === 'unreachable') {
+      return {
+        color: '#fd7e14',
+        icon: 'fas fa-exclamation-circle',
+        text: 'API Issues',
+        title: 'Cannot reach API server - check network or DNS settings'
+      };
+    }
+
+    // Green: Fully connected (network + API reachable)
+    if (apiConnectivity === 'connected') {
+      return {
+        color: '#28a745',
+        icon: showConnectionChange ? 'fas fa-check' : 'fas fa-circle',
+        text: showConnectionChange ? 'Connected' : 'Online',
+        title: 'Connected to API server'
+      };
+    }
+
+    // Gray/Unknown: Testing in progress
+    return {
+      color: '#6c757d',
+      icon: 'fas fa-question-circle',
+      text: 'Testing...',
+      title: 'Testing API connectivity'
+    };
   };
 
   const statusBarStyles: React.CSSProperties = {
@@ -386,22 +459,30 @@ const StatusBar: React.FC<StatusBarProps> = ({
       `}</style>
       
       {/* Network Status */}
-      {!online ? (
-        <span style={{...statusItemStyles, color: '#dc3545', fontWeight: 600}}>
-          <i className="fas fa-exclamation-triangle" style={{...statusIconStyles, color: '#dc3545'}}></i>
-          Offline
-        </span>
-      ) : showConnectionChange ? (
-        <span style={{...statusItemStyles, color: '#28a745', fontWeight: 600}} className="status-pulse">
-          <i className="fas fa-check" style={{...statusIconStyles, color: '#28a745'}}></i>
-          Connected
-        </span>
-      ) : (
-        <span style={{...statusItemStyles, color: '#28a745'}}>
-          <i className="fas fa-circle" style={{...statusIconStyles, color: '#28a745', fontSize: '8px'}}></i>
-          Online
-        </span>
-      )}
+      {(() => {
+        const status = getNetworkStatusDisplay();
+        return (
+          <span
+            style={{
+              ...statusItemStyles,
+              color: status.color,
+              fontWeight: (!online || apiConnectivity === 'unreachable') ? 600 : 500
+            }}
+            className={showConnectionChange ? 'status-pulse' : ''}
+            title={status.title}
+          >
+            <i
+              className={status.icon}
+              style={{
+                ...statusIconStyles,
+                color: status.color,
+                fontSize: status.icon.includes('circle') ? '8px' : '11px'
+              }}
+            ></i>
+            {status.text}
+          </span>
+        );
+      })()}
       
       {/* API Activity Indicator */}
       {isApiActive && (

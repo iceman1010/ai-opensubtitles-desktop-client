@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 const electronAPI = {
   getConfig: () => ipcRenderer.invoke('get-config'),
   saveConfig: (config: any) => ipcRenderer.invoke('save-config', config),
+  getSessionId: () => ipcRenderer.invoke('get-session-id'),
   selectFile: () => ipcRenderer.invoke('select-file'),
   selectMultipleFiles: () => ipcRenderer.invoke('select-multiple-files'),
   selectDirectory: () => ipcRenderer.invoke('select-directory'),

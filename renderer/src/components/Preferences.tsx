@@ -22,6 +22,7 @@ interface AppConfig {
   pollingIntervalSeconds?: number;
   pollingTimeoutSeconds?: number;
   defaultFilenameFormat?: string;
+  apiConnectivityTestIntervalMinutes?: number;
   credits?: {
     used: number;
     remaining: number;
@@ -52,6 +53,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
   const [apiUrlParameter, setApiUrlParameter] = useState(config.apiUrlParameter || '');
   const [autoLanguageDetection, setAutoLanguageDetection] = useState(config.autoLanguageDetection ?? false);
   const [defaultFilenameFormat, setDefaultFilenameFormat] = useState(config.defaultFilenameFormat || '{filename}.{language_code}.{type}.{extension}');
+  const [apiConnectivityTestIntervalMinutes, setApiConnectivityTestIntervalMinutes] = useState(config.apiConnectivityTestIntervalMinutes ?? 5);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [isTestingFfmpeg, setIsTestingFfmpeg] = useState(false);
@@ -579,6 +581,54 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
                 maxWidth: '500px'
               }}>
                 Optional URL parameters to append to all API requests for debugging. Example: ?debug=1&test=true
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="api-connectivity-test-interval" style={{
+                display: 'block',
+                marginBottom: '8px',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}>
+                API Connectivity Test Interval (minutes)
+              </label>
+              <input
+                id="api-connectivity-test-interval"
+                type="number"
+                min="0.5"
+                max="30"
+                step="0.5"
+                value={apiConnectivityTestIntervalMinutes}
+                onChange={(e) => {
+                  const newValue = Math.max(0.5, Math.min(30, parseFloat(e.target.value) || 5));
+                  setApiConnectivityTestIntervalMinutes(newValue);
+                  handleInstantSave('apiConnectivityTestIntervalMinutes', newValue);
+                }}
+                disabled={isLoading}
+                placeholder="5"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  fontSize: '14px',
+                  border: '2px solid var(--input-border)',
+                  borderRadius: '6px',
+                  backgroundColor: isLoading ? 'var(--bg-tertiary)' : 'var(--input-bg)',
+                  transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+                  boxSizing: 'border-box',
+                  outline: 'none'
+                }}
+                onFocus={(e) => e.target.style.borderColor = 'var(--button-bg)'}
+                onBlur={(e) => e.target.style.borderColor = 'var(--input-border)'}
+              />
+              <div style={{
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                lineHeight: '1.4',
+                marginTop: '6px',
+                maxWidth: '500px'
+              }}>
+                How often to test API server connectivity for status bar indicator. Range: 0.5-30 minutes, default: 5 minutes. Set to 0.5 for frequent testing during troubleshooting.
               </div>
             </div>
 
