@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { CreditPackage } from '../services/api';
 import { useAPI } from '../contexts/APIContext';
+import { usePower } from '../contexts/PowerContext';
 
 interface AppConfig {
   username: string;
@@ -25,6 +26,7 @@ interface CreditsProps {
 
 function Credits({ config, setAppProcessing, isVisible = true }: CreditsProps) {
   const { credits, refreshCredits, getCreditPackages, isAuthenticated } = useAPI();
+  const { lastResumeTime } = usePower();
   
   const [creditPackages, setCreditPackages] = useState<CreditPackage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -71,6 +73,27 @@ function Credits({ config, setAppProcessing, isVisible = true }: CreditsProps) {
       loadCreditPackages();
     }
   }, [isAuthenticated, isVisible, loadCreditPackages, creditPackages.length, hasAttemptedLoad]);
+
+  // Auto-retry after hibernation recovery if credits screen failed to load
+  useEffect(() => {
+    if (lastResumeTime && isVisible && error && !isLoading && hasAttemptedLoad) {
+      const timeSinceResume = Date.now() - lastResumeTime;
+      const HIBERNATION_RETRY_WINDOW_MS = 10000; // 10 seconds
+
+      if (timeSinceResume < HIBERNATION_RETRY_WINDOW_MS) {
+        console.log('Credits: Auto-retrying after hibernation recovery');
+        // Wait a moment for network/authentication to stabilize after hibernation
+        const retryDelay = Math.max(0, 3000 - timeSinceResume); // Wait at least 3 seconds after resume
+        setTimeout(() => {
+          if (isVisible && error && !isLoading) { // Double-check conditions haven't changed
+            setHasAttemptedLoad(false);
+            setError(null);
+            loadCreditPackages();
+          }
+        }, retryDelay);
+      }
+    }
+  }, [lastResumeTime, isVisible, error, isLoading, hasAttemptedLoad, loadCreditPackages]);
 
   const loadCurrentCredits = async () => {
     if (refreshCredits) {
@@ -236,6 +259,7 @@ function Credits({ config, setAppProcessing, isVisible = true }: CreditsProps) {
             <button
               onClick={() => {
                 setHasAttemptedLoad(false);
+                setError(null); // Clear previous error for fresh retry
                 loadCreditPackages();
               }}
               style={{

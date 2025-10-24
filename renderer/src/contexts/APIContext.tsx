@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { OpenSubtitlesAPI, TranscriptionInfo, TranslationInfo } from '../services/api';
 import { logger } from '../utils/errorLogger';
 import { isOnline, isFullyOnline, checkAPIConnectivity } from '../utils/networkUtils';
+import { usePower } from './PowerContext';
 
 interface APIContextType {
   api: OpenSubtitlesAPI | null;
@@ -73,11 +74,45 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
   const [connectivityIssue, setConnectivityIssue] = useState<string | null>(null);
   const [authenticationInProgress, setAuthenticationInProgress] = useState(false);
 
+  // Power context for hibernation recovery
+  const { lastResumeTime } = usePower();
+
   // Global promise to prevent concurrent authentication attempts
   const authPromiseRef = useRef<Promise<boolean> | null>(null);
 
   // Prevent multiple API instance creation in React StrictMode
   const apiCreatedRef = useRef(false);
+
+  // Helper function to check device online status with hibernation recovery grace period
+  const checkDeviceOnlineWithGracePeriod = useCallback(async (): Promise<boolean> => {
+    const currentTime = Date.now();
+    const GRACE_PERIOD_MS = 3000; // 3 seconds grace period
+
+    // Check if we recently resumed from hibernation
+    if (lastResumeTime && (currentTime - lastResumeTime) < GRACE_PERIOD_MS) {
+      logger.debug(1, 'APIContext', `Within hibernation recovery grace period (${Math.round((currentTime - lastResumeTime) / 1000)}s ago), waiting for network stabilization`);
+
+      // Wait a bit for network to stabilize
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Re-check after delay
+      const isOnlineAfterDelay = isOnline();
+      logger.debug(1, 'APIContext', `Network status after grace period delay: ${isOnlineAfterDelay}`);
+
+      if (!isOnlineAfterDelay) {
+        // Wait a bit more and check one final time
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const finalCheck = isOnline();
+        logger.debug(1, 'APIContext', `Final network status check: ${finalCheck}`);
+        return finalCheck;
+      }
+
+      return isOnlineAfterDelay;
+    }
+
+    // Normal online check if not in grace period
+    return isOnline();
+  }, [lastResumeTime]);
 
   // Initialize API instance when config is provided
   useEffect(() => {
@@ -136,8 +171,9 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
         logger.info('APIContext', 'Using cached token, verifying with credits check');
         logger.info('APIContext', `Cached token loaded on instance: ${(apiInstance as any).token ? 'YES' : 'NO'}`);
 
-        // Check if device is online and API is reachable before making network request
-        if (!isOnline()) {
+        // Check if device is online with hibernation recovery grace period
+        const isDeviceOnline = await checkDeviceOnlineWithGracePeriod();
+        if (!isDeviceOnline) {
           logger.warn('APIContext', 'Device is offline, skipping credits verification');
           setAuthenticationInProgress(false);
           setIsLoading(false);
@@ -348,9 +384,25 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
   }, [api, isAuthenticated, handleAPICall]);
 
   const getCreditPackages = useCallback(async (email?: string) => {
-    if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };
+    if (!api || !isAuthenticated) {
+      // Check if we should attempt re-authentication after hibernation
+      if (lastResumeTime && api && initialConfig?.username && initialConfig?.password) {
+        const timeSinceResume = Date.now() - lastResumeTime;
+        const HIBERNATION_REAUTH_WINDOW_MS = 30000; // 30 seconds
+
+        if (timeSinceResume < HIBERNATION_REAUTH_WINDOW_MS) {
+          logger.debug(1, 'APIContext', 'Attempting post-hibernation re-authentication for getCreditPackages');
+          const authSuccess = await authenticateUser(api, initialConfig.username, initialConfig.password);
+          if (authSuccess) {
+            logger.info('APIContext', 'Post-hibernation re-authentication successful, retrying getCreditPackages');
+            return await handleAPICall(() => api.getCreditPackages(email), 'Get Credit Packages (Post-Hibernation)');
+          }
+        }
+      }
+      return { success: false, error: 'API not authenticated' };
+    }
     return await handleAPICall(() => api.getCreditPackages(email), 'Get Credit Packages');
-  }, [api, isAuthenticated, handleAPICall]);
+  }, [api, isAuthenticated, handleAPICall, lastResumeTime, initialConfig, authenticateUser]);
 
   const getTranslationLanguagesForApi = useCallback(async (apiId: string) => {
     if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };

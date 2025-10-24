@@ -295,11 +295,13 @@ function AppContent({
     if (!hasCredentials) {
       // Only show login screen if no credentials exist at all
       setCurrentScreen('login');
-    } else {
-      // If credentials exist, stay on main screen even if authentication temporarily failed
+    } else if (currentScreen === 'login') {
+      // Only auto-navigate to main screen if coming from login screen
+      // Preserve current screen location during authentication maintenance operations
       setCurrentScreen('main');
     }
-  }, [hasCredentials, isAuthenticated]);
+    // Don't auto-navigate when user is already on functional screens (credits, batch, etc.)
+  }, [hasCredentials, isAuthenticated, currentScreen]);
 
   useEffect(() => {
     // Set up keyboard shortcut listener
