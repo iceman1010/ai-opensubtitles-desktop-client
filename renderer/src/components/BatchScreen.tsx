@@ -907,41 +907,6 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
     }
   };
 
-  const handleFileSelect = async () => {
-    try {
-      logger.debug(3, 'BatchScreen', 'BatchScreen: Attempting multiple file selection...');
-      logger.debug(3, 'BatchScreen', 'BatchScreen: selectMultipleFiles method exists:', typeof window.electronAPI.selectMultipleFiles);
-      
-      const filePaths = await window.electronAPI.selectMultipleFiles();
-      logger.debug(3, 'BatchScreen', 'BatchScreen: Selected file paths:', filePaths);
-      
-      if (filePaths && filePaths.length > 0) {
-        logger.debug(3, 'BatchScreen', `BatchScreen: Adding ${filePaths.length} files to queue`);
-        for (const filePath of filePaths) {
-          await addFileToQueue(filePath);
-        }
-      } else {
-        logger.debug(3, 'BatchScreen', 'BatchScreen: No files selected');
-      }
-    } catch (error) {
-      logger.error('BatchScreen', 'Multiple file selection failed, falling back to single file', error);
-      console.error('BatchScreen: Multiple file selection error:', error);
-      
-      // Fallback to single file selection
-      try {
-        logger.debug(3, 'BatchScreen', 'BatchScreen: Falling back to single file selection');
-        const filePath = await window.electronAPI.selectFile();
-        logger.debug(3, 'BatchScreen', 'BatchScreen: Single file selected:', filePath);
-        
-        if (filePath) {
-          await addFileToQueue(filePath);
-        }
-      } catch (fallbackError) {
-        logger.error('BatchScreen', 'File selection failed completely', fallbackError);
-        console.error('BatchScreen: Single file selection also failed:', fallbackError);
-      }
-    }
-  };
 
 
   const addFileToQueue = async (filePath: string) => {

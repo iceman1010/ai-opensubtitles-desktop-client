@@ -67,11 +67,29 @@ function FileSelector({ onFileSelect, onMultipleFileSelect, disabled = false }: 
 
   const handleBrowseClick = async () => {
     if (disabled) return;
-    
+
     try {
-      const filePath = await window.electronAPI.selectFile();
-      if (filePath) {
-        handleFileSelection(filePath);
+      if (onMultipleFileSelect) {
+        // Use multiple file selection when multiple file handler is provided
+        const filePaths = await window.electronAPI.selectMultipleFiles();
+        if (filePaths && filePaths.length > 0) {
+          const validFilePaths = filePaths.filter(path => {
+            const validation = validateFileExtension(path);
+            return validation.isValid;
+          });
+          if (validFilePaths.length > 0) {
+            setFileError(null);
+            onMultipleFileSelect(validFilePaths);
+          } else {
+            setFileError('No valid files selected');
+          }
+        }
+      } else {
+        // Use single file selection for backward compatibility
+        const filePath = await window.electronAPI.selectFile();
+        if (filePath) {
+          handleFileSelection(filePath);
+        }
       }
     } catch (error) {
       console.error('Failed to select file:', error);
