@@ -102,13 +102,16 @@ interface AppConfig {
 interface BatchScreenProps {
   config: AppConfig;
   setAppProcessing: (processing: boolean, task?: string) => void;
+  // Notification function for instant messages (duplicate files, validation errors, etc.)
+  // Shows orange notification with info icon instead of blue processing status
+  showNotification?: ((message: string, duration?: number) => void) | null;
   pendingFiles?: string[];
   onFilesPending?: () => void;
   isVisible?: boolean;
   onProcessingStateChange?: (isProcessing: boolean) => void;
 }
 
-const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pendingFiles, onFilesPending, isVisible = true, onProcessingStateChange }) => {
+const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, showNotification, pendingFiles, onFilesPending, isVisible = true, onProcessingStateChange }) => {
   const [queue, setQueue] = useState<BatchFile[]>([]);
   const detectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const detectionInProgressRef = useRef<Set<string>>(new Set());
@@ -911,9 +914,26 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, pen
 
   const addFileToQueue = async (filePath: string) => {
     const fileName = await window.electronAPI.getBaseName(filePath);
-    
+
     if (!isSupportedFile(fileName)) {
       logger.warn('BatchScreen', `Unsupported file format: ${fileName}`);
+      return;
+    }
+
+    // Check for duplicate files in queue
+    const isDuplicate = queue.some(file => file.path === filePath);
+    if (isDuplicate) {
+      logger.debug(2, 'BatchScreen', `Duplicate file skipped: ${fileName}`);
+
+      // Use notification system instead of processing status for instant messages
+      // This shows orange info icon instead of blue spinning icon
+      if (showNotification) {
+        showNotification("Duplicate file skipped", 2000);
+      } else {
+        // Fallback to processing status if notification system not available
+        setAppProcessing(true, "Duplicate file skipped");
+        setTimeout(() => setAppProcessing(false), 2000);
+      }
       return;
     }
 

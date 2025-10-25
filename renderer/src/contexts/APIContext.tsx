@@ -80,34 +80,40 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
   // Global promise to prevent concurrent authentication attempts
   const authPromiseRef = useRef<Promise<boolean> | null>(null);
 
+  // Retry timer for hibernation recovery (no reactive state, just a timer)
+  const hibernationRetryTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // Prevent multiple API instance creation in React StrictMode
   const apiCreatedRef = useRef(false);
 
   // Helper function to check device online status with hibernation recovery grace period
   const checkDeviceOnlineWithGracePeriod = useCallback(async (): Promise<boolean> => {
     const currentTime = Date.now();
-    const GRACE_PERIOD_MS = 3000; // 3 seconds grace period
+    const GRACE_PERIOD_MS = 10000; // Extended to 10 seconds grace period for hibernation recovery
 
     // Check if we recently resumed from hibernation
     if (lastResumeTime && (currentTime - lastResumeTime) < GRACE_PERIOD_MS) {
       logger.debug(1, 'APIContext', `Within hibernation recovery grace period (${Math.round((currentTime - lastResumeTime) / 1000)}s ago), waiting for network stabilization`);
 
-      // Wait a bit for network to stabilize
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // More aggressive retry approach for hibernation recovery
+      for (let attempt = 1; attempt <= 5; attempt++) {
+        logger.debug(1, 'APIContext', `Hibernation recovery network check attempt ${attempt}/5`);
 
-      // Re-check after delay
-      const isOnlineAfterDelay = isOnline();
-      logger.debug(1, 'APIContext', `Network status after grace period delay: ${isOnlineAfterDelay}`);
+        const isCurrentlyOnline = isOnline();
+        if (isCurrentlyOnline) {
+          logger.debug(1, 'APIContext', `Network available on attempt ${attempt}, proceeding with authentication`);
+          return true;
+        }
 
-      if (!isOnlineAfterDelay) {
-        // Wait a bit more and check one final time
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        const finalCheck = isOnline();
-        logger.debug(1, 'APIContext', `Final network status check: ${finalCheck}`);
-        return finalCheck;
+        // Wait progressively longer between attempts
+        const waitTime = attempt * 1000; // 1s, 2s, 3s, 4s, 5s
+        logger.debug(1, 'APIContext', `Network not available, waiting ${waitTime}ms before retry`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
       }
 
-      return isOnlineAfterDelay;
+      logger.warn('APIContext', 'Network still not available after hibernation recovery attempts, but proceeding anyway - token might still be valid');
+      // Don't fail completely - token might still be valid even if network check fails
+      return true;
     }
 
     // Normal online check if not in grace period
@@ -116,6 +122,14 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
 
   // Initialize API instance when config is provided
   useEffect(() => {
+    logger.debug(1, 'APIContext', 'Initialization effect triggered', {
+      hasApiKey: !!initialConfig?.apiKey,
+      hasApi: !!api,
+      apiCreated: apiCreatedRef.current,
+      hasCredentials: !!(initialConfig?.username && initialConfig?.password),
+      lastResumeTime: lastResumeTime
+    });
+
     if (initialConfig?.apiKey && !api && !apiCreatedRef.current) {
       logger.info('APIContext', 'Creating initial API instance');
       apiCreatedRef.current = true;
@@ -134,8 +148,24 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
             logger.error('APIContext', 'Initial authentication failed:', error);
           });
       }
+    } else {
+      logger.debug(1, 'APIContext', 'Skipping API instance creation', {
+        reason: !initialConfig?.apiKey ? 'no apiKey' :
+                api ? 'api exists' :
+                apiCreatedRef.current ? 'already created' : 'unknown'
+      });
     }
-  }, [initialConfig?.apiKey, initialConfig?.username, initialConfig?.password, initialConfig?.apiBaseUrl, initialConfig?.apiUrlParameter, api]);
+  }, [initialConfig?.apiKey, initialConfig?.username, initialConfig?.password, initialConfig?.apiBaseUrl, initialConfig?.apiUrlParameter, api, lastResumeTime]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (hibernationRetryTimerRef.current) {
+        clearTimeout(hibernationRetryTimerRef.current);
+        hibernationRetryTimerRef.current = null;
+      }
+    };
+  }, []);
 
   const authenticateUser = async (apiInstance: OpenSubtitlesAPI, username: string, password: string) => {
     // Prevent concurrent authentication attempts using a promise-based approach
@@ -175,6 +205,21 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
         const isDeviceOnline = await checkDeviceOnlineWithGracePeriod();
         if (!isDeviceOnline) {
           logger.warn('APIContext', 'Device is offline, skipping credits verification');
+
+          // Schedule a single retry if this is post-hibernation
+          if (lastResumeTime && (Date.now() - lastResumeTime) < 30000 && !hibernationRetryTimerRef.current) {
+            logger.debug(1, 'APIContext', 'Scheduling hibernation recovery retry in 10 seconds');
+            hibernationRetryTimerRef.current = setTimeout(() => {
+              hibernationRetryTimerRef.current = null;
+              if (isOnline() && isFullyOnline()) {
+                logger.info('APIContext', 'Attempting hibernation recovery authentication retry');
+                authenticateUser(apiInstance, username, password).catch(error => {
+                  logger.error('APIContext', 'Hibernation recovery retry failed:', error);
+                });
+              }
+            }, 10000);
+          }
+
           setAuthenticationInProgress(false);
           setIsLoading(false);
           return false;
@@ -183,6 +228,21 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
         // Check cached connectivity status instead of making a real-time test
         if (!isFullyOnline()) {
           logger.warn('APIContext', 'API server appears unreachable based on cached connectivity status, skipping credits verification');
+
+          // Schedule a single retry if this is post-hibernation
+          if (lastResumeTime && (Date.now() - lastResumeTime) < 30000 && !hibernationRetryTimerRef.current) {
+            logger.debug(1, 'APIContext', 'Scheduling hibernation recovery retry in 10 seconds');
+            hibernationRetryTimerRef.current = setTimeout(() => {
+              hibernationRetryTimerRef.current = null;
+              if (isOnline() && isFullyOnline()) {
+                logger.info('APIContext', 'Attempting hibernation recovery authentication retry');
+                authenticateUser(apiInstance, username, password).catch(error => {
+                  logger.error('APIContext', 'Hibernation recovery retry failed:', error);
+                });
+              }
+            }, 10000);
+          }
+
           setAuthenticationInProgress(false);
           setIsLoading(false);
           return false;
@@ -195,6 +255,13 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
           setIsAuthenticated(true);
           setCredits({ used: 0, remaining: creditsResult.credits || 0 });
           await loadAPIInfo(apiInstance);
+
+          // Clear any pending hibernation retry on successful authentication
+          if (hibernationRetryTimerRef.current) {
+            clearTimeout(hibernationRetryTimerRef.current);
+            hibernationRetryTimerRef.current = null;
+          }
+
           logger.info('APIContext', 'Cached token verified successfully');
           return true;
         } else {
@@ -206,6 +273,12 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
       const loginResult = await apiInstance.login(username, password);
       if (loginResult.success) {
         setIsAuthenticated(true);
+
+        // Clear any pending hibernation retry on successful authentication
+        if (hibernationRetryTimerRef.current) {
+          clearTimeout(hibernationRetryTimerRef.current);
+          hibernationRetryTimerRef.current = null;
+        }
         logger.info('APIContext', 'Fresh authentication successful');
         logger.info('APIContext', `Token set on instance: ${(apiInstance as any).token ? 'YES' : 'NO'}`);
 

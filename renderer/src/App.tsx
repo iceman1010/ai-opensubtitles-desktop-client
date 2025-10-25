@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Login from './components/Login';
 import MainScreen from './components/MainScreen';
 import BatchScreen from './components/BatchScreen';
@@ -290,6 +290,11 @@ function AppContent({
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentTask, setCurrentTask] = useState<string | undefined>(undefined);
 
+  // Notification function for StatusBar instant messages (duplicate files, validation errors, etc.)
+  // This provides orange notification style distinct from blue processing status
+  // Using ref instead of state to avoid async update issues
+  const showNotificationRef = useRef<((message: string, duration?: number) => void) | null>(null);
+
   // Set initial screen based on authentication state
   useEffect(() => {
     if (!hasCredentials) {
@@ -383,10 +388,18 @@ function AppContent({
 
     const handleResume = async () => {
       logger.info('App', 'System resumed - checking for hibernation recovery');
+      logger.debug(1, 'App', 'Resume handler called', {
+        currentScreen,
+        isAuthenticated,
+        hasCredentials: !!hasCredentials,
+        mainScreenProcessing,
+        batchScreenProcessing
+      });
 
       try {
         // Check if token is expired after hibernation
         const tokenExpired = await isTokenExpired();
+        logger.debug(1, 'App', `Token expiration check result: ${tokenExpired}`);
 
         if (tokenExpired && isAuthenticated) {
           logger.warn('App', 'Token expired after hibernation, re-authentication needed');
@@ -742,6 +755,7 @@ function AppContent({
           <BatchScreen
             config={config}
             setAppProcessing={setAppProcessing}
+            showNotification={showNotificationRef.current}
             pendingFiles={pendingBatchFiles}
             onFilesPending={() => setPendingBatchFiles([])}
             isVisible={true}
@@ -826,6 +840,7 @@ function AppContent({
           apiBaseUrl: config.apiBaseUrl,
           apiConnectivityTestIntervalMinutes: config.apiConnectivityTestIntervalMinutes
         }}
+        onNotificationShow={(callback) => { showNotificationRef.current = callback; }}
       />
 
       {/* Global Error Log Controls */}

@@ -10,13 +10,17 @@ interface StatusBarProps {
     apiBaseUrl?: string;
     apiConnectivityTestIntervalMinutes?: number;
   };
+  // Callback to register notification function for instant messages (warnings, info, errors)
+  // Usage: showNotification("message", duration_ms) - displays orange notification with info icon
+  onNotificationShow?: (callback: (message: string, duration?: number) => void) => void;
 }
 
 const StatusBar: React.FC<StatusBarProps> = ({
   onNetworkChange,
   isProcessing = false,
   currentTask,
-  config
+  config,
+  onNotificationShow
 }) => {
   const [online, setOnline] = useState(isOnline());
   const [apiConnectivity, setApiConnectivity] = useState<'unknown' | 'connected' | 'unreachable'>('unknown');
@@ -25,6 +29,11 @@ const StatusBar: React.FC<StatusBarProps> = ({
   const [currentApiContext, setCurrentApiContext] = useState<string | null>(null);
   const [updateStatus, setUpdateStatus] = useState<string>('');
   const [showUpdateStatus, setShowUpdateStatus] = useState(false);
+
+  // Notification state for instant messages (duplicate files, validation errors, etc.)
+  // These appear in orange with info icon, distinct from blue processing status
+  const [notificationMessage, setNotificationMessage] = useState<string>('');
+  const [showNotification, setShowNotification] = useState(false);
   
   // State for managing minimum display time of processing status
   const [displayedTask, setDisplayedTask] = useState<string | undefined>(currentTask);
@@ -58,6 +67,21 @@ const StatusBar: React.FC<StatusBarProps> = ({
 
     return cleanup;
   }, [onNetworkChange]);
+
+  // Set up notification callback for parent components to show instant messages
+  // This allows components to show temporary notifications without using processing status
+  useEffect(() => {
+    if (onNotificationShow) {
+      onNotificationShow((message: string, duration: number = 2000) => {
+        setNotificationMessage(message);
+        setShowNotification(true);
+        setTimeout(() => {
+          setShowNotification(false);
+          setNotificationMessage('');
+        }, duration);
+      });
+    }
+  }, [onNotificationShow]);
 
   // API Connectivity Testing
   useEffect(() => {
@@ -506,7 +530,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
         </>
       )}
       
-      {/* Update Status */}
+      {/* Update Status - App update notifications (orange with contextual icons) */}
       {showUpdateStatus && updateStatus && (
         <>
           <span style={statusSeparatorStyles}>|</span>
@@ -520,6 +544,18 @@ const StatusBar: React.FC<StatusBarProps> = ({
               }`} style={{...statusIconStyles, color: '#fd7e14'}}></i>
             </span>
             <span title={updateStatus}>{truncateUpdateText(updateStatus)}</span>
+          </span>
+        </>
+      )}
+
+      {/* Notification Status - Instant messages (duplicate files, validation errors, etc.) */}
+      {/* Uses orange color with info icon to distinguish from ongoing processing operations */}
+      {showNotification && notificationMessage && (
+        <>
+          <span style={statusSeparatorStyles}>|</span>
+          <span style={{...statusItemStyles, color: '#fd7e14', fontWeight: 500}}>
+            <i className="fas fa-info-circle" style={{...statusIconStyles, color: '#fd7e14'}}></i>
+            <span title={notificationMessage}>{truncateUpdateText(notificationMessage)}</span>
           </span>
         </>
       )}

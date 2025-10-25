@@ -138,18 +138,25 @@ export const PowerProvider: React.FC<PowerProviderProps> = ({ children }) => {
   }, []);
 
   const handleSystemResume = useCallback(() => {
+    const resumeTime = Date.now();
+    console.log('🚀 SYSTEM RESUME DETECTED IN RENDERER! 🚀', resumeTime);
     logger.info('PowerContext', 'System resume detected');
+    logger.debug(1, 'PowerContext', `Resume time: ${resumeTime}, registered callbacks: ${resumeCallbacks.current.length}`);
+
     setIsSystemSuspended(false);
-    setLastResumeTime(Date.now());
+    setLastResumeTime(resumeTime);
 
     // Execute all registered resume callbacks
-    resumeCallbacks.current.forEach(callback => {
+    resumeCallbacks.current.forEach((callback, index) => {
       try {
+        logger.debug(1, 'PowerContext', `Executing resume callback ${index + 1}/${resumeCallbacks.current.length}`);
         callback();
       } catch (error) {
-        logger.error('PowerContext', 'Error in resume callback:', error);
+        logger.error('PowerContext', `Error in resume callback ${index + 1}:`, error);
       }
     });
+
+    logger.debug(1, 'PowerContext', 'All resume callbacks executed');
   }, []);
 
   const handleScreenLock = useCallback(() => {
@@ -182,7 +189,15 @@ export const PowerProvider: React.FC<PowerProviderProps> = ({ children }) => {
 
   // Setup power monitoring when component mounts
   useEffect(() => {
+    console.log('🔥 POWERCONTEXT SETUP STARTING 🔥');
+    logger.debug(1, 'PowerContext', 'Power monitoring setup starting', {
+      hasElectronAPI: !!window.electronAPI,
+      onSystemSuspend: !!window.electronAPI?.onSystemSuspend,
+      onSystemResume: !!window.electronAPI?.onSystemResume
+    });
+
     if (!window.electronAPI) {
+      console.log('❌ NO ELECTRON API AVAILABLE');
       logger.warn('PowerContext', 'electronAPI not available, power monitoring disabled');
       return;
     }
@@ -193,7 +208,7 @@ export const PowerProvider: React.FC<PowerProviderProps> = ({ children }) => {
     window.electronAPI.onScreenLock(handleScreenLock);
     window.electronAPI.onScreenUnlock(handleScreenUnlock);
 
-    logger.debug(2, 'PowerContext', 'Power monitoring initialized');
+    logger.info('PowerContext', 'Power monitoring initialized with all event handlers registered');
 
     return () => {
       // Cleanup event listeners
