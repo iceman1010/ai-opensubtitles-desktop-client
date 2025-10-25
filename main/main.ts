@@ -659,9 +659,12 @@ class MainApp {
       this.sendUpdateStatus('update-downloading', `Downloading update: ${Math.round(progressObj.percent)}%`);
     });
 
-    autoUpdater.on('update-downloaded', (info) => {
+    autoUpdater.on('update-downloaded', async (info) => {
       this.debug(2, 'AutoUpdater', 'Update downloaded:', info);
       this.sendUpdateStatus('update-downloaded', `Update ready: v${info.version}`);
+
+      // Automatically prompt user to install the update
+      await this.promptForInstallation(info);
     });
 
     // Check for updates on startup if enabled
@@ -844,6 +847,58 @@ class MainApp {
     } else {
       this.debug(2, 'AutoUpdater', 'User cancelled installation');
       this.sendUpdateStatus('update-cancelled', 'Installation cancelled by user');
+    }
+  }
+
+  private async promptForInstallation(updateInfo: any) {
+    const isDev = process.env.NODE_ENV === 'development';
+    if (isDev) {
+      this.debug(2, 'AutoUpdater', 'Skipping install prompt in development mode');
+      return;
+    }
+
+    // Check permissions before showing prompt
+    const permissionCheck = await this.checkUpdatePermissions();
+    if (!permissionCheck.canInstall) {
+      this.debug(1, 'AutoUpdater', 'Installation not available due to insufficient permissions');
+      this.sendUpdateStatus('update-error', `Installation failed: ${permissionCheck.error}`);
+
+      // Show error dialog to user
+      await dialog.showMessageBox(this.mainWindow!, {
+        type: 'error',
+        title: 'Update Installation Failed',
+        message: 'Cannot install update due to insufficient permissions.',
+        detail: permissionCheck.error || 'Unknown permission error.'
+      });
+      return;
+    }
+
+    // Show automatic install prompt (platform-specific message handling)
+    const message = process.platform === 'win32' ?
+      (updateInfo.releaseNotes || `Version ${updateInfo.version}`) :
+      `Version ${updateInfo.version}`;
+
+    const response = await dialog.showMessageBox(this.mainWindow!, {
+      type: 'question',
+      buttons: ['Install & Restart Now', 'Install Later'],
+      defaultId: 0,
+      cancelId: 1,
+      title: 'Application Update',
+      message: message,
+      detail: 'A new version has been downloaded and is ready to install. The application will close and restart automatically to apply the updates.'
+    });
+
+    if (response.response === 0) {
+      this.debug(2, 'AutoUpdater', 'User chose to install update immediately');
+      this.sendUpdateStatus('update-installing', 'Installing update and restarting...');
+
+      // Small delay to ensure the status message is sent
+      setTimeout(() => {
+        autoUpdater.quitAndInstall();
+      }, 500);
+    } else {
+      this.debug(2, 'AutoUpdater', 'User chose to install later');
+      this.sendUpdateStatus('update-ready', `Update v${updateInfo.version} ready to install`);
     }
   }
 
