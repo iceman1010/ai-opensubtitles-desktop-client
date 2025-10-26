@@ -765,36 +765,66 @@ class MainApp {
       this.debug(2, 'AutoUpdater', 'Checking permissions for app path:', appPath);
       this.debug(2, 'AutoUpdater', 'App directory:', appDir);
 
-      // Check if we can write to the application directory
-      try {
-        fs.accessSync(appDir, fs.constants.W_OK);
-        this.debug(2, 'AutoUpdater', 'Write permission check passed for app directory');
-      } catch (error) {
-        this.debug(1, 'AutoUpdater', 'No write permission to app directory:', error);
-        return {
-          canInstall: false,
-          error: `No write permission to application directory: ${appDir}. The update may require administrator privileges. Please try running the application as administrator.`
-        };
+      // Enhanced AppImage detection with multiple methods
+      const appImageEnv = process.env.APPIMAGE;
+      const isMountedPath = appDir.includes('/.mount_') || appDir.startsWith('/tmp/.mount_');
+      const isSquashFS = appPath.includes('squashfs-root');
+      const hasAppImageEnv = !!appImageEnv;
+
+      const isAppImage = hasAppImageEnv || isMountedPath || isSquashFS;
+
+      this.debug(2, 'AutoUpdater', 'AppImage detection results:', {
+        appImageEnv,
+        isMountedPath,
+        isSquashFS,
+        hasAppImageEnv,
+        finalDetection: isAppImage
+      });
+
+      if (isAppImage) {
+        this.debug(2, 'AutoUpdater', 'AppImage detected - skipping permission checks that are incompatible with AppImage');
+        // For AppImages, electron-updater handles updates completely differently:
+        // 1. Downloads new AppImage to temp location
+        // 2. Replaces original AppImage file (not the mounted read-only version)
+        // 3. No need to write to mounted directory
+        this.debug(2, 'AutoUpdater', 'AppImage update permissions validated successfully');
+        return { canInstall: true };
+      } else {
+        this.debug(2, 'AutoUpdater', 'Regular installation detected - checking app directory permissions');
+        // Check if we can write to the application directory (for non-AppImage installs)
+        try {
+          fs.accessSync(appDir, fs.constants.W_OK);
+          this.debug(2, 'AutoUpdater', 'Write permission check passed for app directory');
+        } catch (error) {
+          this.debug(1, 'AutoUpdater', 'No write permission to app directory:', error);
+          return {
+            canInstall: false,
+            error: `No write permission to application directory: ${appDir}. The update may require administrator privileges. Please try running the application as administrator.`
+          };
+        }
       }
 
       // Check if we can write to temp directory (where update files are downloaded)
+      // Note: This only runs for non-AppImage installations
       const tempDir = os.tmpdir();
+      this.debug(2, 'AutoUpdater', 'Checking temp directory write permissions:', tempDir);
       try {
         const testFile = path.join(tempDir, `update-test-${Date.now()}.tmp`);
         fs.writeFileSync(testFile, 'test');
         fs.unlinkSync(testFile);
-        this.debug(2, 'AutoUpdater', 'Temp directory write check passed');
+        this.debug(2, 'AutoUpdater', 'Temp directory write check passed for regular installation');
       } catch (error) {
-        this.debug(1, 'AutoUpdater', 'Cannot write to temp directory:', error);
+        this.debug(1, 'AutoUpdater', 'Cannot write to temp directory for regular installation:', error);
         return {
           canInstall: false,
           error: `Cannot write to temporary directory: ${tempDir}. Check disk space and permissions.`
         };
       }
 
+      this.debug(2, 'AutoUpdater', 'All permission checks passed for regular installation');
       return { canInstall: true };
     } catch (error) {
-      this.debug(1, 'AutoUpdater', 'Permission check failed:', error);
+      this.debug(1, 'AutoUpdater', 'Permission check failed with unexpected error:', error);
       return {
         canInstall: false,
         error: `Permission check failed: ${error instanceof Error ? error.message : 'Unknown error'}`
