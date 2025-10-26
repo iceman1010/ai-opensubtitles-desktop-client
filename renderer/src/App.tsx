@@ -836,10 +836,10 @@ function AppContent({
         onNetworkChange={handleNetworkChange}
         isProcessing={isProcessing}
         currentTask={currentTask}
-        config={{
+        config={config ? {
           apiBaseUrl: config.apiBaseUrl,
           apiConnectivityTestIntervalMinutes: config.apiConnectivityTestIntervalMinutes
-        }}
+        } : undefined}
         onNotificationShow={(callback) => { showNotificationRef.current = callback; }}
       />
 

@@ -86,9 +86,16 @@ const StatusBar: React.FC<StatusBarProps> = ({
   // API Connectivity Testing
   useEffect(() => {
     const testAPIConnectivity = async () => {
-      if (!config?.apiBaseUrl || !online) {
-        setApiConnectivity(online ? 'unknown' : 'unreachable');
+      if (!online) {
+        setApiConnectivity('unreachable');
         updateAPIConnectivityCache(false, 30000);
+        return;
+      }
+
+      if (!config?.apiBaseUrl) {
+        // No API config available - show connected status instead of testing
+        setApiConnectivity('connected');
+        updateAPIConnectivityCache(true, 30000);
         return;
       }
 
