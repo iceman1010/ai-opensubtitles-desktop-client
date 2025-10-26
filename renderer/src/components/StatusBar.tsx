@@ -23,7 +23,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
   onNotificationShow
 }) => {
   const [online, setOnline] = useState(isOnline());
-  const [apiConnectivity, setApiConnectivity] = useState<'unknown' | 'connected' | 'unreachable'>('unknown');
+  const [apiConnectivity, setApiConnectivity] = useState<'connected' | 'unreachable'>('connected');
   const [showConnectionChange, setShowConnectionChange] = useState(false);
   const [isApiActive, setIsApiActive] = useState(false);
   const [currentApiContext, setCurrentApiContext] = useState<string | null>(null);
@@ -93,7 +93,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
       }
 
       if (!config?.apiBaseUrl) {
-        // No API config available - show connected status instead of testing
+        // No API config available - can't test, but show as connected for basic network
         setApiConnectivity('connected');
         updateAPIConnectivityCache(true, 30000);
         return;
@@ -329,12 +329,12 @@ const StatusBar: React.FC<StatusBarProps> = ({
       };
     }
 
-    // Gray/Unknown: Testing in progress
+    // This should never happen now, but fallback to connected
     return {
-      color: '#6c757d',
-      icon: 'fas fa-question-circle',
-      text: 'Testing...',
-      title: 'Testing API connectivity'
+      color: '#28a745',
+      icon: 'fas fa-circle',
+      text: 'Online',
+      title: 'Network status unknown'
     };
   };
 
