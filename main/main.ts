@@ -601,7 +601,10 @@ class MainApp {
       
       // Fix version comparison issues with missing releases
       autoUpdater.allowPrerelease = false;
-      
+
+      // Disable automatic downloads - require user confirmation
+      autoUpdater.autoDownload = false;
+
       this.debug(2, 'AutoUpdater', 'Auto-updater feed URL set successfully');
     } catch (error) {
       console.error('Failed to configure auto-updater:', error);

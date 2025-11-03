@@ -868,7 +868,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
                   disabled={isClearingCache}
                   style={{
                     padding: '6px 12px',
-                    backgroundColor: '#dc3545',
+                    backgroundColor: 'var(--danger-color)',
                     color: 'white',
                     border: 'none',
                     borderRadius: '4px',
@@ -1459,7 +1459,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
                       disabled={isLoading}
                       style={{
                         padding: '8px 12px',
-                        backgroundColor: '#dc3545',
+                        backgroundColor: 'var(--danger-color)',
                         color: 'white',
                         border: 'none',
                         borderRadius: '4px',
@@ -1535,7 +1535,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
                 width: '12px',
                 height: '12px',
                 borderRadius: '50%',
-                backgroundColor: fileAssociationStatus.registered ? '#28a745' : '#dc3545',
+                backgroundColor: fileAssociationStatus.registered ? 'var(--success-color)' : 'var(--danger-color)',
                 flexShrink: 0
               }} />
               <span style={{

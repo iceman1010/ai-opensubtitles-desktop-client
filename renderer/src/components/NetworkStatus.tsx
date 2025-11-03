@@ -69,7 +69,7 @@ const NetworkStatus: React.FC<NetworkStatusProps> = ({ onNetworkChange }) => {
         }
         
         .network-status.offline {
-          background-color: #dc3545;
+          background-color: var(--danger-color);
           color: white;
           border: 1px solid #c82333;
         }

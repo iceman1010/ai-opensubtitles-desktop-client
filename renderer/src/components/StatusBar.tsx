@@ -302,7 +302,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
     // Red: Device offline (no network adapter)
     if (!online) {
       return {
-        color: '#dc3545',
+        color: 'var(--danger-color)',
         icon: 'fas fa-exclamation-triangle',
         text: 'Offline',
         title: 'No network connection'
@@ -530,8 +530,20 @@ const StatusBar: React.FC<StatusBarProps> = ({
       {shouldShowProcessing && displayedTask && (
         <>
           <span style={statusSeparatorStyles}>|</span>
-          <span style={{...statusItemStyles, color: '#007bff', fontWeight: 600}}>
-            <i className="fas fa-spinner status-spinning" style={{...statusIconStyles, color: '#007bff'}}></i>
+          <span style={{
+            ...statusItemStyles,
+            color: displayedTask.toLowerCase().includes('failed') ||
+                   displayedTask.toLowerCase().includes('error') ? 'var(--danger-color)' : '#007bff',
+            fontWeight: 600
+          }}>
+            <i className={`fas ${
+              displayedTask.toLowerCase().includes('failed') ||
+              displayedTask.toLowerCase().includes('error') ? 'fa-times' : 'fa-spinner status-spinning'
+            }`} style={{
+              ...statusIconStyles,
+              color: displayedTask.toLowerCase().includes('failed') ||
+                     displayedTask.toLowerCase().includes('error') ? 'var(--danger-color)' : '#007bff'
+            }}></i>
             <span title={displayedTask}>{truncateText(displayedTask)}</span>
           </span>
         </>

@@ -1728,7 +1728,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
               disabled={isProcessing}
               style={{
                 padding: '8px 16px',
-                backgroundColor: '#dc3545',
+                backgroundColor: 'var(--danger-color)',
                 color: 'white',
                 border: 'none',
                 borderRadius: '4px',
@@ -1830,7 +1830,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
                     </div>
                   )}
                   
-                  {file.error && <div style={{ fontSize: '12px', color: '#dc3545' }}>Error: {file.error}</div>}
+                  {file.error && <div style={{ fontSize: '12px', color: 'var(--danger-text)' }}>Error: {file.error}</div>}
                 </div>
                 
                 {!isProcessing && (
@@ -2200,7 +2200,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
             disabled={!isProcessing && (queue.length === 0 || !isFullyOnline() || (!batchSettings.transcriptionModel && !batchSettings.translationModel))}
             style={{
               padding: '10px 20px',
-              backgroundColor: isProcessing ? '#dc3545' : '#28a745',
+              backgroundColor: isProcessing ? 'var(--danger-color)' : 'var(--success-color)',
               color: 'white',
               border: 'none',
               borderRadius: '4px',

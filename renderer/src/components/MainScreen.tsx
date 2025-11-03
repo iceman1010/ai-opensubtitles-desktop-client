@@ -1856,7 +1856,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           }}>
             <div style={{
               padding: '24px',
-              backgroundColor: '#dc3545',
+              backgroundColor: 'var(--danger-color)',
               color: 'white',
               textAlign: 'center'
             }}>
@@ -1882,7 +1882,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
                 marginBottom: '20px',
                 textAlign: 'center'
               }}>
-                <strong style={{ color: '#dc3545', fontSize: '18px' }}>
+                <strong style={{ color: 'var(--danger-text)', fontSize: '18px' }}>
                   Current Balance: {credits || 0} credits
                 </strong>
               </div>

@@ -1121,6 +1121,68 @@ export class OpenSubtitlesAPI {
     }
   }
 
+  async downloadFileByMediaId(mediaId: string, fileName: string): Promise<{ success: boolean; content?: string; error?: string }> {
+    try {
+      logger.info('API', 'Downloading file by media ID', { mediaId, fileName });
+
+      const result = await apiRequestWithRetry(async () => {
+        const headers = {
+          'Accept': 'application/json',
+          'Api-Key': this.apiKey || '',
+          'User-Agent': getUserAgent(),
+        };
+
+        if (this.token) {
+          headers['Authorization'] = `Bearer ${this.token}`;
+        }
+
+        // Use AI endpoint structure consistent with all other API operations
+        const url = this.getAIUrl(`/files/${mediaId}/${fileName}`);
+
+        logger.info('API', 'Downloading file from URL:', url);
+
+        const response = await fetch(url, {
+          method: 'GET',
+          headers,
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          logger.error('API', 'File download failed:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorText: errorText
+          });
+
+          const error = new Error(`Request failed: ${response.status} ${response.statusText} - ${errorText}`);
+          (error as any).status = response.status;
+          (error as any).responseText = errorText;
+          throw error;
+        }
+
+        const content = await response.text();
+        logger.info('API', 'File downloaded successfully', {
+          mediaId,
+          fileName,
+          contentLength: content.length
+        });
+
+        return content;
+      }, `Download File (${mediaId}/${fileName})`, 3);
+
+      return {
+        success: true,
+        content: result,
+      };
+    } catch (error: any) {
+      logger.error('API', 'File download error after retries:', error);
+      return {
+        success: false,
+        error: getUserFriendlyErrorMessage(error),
+      };
+    }
+  }
+
   async getCredits(): Promise<{ success: boolean; credits?: number; error?: string }> {
     try {
       const result = await apiRequestWithRetry(async () => {

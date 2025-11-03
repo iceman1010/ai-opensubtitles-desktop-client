@@ -47,7 +47,7 @@ function ErrorLogControls() {
       position: 'fixed',
       bottom: '40px', // Moved up from 10px to avoid overlap with StatusBar
       right: '10px',
-      background: '#f0f0f0',
+      background: 'var(--bg-secondary)',
       padding: '10px',
       borderRadius: '5px',
       boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
@@ -84,22 +84,22 @@ function ErrorLogControls() {
               maxHeight: '200px',
               overflow: 'auto',
               fontSize: '10px',
-              background: '#fff',
+              background: 'var(--bg-primary)',
               padding: '5px',
-              border: '1px solid #ccc'
+              border: '1px solid var(--border-color)'
             }}>
               <strong>Recent Errors (last 5 min):</strong>
               {recentErrors.map((error, index) => (
                 <div key={index} style={{
                   marginTop: '5px',
                   padding: '3px',
-                  background: '#ffe6e6',
-                  borderLeft: '3px solid #ff0000'
+                  background: 'var(--danger-bg)',
+                  borderLeft: '3px solid var(--danger-color)'
                 }}>
                   <div><strong>{error.timestamp}</strong> [{error.category}]</div>
                   <div>{error.message}</div>
                   {error.data && (
-                    <div style={{ marginTop: '2px', color: '#666' }}>
+                    <div style={{ marginTop: '2px', color: 'var(--text-secondary)' }}>
                       {JSON.stringify(error.data, null, 2)}
                     </div>
                   )}

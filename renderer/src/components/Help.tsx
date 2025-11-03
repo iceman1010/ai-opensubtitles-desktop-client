@@ -362,7 +362,7 @@ const Help: React.FC<HelpProps> = ({}) => {
           <ul>
             <li><strong style={{color: '#28a745'}}>🟢 Connected:</strong> Full connectivity to API server - all features available</li>
             <li><strong style={{color: '#fd7e14'}}>🟠 API Issues:</strong> Internet connected but API server unreachable</li>
-            <li><strong style={{color: '#dc3545'}}>🔴 Offline:</strong> No internet connection detected</li>
+            <li><strong style={{color: 'var(--danger-color)'}}>🔴 Offline:</strong> No internet connection detected</li>
             <li><strong style={{color: '#6c757d'}}>⚪ Unknown:</strong> Initial state or connectivity being tested</li>
           </ul>
 

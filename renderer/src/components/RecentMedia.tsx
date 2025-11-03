@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useAPI } from '../contexts/APIContext';
 import { UncontrolledTreeEnvironment, StaticTreeDataProvider, Tree, TreeItem, TreeItemIndex } from 'react-complex-tree';
 import 'react-complex-tree/lib/style-modern.css';
+import { logger } from '../utils/errorLogger';
 
 interface RecentMediaItem {
   id: number;
@@ -36,15 +37,19 @@ interface TreeData {
 }
 
 function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdate }: RecentMediaProps) {
-  const { getRecentMedia, isAuthenticated } = useAPI();
+  const { getRecentMedia, isAuthenticated, downloadFileByMediaId } = useAPI();
 
   const [recentMedia, setRecentMedia] = useState<RecentMediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [focusedItem, setFocusedItem] = useState<TreeItemIndex>();
   const [expandedItems, setExpandedItems] = useState<TreeItemIndex[]>([]);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const loadingRef = useRef(false);
+
+  // Race condition protection for downloads
+  const isMountedRef = useRef(true);
+  const downloadingFilesRef = useRef<Set<string>>(new Set());
+  const [downloadingFiles, setDownloadingFiles] = useState<Set<string>>(new Set());
 
   // Get info panel visibility from config (default to true if not set)
   const showInfoPanel = !config?.hideRecentMediaInfoPanel;
@@ -56,13 +61,11 @@ function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdat
     }
 
     if (!isAuthenticated) {
-      setError('Please log in to view recent media');
       return;
     }
 
     loadingRef.current = true;
     setIsLoading(true);
-    setError(null);
     setAppProcessing(true, 'Loading recent media...');
 
     try {
@@ -71,16 +74,19 @@ function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdat
       if (result.success && result.data) {
         setRecentMedia(result.data);
         setHasLoadedOnce(true);
+        // Clear status bar on success
+        setAppProcessing(false);
       } else {
         throw new Error(result.error || 'Failed to load recent media');
       }
     } catch (error: any) {
-      console.error('Error loading recent media:', error);
-      setError(error.message || 'Failed to load recent media');
+      logger.error('RECENT_MEDIA', 'Error loading recent media', error);
+      // Use status bar for error feedback
+      setAppProcessing(true, `Failed to load recent media: ${error.message || 'Unknown error'}`);
+      setTimeout(() => setAppProcessing(false), 3000);
     } finally {
       loadingRef.current = false;
       setIsLoading(false);
-      setAppProcessing(false);
     }
   }, [getRecentMedia, isAuthenticated, setAppProcessing]);
 
@@ -89,6 +95,72 @@ function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdat
       loadRecentMedia();
     }
   }, [isAuthenticated, isVisible, hasLoadedOnce, loadRecentMedia]);
+
+  // Cleanup on unmount to prevent race conditions
+  useEffect(() => {
+    // Set mounted to true when component mounts
+    isMountedRef.current = true;
+
+    return () => {
+      // Only set to false on actual unmount
+      isMountedRef.current = false;
+      downloadingFilesRef.current.clear();
+    };
+  }, []);
+
+  // Defensive download function with race condition protection
+  const handleDownload = useCallback(async (mediaId: number, fileName: string) => {
+    // Create unique key for this download
+    const fileKey = `${mediaId}-${fileName}`;
+
+    // Prevent duplicate downloads (race condition #1)
+    if (downloadingFilesRef.current.has(fileKey)) {
+      logger.warn('RECENT_MEDIA', `Download already in progress for: ${fileName}`);
+      return;
+    }
+
+    // Mark file as downloading (both ref and state for UI updates)
+    downloadingFilesRef.current.add(fileKey);
+    setDownloadingFiles(prev => new Set([...prev, fileKey]));
+
+    try {
+      setAppProcessing(true, `Downloading ${fileName}...`);
+
+      const result = await downloadFileByMediaId(mediaId.toString(), fileName);
+
+      if (result.success && result.content) {
+        // Save file using Electron API (opens save dialog)
+        const savedPath = await window.electronAPI.saveFile(result.content, fileName);
+        if (savedPath) {
+          logger.info('RECENT_MEDIA', `File downloaded successfully: ${savedPath}`);
+          // Success message following app pattern
+          setAppProcessing(true, `Downloaded ${fileName} successfully!`);
+          setTimeout(() => {
+            setAppProcessing(false);
+          }, 2000);
+        } else {
+          throw new Error('File save was cancelled');
+        }
+      } else {
+        throw new Error(result.error || 'Download failed');
+      }
+    } catch (error: any) {
+      logger.error('RECENT_MEDIA', 'Download error', error);
+      // Error message following app pattern
+      setAppProcessing(true, `Download failed: ${error.message}`);
+      setTimeout(() => {
+        setAppProcessing(false);
+      }, 3000);
+    } finally {
+      // Always cleanup
+      downloadingFilesRef.current.delete(fileKey);
+      setDownloadingFiles(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(fileKey);
+        return newSet;
+      });
+    }
+  }, [downloadFileByMediaId, setAppProcessing]);
 
   const formatDateTime = (timeStr: string) => {
     try {
@@ -157,7 +229,8 @@ function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdat
             data: {
               type: 'file',
               fileName: file,
-              icon: getFileIcon(file)
+              icon: getFileIcon(file),
+              mediaId: item.id
             }
           };
         });
@@ -248,21 +321,6 @@ function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdat
             </>
           )}
         </button>
-      )}
-
-      {error && (
-        <div style={{
-          background: 'var(--danger-color)',
-          color: 'var(--bg-primary)',
-          padding: '12px',
-          borderRadius: '4px',
-          marginBottom: '20px',
-          border: '1px solid var(--danger-color)',
-          opacity: '0.9'
-        }}>
-          <i className="fas fa-exclamation-triangle" style={{ marginRight: '8px' }}></i>
-          {error}
-        </div>
       )}
 
       {isLoading && recentMedia.length === 0 ? (
@@ -497,13 +555,17 @@ function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdat
                   </div>
                 );
               } else if (item.data?.type === 'file') {
+                const fileKey = `${item.data.mediaId}-${item.data.fileName}`;
+                const isDownloading = downloadingFiles.has(fileKey);
+
                 return (
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '10px',
                     padding: '4px 8px',
-                    minHeight: '32px'
+                    minHeight: '32px',
+                    width: '100%'
                   }}>
                     <i
                       className={`fas ${item.data.icon}`}
@@ -518,10 +580,79 @@ function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdat
                       color: 'var(--text-primary)',
                       fontSize: '13px',
                       fontWeight: '400',
-                      lineHeight: '1.3'
+                      lineHeight: '1.3',
+                      flex: 1,
+                      minWidth: 0,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
                     }}>
                       {item.data.fileName}
                     </span>
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isDownloading) {
+                          handleDownload(item.data.mediaId, item.data.fileName);
+                        }
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: isDownloading ? 'var(--text-tertiary)' : 'var(--primary-color)',
+                        cursor: isDownloading ? 'not-allowed' : 'pointer',
+                        padding: '6px',
+                        borderRadius: '4px',
+                        fontSize: '13px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '28px',
+                        height: '28px',
+                        flexShrink: 0,
+                        marginLeft: 'auto',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isDownloading) {
+                          e.currentTarget.style.background = 'rgba(52, 73, 94, 0.7)';
+                          const icon = e.currentTarget.querySelector('i');
+                          if (icon) {
+                            icon.style.transform = 'scale(1.3)';
+                            // Check if dark mode is active
+                            const isDarkMode = document.documentElement.classList.contains('dark-mode');
+                            icon.style.textShadow = isDarkMode
+                              ? '0 0 8px rgba(255, 255, 0, 0.6)'
+                              : '0 0 8px rgba(0, 150, 255, 0.8)';
+                          }
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                        const icon = e.currentTarget.querySelector('i');
+                        if (icon) {
+                          icon.style.transform = 'scale(1)';
+                          icon.style.textShadow = 'none';
+                        }
+                      }}
+                      title={isDownloading ? 'Downloading...' : 'Download file'}
+                    >
+                      {isDownloading ? (
+                        <span style={{
+                          display: 'inline-block',
+                          width: '12px',
+                          height: '12px',
+                          border: '2px solid var(--text-tertiary)',
+                          borderTop: '2px solid transparent',
+                          borderRadius: '50%',
+                          animation: 'spin 1s linear infinite'
+                        }}></span>
+                      ) : (
+                        <i className="fas fa-download" style={{
+                          transition: 'all 0.2s ease'
+                        }}></i>
+                      )}
+                    </div>
                   </div>
                 );
               }

@@ -34,6 +34,7 @@ interface APIContextType {
   checkTranscriptionStatus: (correlationId: string) => Promise<any>;
   checkTranslationStatus: (correlationId: string) => Promise<any>;
   downloadFile: (url: string) => Promise<{ success: boolean; content?: string; error?: string }>;
+  downloadFileByMediaId: (mediaId: string, fileName: string) => Promise<{ success: boolean; content?: string; error?: string }>;
   getRecentMedia: () => Promise<{ success: boolean; data?: any; error?: string }>;
 
   // Sync helper functions for filename generation
@@ -527,6 +528,11 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     return await api.downloadFile(url);
   }, [api, isAuthenticated]);
 
+  const downloadFileByMediaId = useCallback(async (mediaId: string, fileName: string) => {
+    if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };
+    return await api.downloadFileByMediaId(mediaId, fileName);
+  }, [api, isAuthenticated]);
+
   const getRecentMedia = useCallback(async () => {
     if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };
     return await api.getRecentMedia();
@@ -582,6 +588,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     checkTranscriptionStatus,
     checkTranslationStatus,
     downloadFile,
+    downloadFileByMediaId,
     getRecentMedia,
     getTranslationLanguageNameSync,
     getTranscriptionLanguageNameSync

@@ -73,9 +73,9 @@ function Info({ config, setAppProcessing }: InfoProps) {
   // Helper function to get reliability color
   const getReliabilityColor = (reliability: string) => {
     switch (reliability.toLowerCase()) {
-      case 'high': return '#28a745';
-      case 'medium': return '#ffc107';
-      case 'low': return '#dc3545';
+      case 'high': return 'var(--success-color)';
+      case 'medium': return 'var(--warning-color)';
+      case 'low': return 'var(--danger-color)';
       default: return '#6c757d';
     }
   };
