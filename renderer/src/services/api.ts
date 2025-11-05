@@ -76,6 +76,50 @@ export interface CreditPackage {
   checkout_url: string;
 }
 
+export interface SubtitleSearchParams {
+  query?: string;
+  imdb_id?: string;
+  tmdb_id?: string;
+  parent_imdb_id?: string;
+  parent_tmdb_id?: string;
+  moviehash?: string;
+  languages?: string;
+  episode_number?: number;
+  season_number?: number;
+  year?: number;
+  type?: string;
+  page?: number;
+  order_by?: string;
+  order_direction?: string;
+  ai_translated?: boolean;
+  foreign_parts_only?: boolean;
+  hearing_impaired?: boolean;
+  machine_translated?: boolean;
+  trusted_sources?: boolean;
+  user_id?: string;
+  parent_feature_id?: string;
+}
+
+export interface SubtitleDownloadParams {
+  file_id: number;
+  sub_format?: string;
+  file_name?: string;
+  in_fps?: number;
+  out_fps?: number;
+  timeshift?: number;
+  force_download?: boolean;
+}
+
+// Interface for subtitle search language options (NOT transcription/translation languages)
+export interface SubtitleLanguage {
+  language_code: string;
+  language_name: string;
+}
+
+export interface SubtitleLanguagesResponse {
+  data: SubtitleLanguage[];
+}
+
 export interface CompletedTaskData {
   file_name: string;
   url: string;
@@ -1424,6 +1468,219 @@ export class OpenSubtitlesAPI {
       return result;
     } catch (error: any) {
       logger.error('API', 'Error fetching recent media after retries:', error);
+      return {
+        success: false,
+        error: getUserFriendlyErrorMessage(error),
+      };
+    }
+  }
+
+  async searchSubtitles(params: SubtitleSearchParams): Promise<{ success: boolean; data?: any; error?: string }> {
+    if (!this.apiKey) {
+      const error = 'API Key is required to search subtitles';
+      logger.error('API', error);
+      return { success: false, error };
+    }
+
+    try {
+      const result = await apiRequestWithRetry(async () => {
+        logger.info('API', 'Searching subtitles with params:', params);
+
+        const headers = {
+          'Accept': 'application/json',
+          'Api-Key': this.apiKey || '',
+          'User-Agent': getUserAgent(),
+        };
+
+        if (this.token) {
+          headers['Authorization'] = `Bearer ${this.token}`;
+        }
+
+        // Build query string from parameters
+        const queryParams = new URLSearchParams();
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && value !== '') {
+            queryParams.append(key, String(value));
+          }
+        });
+
+        const queryString = queryParams.toString();
+        const url = this.getAIUrl(`/proxy/subtitles${queryString ? `?${queryString}` : ''}`);
+
+        logger.info('API', 'Searching subtitles at URL:', url);
+
+        const response = await fetch(url, {
+          method: 'GET',
+          headers,
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          logger.error('API', 'Subtitle search failed:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorText: errorText
+          });
+
+          const error = new Error(`Request failed: ${response.status} ${response.statusText} - ${errorText}`);
+          (error as any).status = response.status;
+          (error as any).responseText = errorText;
+          throw error;
+        }
+
+        const responseData = await response.json();
+        logger.info('API', 'Subtitle search response:', responseData);
+
+        return responseData;
+      }, 'Search Subtitles', 3);
+
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error: any) {
+      logger.error('API', 'Subtitle search error after retries:', error);
+      return {
+        success: false,
+        error: getUserFriendlyErrorMessage(error),
+      };
+    }
+  }
+
+  async downloadSubtitle(params: SubtitleDownloadParams): Promise<{ success: boolean; data?: any; error?: string }> {
+    if (!this.apiKey) {
+      const error = 'API Key is required to download subtitles';
+      logger.error('API', error);
+      return { success: false, error };
+    }
+
+    if (!this.token) {
+      const error = 'Authentication token is required to download subtitles';
+      logger.error('API', error);
+      return { success: false, error };
+    }
+
+    try {
+      const result = await apiRequestWithRetry(async () => {
+        logger.info('API', 'Downloading subtitle with params:', params);
+
+        const headers = {
+          'Accept': 'application/json',
+          'Api-Key': this.apiKey || '',
+          'Content-Type': 'application/json',
+          'User-Agent': getUserAgent(),
+          'Authorization': `Bearer ${this.token}`,
+        };
+
+        const url = this.getAIUrl('/proxy/download');
+
+        logger.info('API', 'Downloading subtitle at URL:', url);
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(params),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          logger.error('API', 'Subtitle download failed:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorText: errorText
+          });
+
+          const error = new Error(`Request failed: ${response.status} ${response.statusText} - ${errorText}`);
+          (error as any).status = response.status;
+          (error as any).responseText = errorText;
+          throw error;
+        }
+
+        const responseData = await response.json();
+        logger.info('API', 'Subtitle download response:', responseData);
+
+        return responseData;
+      }, 'Download Subtitle', 3);
+
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error: any) {
+      logger.error('API', 'Subtitle download error after retries:', error);
+      return {
+        success: false,
+        error: getUserFriendlyErrorMessage(error),
+      };
+    }
+  }
+
+  /**
+   * Get available languages for subtitle search (NOT transcription/translation)
+   * Returns cached data if available and less than 24 hours old
+   * @returns Promise with success status and SubtitleLanguage array
+   */
+  async getSubtitleSearchLanguages(): Promise<{ success: boolean; data?: SubtitleLanguage[]; error?: string }> {
+    const cacheKey = 'subtitle_search_languages';
+    const cacheExpiry = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+    try {
+      // Check cache first
+      const cachedData = CacheManager.get(cacheKey);
+      if (cachedData && (Date.now() - cachedData.timestamp) < cacheExpiry) {
+        logger.info('API', 'Returning cached subtitle search languages');
+        return { success: true, data: cachedData.data };
+      }
+
+      // Fetch fresh data from API
+      logger.info('API', 'Fetching subtitle search languages from API');
+
+      const result = await apiRequestWithRetry(async () => {
+        const headers = {
+          'Accept': 'application/json',
+          'Api-Key': this.apiKey || '',
+          'User-Agent': getUserAgent(),
+        };
+
+        // Use the OpenSubtitles languages endpoint directly
+        // Exception: Not using this.getAIUrl() because /proxy/languages is not implemented in the proxy
+        const url = 'https://api.opensubtitles.com/api/v1/infos/languages';
+
+        const response = await fetch(url, {
+          method: 'GET',
+          headers,
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          logger.error('API', 'Subtitle search languages fetch failed:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorText: errorText
+          });
+
+          const error = new Error(`Request failed: ${response.status} ${response.statusText} - ${errorText}`);
+          (error as any).status = response.status;
+          (error as any).responseText = errorText;
+          throw error;
+        }
+
+        const responseData: SubtitleLanguagesResponse = await response.json();
+        logger.info('API', 'Subtitle search languages response:', responseData);
+
+        return responseData;
+      }, 'Get Subtitle Search Languages', 3);
+
+      // Cache the result with timestamp
+      const languages = result.data;
+      CacheManager.set(cacheKey, { data: languages, timestamp: Date.now() });
+
+      return {
+        success: true,
+        data: languages,
+      };
+    } catch (error: any) {
+      logger.error('API', 'Subtitle search languages fetch error after retries:', error);
       return {
         success: false,
         error: getUserFriendlyErrorMessage(error),

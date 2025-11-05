@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Login from './components/Login';
 import MainScreen from './components/MainScreen';
 import BatchScreen from './components/BatchScreen';
+import Search from './components/Search';
 import RecentMedia from './components/RecentMedia';
 import Preferences from './components/Preferences';
 import Update from './components/Update';
@@ -277,7 +278,7 @@ function AppContent({
   const { onSystemSuspend, onSystemResume } = usePowerEvents();
   const { preserveState, restoreState, clearPreservedState, isTokenExpired } = useHibernationRecovery();
 
-  const [currentScreen, setCurrentScreen] = useState<'login' | 'main' | 'batch' | 'recent-media' | 'preferences' | 'update' | 'info' | 'credits' | 'help'>('main');
+  const [currentScreen, setCurrentScreen] = useState<'login' | 'main' | 'batch' | 'search' | 'recent-media' | 'preferences' | 'update' | 'info' | 'credits' | 'help'>('main');
   const [pendingBatchFiles, setPendingBatchFiles] = useState<string[]>([]);
   const [pendingMainFile, setPendingMainFile] = useState<string | null>(null);
 
@@ -320,6 +321,9 @@ function AppContent({
           break;
         case 'navigate-batch':
           setCurrentScreen('batch');
+          break;
+        case 'navigate-search':
+          setCurrentScreen('search');
           break;
         case 'navigate-info':
           setCurrentScreen('info');
@@ -593,6 +597,20 @@ function AppContent({
                   <i className="fas fa-layer-group"></i>Batch
                 </button>
               </li>
+              {config?.betaTest && (
+                <li style={{
+                  opacity: 1,
+                  transition: 'opacity 0.3s ease-in-out, transform 0.3s ease-in-out',
+                  transform: 'translateY(0)'
+                }}>
+                  <button
+                    className={currentScreen === 'search' ? 'active' : ''}
+                    onClick={() => handleScreenChange('search')}
+                  >
+                    <i className="fas fa-search"></i>Search
+                  </button>
+                </li>
+              )}
               <li>
                 <button
                   className={currentScreen === 'recent-media' ? 'active' : ''}
@@ -760,6 +778,11 @@ function AppContent({
             onFilesPending={() => setPendingBatchFiles([])}
             isVisible={true}
             onProcessingStateChange={setBatchScreenProcessing}
+          />
+        )}
+        {currentScreen === 'search' && config && (
+          <Search
+            setAppProcessing={setAppProcessing}
           />
         )}
         {currentScreen === 'recent-media' && config && (

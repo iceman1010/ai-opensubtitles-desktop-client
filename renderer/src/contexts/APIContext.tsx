@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { OpenSubtitlesAPI, TranscriptionInfo, TranslationInfo } from '../services/api';
+import { OpenSubtitlesAPI, TranscriptionInfo, TranslationInfo, SubtitleSearchParams, SubtitleDownloadParams, SubtitleLanguage } from '../services/api';
 import { logger } from '../utils/errorLogger';
 import { isOnline, isFullyOnline, checkAPIConnectivity } from '../utils/networkUtils';
 import { usePower } from './PowerContext';
@@ -36,6 +36,9 @@ interface APIContextType {
   downloadFile: (url: string) => Promise<{ success: boolean; content?: string; error?: string }>;
   downloadFileByMediaId: (mediaId: string, fileName: string) => Promise<{ success: boolean; content?: string; error?: string }>;
   getRecentMedia: () => Promise<{ success: boolean; data?: any; error?: string }>;
+  searchSubtitles: (params: SubtitleSearchParams) => Promise<{ success: boolean; data?: any; error?: string }>;
+  downloadSubtitle: (params: SubtitleDownloadParams) => Promise<{ success: boolean; data?: any; error?: string }>;
+  getSubtitleSearchLanguages: () => Promise<{ success: boolean; data?: SubtitleLanguage[]; error?: string }>;
 
   // Sync helper functions for filename generation
   getTranslationLanguageNameSync: (apiId: string, languageCode: string) => string | null;
@@ -538,6 +541,21 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     return await api.getRecentMedia();
   }, [api, isAuthenticated]);
 
+  const searchSubtitles = useCallback(async (params: SubtitleSearchParams) => {
+    if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };
+    return await handleAPICall(() => api.searchSubtitles(params), 'Search Subtitles');
+  }, [api, isAuthenticated, handleAPICall]);
+
+  const downloadSubtitle = useCallback(async (params: SubtitleDownloadParams) => {
+    if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };
+    return await handleAPICall(() => api.downloadSubtitle(params), 'Download Subtitle');
+  }, [api, isAuthenticated, handleAPICall]);
+
+  const getSubtitleSearchLanguages = useCallback(async () => {
+    if (!api) return { success: false, error: 'API not available' };
+    return await handleAPICall(() => api.getSubtitleSearchLanguages(), 'Get Subtitle Search Languages');
+  }, [api, handleAPICall]);
+
   // Sync helper functions for filename generation using cached data
   const getTranslationLanguageNameSync = useCallback((apiId: string, languageCode: string): string | null => {
     if (!translationInfo?.apis?.[apiId]?.supported_languages) {
@@ -572,6 +590,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     userInfo,
     isLoading,
     error,
+    connectivityIssue,
     login,
     logout,
     refreshCredits,
@@ -590,6 +609,9 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     downloadFile,
     downloadFileByMediaId,
     getRecentMedia,
+    searchSubtitles,
+    downloadSubtitle,
+    getSubtitleSearchLanguages,
     getTranslationLanguageNameSync,
     getTranscriptionLanguageNameSync
   };

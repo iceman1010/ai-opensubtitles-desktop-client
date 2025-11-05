@@ -13,6 +13,9 @@
   --input-border: #ced4da;
   --button-bg: #007bff;
   --button-text: #ffffff;
+  --primary-color: #007bff;
+  --bg-disabled: #e9ecef;
+  --text-disabled: #6c757d;
   --sidebar-bg: #5f5f5f;
   --sidebar-text: #ffffff;
   --success-color: #28a745;
@@ -41,6 +44,9 @@
   --input-border: #666666;
   --button-bg: #0066cc;
   --button-text: #ffffff;
+  --primary-color: #0066cc;
+  --bg-disabled: #404040;
+  --text-disabled: #888888;
   --sidebar-bg: #2a2a2a;
   --sidebar-text: #ffffff;
   --success-color: #28a745;
