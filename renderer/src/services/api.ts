@@ -120,6 +120,51 @@ export interface SubtitleLanguagesResponse {
   data: SubtitleLanguage[];
 }
 
+export interface FeatureSearchParams {
+  feature_id?: number;
+  full_search?: boolean;
+  imdb_id?: string;
+  query?: string;
+  query_match?: 'start' | 'word' | 'exact';
+  tmdb_id?: string;
+  type?: 'movie' | 'tvshow' | 'episode';
+  year?: number;
+}
+
+export interface FeatureAttributes {
+  title?: string;
+  original_title?: string;
+  year?: number;
+  kind?: string;
+  imdb_id?: number;
+  tmdb_id?: number;
+  feature_id?: number;
+  episode_number?: number;
+  season_number?: number;
+  parent_title?: string;
+  parent_imdb_id?: number;
+  parent_tmdb_id?: number;
+  parent_feature_id?: number;
+  subtitles_count?: number;
+  subtitles_counts?: {
+    [languageCode: string]: number;
+  };
+}
+
+export interface Feature {
+  id: string;
+  type: string;
+  attributes: FeatureAttributes;
+}
+
+export interface FeatureSearchResponse {
+  data: Feature[];
+  total_count?: number;
+  total_pages?: number;
+  page?: number;
+  per_page?: number;
+}
+
 export interface CompletedTaskData {
   file_name: string;
   url: string;
@@ -1540,6 +1585,78 @@ export class OpenSubtitlesAPI {
       };
     } catch (error: any) {
       logger.error('API', 'Subtitle search error after retries:', error);
+      return {
+        success: false,
+        error: getUserFriendlyErrorMessage(error),
+      };
+    }
+  }
+
+  async searchForFeatures(params: FeatureSearchParams): Promise<{ success: boolean; data?: FeatureSearchResponse; error?: string }> {
+    if (!this.apiKey) {
+      const error = 'API Key is required to search features';
+      logger.error('API', error);
+      return { success: false, error };
+    }
+
+    try {
+      const result = await apiRequestWithRetry(async () => {
+        logger.info('API', 'Searching features with params:', params);
+
+        const headers = {
+          'Accept': 'application/json',
+          'Api-Key': this.apiKey || '',
+          'User-Agent': getUserAgent(),
+        };
+
+        if (this.token) {
+          headers['Authorization'] = `Bearer ${this.token}`;
+        }
+
+        // Build query string from parameters
+        const queryParams = new URLSearchParams();
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && value !== '') {
+            queryParams.append(key, String(value));
+          }
+        });
+
+        const queryString = queryParams.toString();
+        const url = this.getAIUrl(`/proxy/features${queryString ? `?${queryString}` : ''}`);
+
+        logger.info('API', 'Searching features at URL:', url);
+
+        const response = await fetch(url, {
+          method: 'GET',
+          headers,
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          logger.error('API', 'Feature search failed:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorText: errorText
+          });
+
+          const error = new Error(`Request failed: ${response.status} ${response.statusText} - ${errorText}`);
+          (error as any).status = response.status;
+          (error as any).responseText = errorText;
+          throw error;
+        }
+
+        const responseData = await response.json();
+        logger.info('API', 'Feature search response:', responseData);
+
+        return responseData;
+      }, 'Search Features', 3);
+
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error: any) {
+      logger.error('API', 'Feature search error after retries:', error);
       return {
         success: false,
         error: getUserFriendlyErrorMessage(error),

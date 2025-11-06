@@ -28,6 +28,8 @@
   --danger-border: #fed7d7;
   --danger-text: #c53030;
   --info-color: #17a2b8;
+  --primary-dark: #0056b3;
+  --text-tertiary: #999999;
 }
 
 /* Dark Mode Colors */
@@ -59,6 +61,8 @@
   --danger-border: rgba(220, 53, 69, 0.4);
   --danger-text: #ff6b6b;
   --info-color: #17a2b8;
+  --primary-dark: #0052a3;
+  --text-tertiary: #aaaaaa;
 }
 
 * {

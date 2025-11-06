@@ -47,11 +47,10 @@ export interface SubtitleSearchResult {
 interface SubtitleCardProps {
   result: SubtitleSearchResult;
   onDownload: (fileId: number, fileName: string) => void;
-  onPreview: (result: SubtitleSearchResult) => void;
   isDownloading?: boolean;
 }
 
-function SubtitleCard({ result, onDownload, onPreview, isDownloading = false }: SubtitleCardProps) {
+function SubtitleCard({ result, onDownload, isDownloading = false }: SubtitleCardProps) {
   const { attributes } = result;
 
   const formatFileSize = (fileName: string): string => {
@@ -63,7 +62,7 @@ function SubtitleCard({ result, onDownload, onPreview, isDownloading = false }: 
   const getTrustBadge = () => {
     if (attributes.from_trusted) {
       return <span style={{
-        background: '#4CAF50',
+        background: 'var(--success-color)',
         color: 'white',
         padding: '2px 8px',
         borderRadius: '12px',
@@ -81,7 +80,7 @@ function SubtitleCard({ result, onDownload, onPreview, isDownloading = false }: 
     if (attributes.hd) {
       badges.push(
         <span key="hd" style={{
-          background: '#2196F3',
+          background: 'var(--info-color)',
           color: 'white',
           padding: '2px 6px',
           borderRadius: '8px',
@@ -94,8 +93,8 @@ function SubtitleCard({ result, onDownload, onPreview, isDownloading = false }: 
     if (attributes.hearing_impaired) {
       badges.push(
         <span key="hi" style={{
-          background: '#FF9800',
-          color: 'white',
+          background: 'var(--warning-color)',
+          color: 'var(--text-primary)',
           padding: '2px 6px',
           borderRadius: '8px',
           fontSize: '10px',
@@ -131,9 +130,9 @@ function SubtitleCard({ result, onDownload, onPreview, isDownloading = false }: 
 
   const getRankColor = (rank: string): string => {
     const rankLower = rank.toLowerCase();
-    if (rankLower.includes('trusted') || rankLower.includes('platinum')) return '#4CAF50';
-    if (rankLower.includes('gold')) return '#FF9800';
-    if (rankLower.includes('silver')) return '#9E9E9E';
+    if (rankLower.includes('trusted') || rankLower.includes('platinum')) return 'var(--success-color)';
+    if (rankLower.includes('gold')) return 'var(--warning-color)';
+    if (rankLower.includes('silver')) return 'var(--text-muted)';
     if (rankLower.includes('bronze')) return '#8D6E63';
     return 'var(--text-secondary)';
   };
@@ -296,33 +295,6 @@ function SubtitleCard({ result, onDownload, onPreview, isDownloading = false }: 
         <button
           onClick={(e) => {
             e.stopPropagation();
-            onPreview(result);
-          }}
-          style={{
-            padding: '8px 16px',
-            fontSize: '12px',
-            background: 'var(--bg-primary)',
-            color: 'var(--text-primary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'var(--primary-color)';
-            e.currentTarget.style.color = 'white';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'var(--bg-primary)';
-            e.currentTarget.style.color = 'var(--text-primary)';
-          }}
-        >
-          👁️ Preview
-        </button>
-
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
             handleDownloadClick();
           }}
           disabled={isDownloading || attributes.files.length === 0}
@@ -331,7 +303,7 @@ function SubtitleCard({ result, onDownload, onPreview, isDownloading = false }: 
             fontSize: '13px',
             fontWeight: 'bold',
             background: isDownloading ? 'var(--bg-disabled)' : 'var(--primary-color)',
-            color: 'white',
+            color: isDownloading ? 'var(--text-disabled)' : 'var(--button-text)',
             border: 'none',
             borderRadius: '4px',
             cursor: isDownloading ? 'not-allowed' : 'pointer',

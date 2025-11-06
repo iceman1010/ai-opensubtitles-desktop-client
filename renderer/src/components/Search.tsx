@@ -3,7 +3,6 @@ import { useAPI } from '../contexts/APIContext';
 import { SubtitleSearchParams } from '../services/api';
 import SearchForm from './SearchForm';
 import SearchResults from './SearchResults';
-import SubtitlePreview from './SubtitlePreview';
 import { SubtitleSearchResult } from './SubtitleCard';
 
 interface SearchProps {
@@ -18,8 +17,6 @@ function Search({ setAppProcessing }: SearchProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [downloadingIds, setDownloadingIds] = useState<Set<number>>(new Set());
-  const [previewResult, setPreviewResult] = useState<SubtitleSearchResult | null>(null);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [lastSearchParams, setLastSearchParams] = useState<SubtitleSearchParams | null>(null);
 
   const RESULTS_PER_PAGE = 20;
@@ -98,15 +95,6 @@ function Search({ setAppProcessing }: SearchProps) {
     }
   };
 
-  const handlePreview = (result: SubtitleSearchResult) => {
-    setPreviewResult(result);
-    setIsPreviewOpen(true);
-  };
-
-  const handlePreviewClose = () => {
-    setIsPreviewOpen(false);
-    setPreviewResult(null);
-  };
 
   return (
     <div className="search-container" style={{
@@ -151,18 +139,11 @@ function Search({ setAppProcessing }: SearchProps) {
           currentPage={currentPage}
           onPageChange={handlePageChange}
           onDownload={handleDownload}
-          onPreview={handlePreview}
           isLoading={isSearching}
           downloadingIds={downloadingIds}
         />
       )}
 
-      <SubtitlePreview
-        result={previewResult}
-        isOpen={isPreviewOpen}
-        onClose={handlePreviewClose}
-        onDownload={handleDownload}
-      />
     </div>
   );
 }

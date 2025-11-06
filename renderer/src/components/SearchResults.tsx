@@ -9,7 +9,6 @@ interface SearchResultsProps {
   currentPage: number;
   onPageChange: (page: number) => void;
   onDownload: (fileId: number, fileName: string) => void;
-  onPreview: (result: SubtitleSearchResult) => void;
   isLoading: boolean;
   downloadingIds: Set<number>;
 }
@@ -20,7 +19,6 @@ function SearchResults({
   currentPage,
   onPageChange,
   onDownload,
-  onPreview,
   isLoading,
   downloadingIds
 }: SearchResultsProps) {
@@ -135,7 +133,6 @@ function SearchResults({
             key={result.id}
             result={result}
             onDownload={onDownload}
-            onPreview={onPreview}
             isDownloading={result.attributes.files.some(file =>
               downloadingIds.has(file.file_id)
             )}
@@ -181,13 +178,13 @@ function SearchResults({
         .pagination-link:hover,
         .pagination-nav-link:hover {
           background: var(--primary-color);
-          color: white;
+          color: var(--button-text);
           border-color: var(--primary-color);
         }
 
         .pagination-active .pagination-link {
           background: var(--primary-color);
-          color: white;
+          color: var(--button-text);
           border-color: var(--primary-color);
           font-weight: bold;
         }

@@ -135,8 +135,8 @@ function SearchForm({ onSearch, isLoading }: SearchFormProps) {
       <form onSubmit={handleSubmit}>
         {/* Primary Search */}
         <div style={{ marginBottom: '15px' }}>
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <div style={{ flex: 1 }}>
+          <div className="search-form-container">
+            <div className="search-input-row">
               <input
                 type="text"
                 placeholder="🔍 Search movies & TV shows..."
@@ -155,7 +155,7 @@ function SearchForm({ onSearch, isLoading }: SearchFormProps) {
               />
             </div>
 
-            <div>
+            <div className="search-controls-row">
               <select
                 value={formState.languages}
                 onChange={(e) => handleInputChange('languages', e.target.value)}
@@ -167,6 +167,7 @@ function SearchForm({ onSearch, isLoading }: SearchFormProps) {
                   background: 'var(--bg-primary)',
                   color: 'var(--text-primary)',
                   minWidth: '120px',
+                  flex: 1,
                 }}
                 disabled={isLoading || languagesLoading}
               >
@@ -182,9 +183,7 @@ function SearchForm({ onSearch, isLoading }: SearchFormProps) {
                   ))
                 )}
               </select>
-            </div>
 
-            <div>
               <select
                 value={formState.type}
                 onChange={(e) => handleInputChange('type', e.target.value)}
@@ -196,6 +195,7 @@ function SearchForm({ onSearch, isLoading }: SearchFormProps) {
                   background: 'var(--bg-primary)',
                   color: 'var(--text-primary)',
                   minWidth: '120px',
+                  flex: 1,
                 }}
                 disabled={isLoading}
               >
@@ -205,25 +205,26 @@ function SearchForm({ onSearch, isLoading }: SearchFormProps) {
                   </option>
                 ))}
               </select>
-            </div>
 
-            <button
-              type="submit"
-              disabled={isLoading || !formState.query.trim()}
-              style={{
-                padding: '12px 24px',
-                fontSize: '14px',
-                fontWeight: 'bold',
-                background: formState.query.trim() ? 'var(--primary-color)' : 'var(--bg-disabled)',
-                color: formState.query.trim() ? 'var(--button-text)' : 'var(--text-disabled)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '6px',
-                cursor: formState.query.trim() ? 'pointer' : 'not-allowed',
-                minWidth: '100px',
-              }}
-            >
-              {isLoading ? '🔄 Searching...' : '🔍 Search'}
-            </button>
+              <button
+                type="submit"
+                disabled={isLoading || !formState.query.trim()}
+                style={{
+                  padding: '12px 24px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  background: formState.query.trim() ? 'var(--primary-color)' : 'var(--bg-disabled)',
+                  color: formState.query.trim() ? 'var(--button-text)' : 'var(--text-disabled)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '6px',
+                  cursor: formState.query.trim() ? 'pointer' : 'not-allowed',
+                  minWidth: '100px',
+                  flexShrink: 0,
+                }}
+              >
+                {isLoading ? '🔄 Searching...' : '🔍 Search'}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -349,6 +350,48 @@ function SearchForm({ onSearch, isLoading }: SearchFormProps) {
           </div>
         )}
       </form>
+
+      <style>{`
+        .search-form-container {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .search-input-row {
+          display: flex;
+        }
+
+        .search-controls-row {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+        }
+
+        @media (max-width: 759px) {
+          .search-controls-row {
+            flex-direction: column;
+            gap: 8px;
+            align-items: stretch;
+          }
+        }
+
+        @media (min-width: 1000px) {
+          .search-form-container {
+            flex-direction: row;
+            align-items: center;
+          }
+
+          .search-input-row {
+            flex: 1;
+            margin-right: 10px;
+          }
+
+          .search-controls-row {
+            flex-shrink: 0;
+          }
+        }
+      `}</style>
     </div>
   );
 }
