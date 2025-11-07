@@ -1,27 +1,25 @@
 import React from 'react';
 import ReactPaginate from 'react-paginate';
-import SubtitleCard from './SubtitleCard';
-import { SubtitleSearchResult } from './SubtitleCard';
+import FeatureCard from './FeatureCard';
+import { Feature } from '../services/api';
 
-interface SearchResultsProps {
-  results: SubtitleSearchResult[];
+interface FeatureResultsProps {
+  results: Feature[];
   totalPages: number;
   currentPage: number;
   onPageChange: (page: number) => void;
-  onDownload: (fileId: number, fileName: string) => void;
+  onFindSubtitles?: (feature: Feature) => void;
   isLoading: boolean;
-  downloadingIds: Set<number>;
 }
 
-function SearchResults({
+function FeatureResults({
   results,
   totalPages,
   currentPage,
   onPageChange,
-  onDownload,
-  isLoading,
-  downloadingIds
-}: SearchResultsProps) {
+  onFindSubtitles,
+  isLoading
+}: FeatureResultsProps) {
   if (isLoading) {
     return (
       <div style={{
@@ -34,7 +32,7 @@ function SearchResults({
       }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '48px', marginBottom: '20px' }}><i className="fas fa-spinner fa-spin"></i></div>
-          <div>Searching for subtitles...</div>
+          <div>Searching for movies and TV shows...</div>
         </div>
       </div>
     );
@@ -51,10 +49,10 @@ function SearchResults({
         color: 'var(--text-secondary)',
       }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '48px', marginBottom: '20px' }}><i className="fas fa-folder-open"></i></div>
-          <div style={{ marginBottom: '8px' }}>No subtitles found</div>
+          <div style={{ fontSize: '48px', marginBottom: '20px' }}><i className="fas fa-film"></i></div>
+          <div style={{ marginBottom: '8px' }}>No movies or TV shows found</div>
           <div style={{ fontSize: '14px', color: 'var(--text-tertiary)' }}>
-            Try adjusting your search terms or filters
+            Try adjusting your search terms
           </div>
         </div>
       </div>
@@ -95,7 +93,7 @@ function SearchResults({
   );
 
   return (
-    <div className="search-results">
+    <div className="feature-results">
       {/* Results Header */}
       <div style={{
         display: 'flex',
@@ -109,7 +107,7 @@ function SearchResults({
           fontWeight: 'bold',
           color: 'var(--text-primary)',
         }}>
-          <i className="fas fa-list"></i> {results.length} subtitle{results.length !== 1 ? 's' : ''} found
+          <i className="fas fa-film"></i> {results.length} result{results.length !== 1 ? 's' : ''} found
           {totalPages > 1 && (
             <span style={{
               fontSize: '14px',
@@ -126,16 +124,13 @@ function SearchResults({
       {/* Top Pagination */}
       {renderPagination({ marginBottom: '20px' })}
 
-      {/* Subtitle Cards */}
-      <div className="subtitle-cards">
-        {results.map((result) => (
-          <SubtitleCard
-            key={result.id}
-            result={result}
-            onDownload={onDownload}
-            isDownloading={result.attributes.files.some(file =>
-              downloadingIds.has(file.file_id)
-            )}
+      {/* Feature Cards Grid */}
+      <div className="feature-grid">
+        {results.map((feature) => (
+          <FeatureCard
+            key={feature.id}
+            feature={feature}
+            onFindSubtitles={onFindSubtitles}
           />
         ))}
       </div>
@@ -144,6 +139,7 @@ function SearchResults({
       {renderPagination({ marginTop: '40px' })}
 
       <style>{`
+        /* Pagination styles - reuse from SearchResults */
         .pagination-container {
           display: flex;
           list-style: none;
@@ -208,13 +204,55 @@ function SearchResults({
           font-weight: bold;
         }
 
-        .subtitle-cards {
-          display: flex;
-          flex-direction: column;
+        /* Responsive Grid Layout */
+        .feature-grid {
+          display: grid;
+          gap: 20px;
+          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        }
+
+        /* Responsive breakpoints */
+        @media (max-width: 600px) {
+          .feature-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+          }
+        }
+
+        @media (min-width: 601px) and (max-width: 900px) {
+          .feature-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+          }
+        }
+
+        @media (min-width: 901px) and (max-width: 1200px) {
+          .feature-grid {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+          }
+        }
+
+        @media (min-width: 1201px) {
+          .feature-grid {
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+          }
+        }
+
+        /* Ensure cards maintain aspect ratio */
+        .feature-grid > * {
+          min-height: 320px;
+        }
+
+        @media (max-width: 600px) {
+          .feature-grid > * {
+            min-height: 280px;
+          }
         }
       `}</style>
     </div>
   );
 }
 
-export default SearchResults;
+export default FeatureResults;

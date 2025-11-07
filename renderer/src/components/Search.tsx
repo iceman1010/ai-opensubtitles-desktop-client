@@ -1,16 +1,24 @@
 import React, { useState } from 'react';
 import { useAPI } from '../contexts/APIContext';
-import { SubtitleSearchParams } from '../services/api';
+import { SubtitleSearchParams, FeatureSearchParams, Feature } from '../services/api';
 import SearchForm from './SearchForm';
 import SearchResults from './SearchResults';
+import FeatureResults from './FeatureResults';
 import { SubtitleSearchResult } from './SubtitleCard';
 
 interface SearchProps {
   setAppProcessing: (processing: boolean, task?: string) => void;
 }
 
+type SearchTab = 'subtitles' | 'features';
+
 function Search({ setAppProcessing }: SearchProps) {
-  const { searchSubtitles, downloadSubtitle } = useAPI();
+  const { searchSubtitles, downloadSubtitle, searchForFeatures } = useAPI();
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState<SearchTab>('subtitles');
+
+  // Subtitle search state
   const [searchResults, setSearchResults] = useState<SubtitleSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
@@ -18,6 +26,17 @@ function Search({ setAppProcessing }: SearchProps) {
   const [totalPages, setTotalPages] = useState(0);
   const [downloadingIds, setDownloadingIds] = useState<Set<number>>(new Set());
   const [lastSearchParams, setLastSearchParams] = useState<SubtitleSearchParams | null>(null);
+
+  // Feature search state
+  const [featureResults, setFeatureResults] = useState<Feature[]>([]);
+  const [isFeatureSearching, setIsFeatureSearching] = useState(false);
+  const [hasFeatureSearched, setHasFeatureSearched] = useState(false);
+  const [featureCurrentPage, setFeatureCurrentPage] = useState(0);
+  const [featureTotalPages, setFeatureTotalPages] = useState(0);
+  const [lastFeatureSearchParams, setLastFeatureSearchParams] = useState<FeatureSearchParams | null>(null);
+
+  // Form initial values state
+  const [formInitialValues, setFormInitialValues] = useState<any>(undefined);
 
   const RESULTS_PER_PAGE = 20;
 
@@ -70,6 +89,64 @@ function Search({ setAppProcessing }: SearchProps) {
     }
   };
 
+  const handleFeatureSearch = async (params: FeatureSearchParams, page: number = 0) => {
+    try {
+      setIsFeatureSearching(true);
+      setHasFeatureSearched(true);
+      setAppProcessing(true, 'Searching movies and TV shows');
+
+      // Note: Feature search doesn't use page-based pagination in the same way
+      // We'll implement this based on actual API behavior
+      const response = await searchForFeatures(params);
+
+      if (response.success && response.data) {
+        setFeatureResults(response.data.data || []);
+        setFeatureCurrentPage(page);
+
+        // Handle pagination similar to subtitle search
+        const totalPagesFromApi = response.data.total_pages;
+        if (totalPagesFromApi && totalPagesFromApi > 0) {
+          setFeatureTotalPages(totalPagesFromApi);
+        } else {
+          const totalResults = response.data.total_count || response.data.data?.length || 0;
+          setFeatureTotalPages(Math.ceil(totalResults / RESULTS_PER_PAGE));
+        }
+
+        setLastFeatureSearchParams(params);
+      } else {
+        console.error('Feature search failed:', response.error);
+        setFeatureResults([]);
+        setFeatureTotalPages(0);
+      }
+    } catch (error) {
+      console.error('Feature search error:', error);
+      setFeatureResults([]);
+      setFeatureTotalPages(0);
+    } finally {
+      setIsFeatureSearching(false);
+      setAppProcessing(false);
+    }
+  };
+
+  const handleFeaturePageChange = (page: number) => {
+    if (lastFeatureSearchParams) {
+      handleFeatureSearch(lastFeatureSearchParams, page);
+    }
+  };
+
+  const handleFindSubtitles = (feature: Feature) => {
+    // Switch to subtitle tab
+    setActiveTab('subtitles');
+
+    // Pre-fill form with IMDb ID and open advanced options
+    if (feature.attributes.imdb_id) {
+      setFormInitialValues({
+        imdb_id: feature.attributes.imdb_id.toString(),
+        showAdvanced: true,
+      });
+    }
+  };
+
   const handleDownload = async (fileId: number, fileName: string) => {
     try {
       setDownloadingIds(prev => new Set(prev).add(fileId));
@@ -104,6 +181,7 @@ function Search({ setAppProcessing }: SearchProps) {
       padding: '20px',
       overflow: 'auto',
     }}>
+      {/* Header */}
       <div style={{
         marginBottom: '20px',
       }}>
@@ -116,23 +194,51 @@ function Search({ setAppProcessing }: SearchProps) {
           alignItems: 'center',
           gap: '12px',
         }}>
-          🔍 Search Subtitles
+          <i className="fas fa-search"></i> Search {activeTab === 'subtitles' ? 'Subtitles' : 'Movies & TV Shows'}
         </h1>
         <p style={{
           margin: 0,
           fontSize: '16px',
           color: 'var(--text-secondary)',
         }}>
-          Find and download subtitles for movies and TV shows
+          {activeTab === 'subtitles' ?
+            'Find and download subtitles for movies and TV shows' :
+            'Discover movies and TV shows, then find their subtitles'
+          }
         </p>
       </div>
 
+      {/* Tab Navigation */}
+      <div style={{ marginBottom: '20px' }}>
+        <div className="tab-navigation">
+          <button
+            className={`tab-button ${activeTab === 'subtitles' ? 'active' : ''}`}
+            onClick={() => setActiveTab('subtitles')}
+          >
+            <i className="fas fa-film"></i> Search Subtitles
+          </button>
+          <button
+            className={`tab-button ${activeTab === 'features' ? 'active' : ''}`}
+            onClick={() => setActiveTab('features')}
+          >
+            <i className="fas fa-video"></i> Search Movies
+          </button>
+        </div>
+      </div>
+
+      {/* Search Form */}
       <SearchForm
-        onSearch={(params) => handleSearch(params, 0)}
-        isLoading={isSearching}
+        activeTab={activeTab}
+        onSearch={activeTab === 'subtitles' ?
+          (params) => handleSearch(params as SubtitleSearchParams, 0) :
+          (params) => handleFeatureSearch(params as FeatureSearchParams, 0)
+        }
+        isLoading={activeTab === 'subtitles' ? isSearching : isFeatureSearching}
+        initialValues={formInitialValues}
       />
 
-      {hasSearched && (
+      {/* Results */}
+      {activeTab === 'subtitles' && hasSearched && (
         <SearchResults
           results={searchResults}
           totalPages={totalPages}
@@ -144,6 +250,62 @@ function Search({ setAppProcessing }: SearchProps) {
         />
       )}
 
+      {activeTab === 'features' && hasFeatureSearched && (
+        <FeatureResults
+          results={featureResults}
+          totalPages={featureTotalPages}
+          currentPage={featureCurrentPage}
+          onPageChange={handleFeaturePageChange}
+          onFindSubtitles={handleFindSubtitles}
+          isLoading={isFeatureSearching}
+        />
+      )}
+
+      <style>{`
+        .tab-navigation {
+          display: flex;
+          gap: 4px;
+          padding: 4px;
+          background: var(--bg-tertiary);
+          border-radius: 8px;
+          border: 1px solid var(--border-color);
+        }
+
+        .tab-button {
+          flex: 1;
+          padding: 12px 20px;
+          background: transparent;
+          color: var(--text-secondary);
+          border: none;
+          border-radius: 6px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+        }
+
+        .tab-button:hover {
+          background: var(--bg-secondary);
+          color: var(--text-primary);
+        }
+
+        .tab-button.active {
+          background: var(--primary-color);
+          color: var(--button-text);
+          font-weight: 600;
+        }
+
+        @media (max-width: 600px) {
+          .tab-button {
+            padding: 10px 16px;
+            font-size: 13px;
+          }
+        }
+      `}</style>
     </div>
   );
 }

@@ -69,7 +69,7 @@ function SubtitleCard({ result, onDownload, isDownloading = false }: SubtitleCar
         fontSize: '11px',
         fontWeight: 'bold',
         marginLeft: '8px'
-      }}>⭐ TRUSTED</span>;
+      }}><i className="fas fa-star"></i> TRUSTED</span>;
     }
     return null;
   };
@@ -177,7 +177,7 @@ function SubtitleCard({ result, onDownload, isDownloading = false }: SubtitleCar
             display: 'flex',
             alignItems: 'center'
           }}>
-            {attributes.feature_details.feature_type === 'Movie' ? '🎬' : '📺'} {attributes.feature_details.title}
+            {attributes.feature_details.feature_type === 'Movie' ? <><i className="fas fa-film"></i> </> : <><i className="fas fa-tv"></i> </>}{attributes.feature_details.title}
             {attributes.feature_details.year && (
               <span style={{
                 fontSize: '14px',
@@ -216,21 +216,21 @@ function SubtitleCard({ result, onDownload, isDownloading = false }: SubtitleCar
         <div>
           <span style={{ color: 'var(--text-secondary)' }}>Language:</span>{' '}
           <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
-            🌐 {attributes.language.toUpperCase()}
+            <i className="fas fa-globe"></i> {attributes.language.toUpperCase()}
           </span>
         </div>
 
         <div>
           <span style={{ color: 'var(--text-secondary)' }}>Downloads:</span>{' '}
           <span style={{ fontWeight: 'bold', color: 'var(--primary-color)' }}>
-            📥 {attributes.download_count.toLocaleString()}
+            <i className="fas fa-download"></i> {attributes.download_count.toLocaleString()}
           </span>
         </div>
 
         <div>
           <span style={{ color: 'var(--text-secondary)' }}>File Size:</span>{' '}
           <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
-            💾 {formatFileSize(attributes.files[0]?.file_name || '')}
+            <i className="fas fa-hdd"></i> {formatFileSize(attributes.files[0]?.file_name || '')}
           </span>
         </div>
 
@@ -238,7 +238,7 @@ function SubtitleCard({ result, onDownload, isDownloading = false }: SubtitleCar
           <div>
             <span style={{ color: 'var(--text-secondary)' }}>FPS:</span>{' '}
             <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
-              ⏱️ {attributes.fps}
+              <i className="fas fa-clock"></i> {attributes.fps}
             </span>
           </div>
         )}
@@ -246,14 +246,14 @@ function SubtitleCard({ result, onDownload, isDownloading = false }: SubtitleCar
         <div>
           <span style={{ color: 'var(--text-secondary)' }}>CDs:</span>{' '}
           <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
-            💿 {attributes.nb_cd}
+            <i className="fas fa-compact-disc"></i> {attributes.nb_cd}
           </span>
         </div>
 
         <div>
           <span style={{ color: 'var(--text-secondary)' }}>Uploaded:</span>{' '}
           <span style={{ color: 'var(--text-primary)' }}>
-            📅 {formatUploadDate(attributes.upload_date)}
+            <i className="fas fa-calendar"></i> {formatUploadDate(attributes.upload_date)}
           </span>
         </div>
       </div>
@@ -267,7 +267,7 @@ function SubtitleCard({ result, onDownload, isDownloading = false }: SubtitleCar
         alignItems: 'center',
         gap: '8px'
       }}>
-        <span>👤 Uploader:</span>
+        <span><i className="fas fa-user"></i> Uploader:</span>
         <span style={{
           fontWeight: 'bold',
           color: getRankColor(attributes.uploader.rank)
@@ -323,7 +323,7 @@ function SubtitleCard({ result, onDownload, isDownloading = false }: SubtitleCar
             }
           }}
         >
-          {isDownloading ? '⏳ Downloading...' : '📥 Download SRT'}
+          {isDownloading ? <><i className="fas fa-spinner fa-spin"></i> Downloading...</> : <><i className="fas fa-download"></i> Download SRT</>}
         </button>
       </div>
     </div>

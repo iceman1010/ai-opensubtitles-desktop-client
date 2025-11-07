@@ -1,10 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { SubtitleSearchParams, SubtitleLanguage } from '../services/api';
+import { SubtitleSearchParams, SubtitleLanguage, FeatureSearchParams } from '../services/api';
 import { useAPI } from '../contexts/APIContext';
 
+type SearchTab = 'subtitles' | 'features';
+
+interface SearchFormInitialValues {
+  query?: string;
+  imdb_id?: string;
+  year?: string;
+  type?: string;
+  showAdvanced?: boolean;
+}
+
 interface SearchFormProps {
-  onSearch: (params: SubtitleSearchParams) => void;
+  activeTab: SearchTab;
+  onSearch: (params: SubtitleSearchParams | FeatureSearchParams) => void;
   isLoading: boolean;
+  initialValues?: SearchFormInitialValues;
 }
 
 interface SearchFormState {
@@ -13,9 +25,6 @@ interface SearchFormState {
   imdb_id: string;
   year: string;
   type: string;
-  ai_translated: boolean;
-  hearing_impaired: boolean;
-  trusted_sources: boolean;
   showAdvanced: boolean;
 }
 
@@ -26,22 +35,19 @@ const TYPE_OPTIONS = [
   { value: 'episode', label: 'TV Episodes' },
 ];
 
-function SearchForm({ onSearch, isLoading }: SearchFormProps) {
+function SearchForm({ activeTab, onSearch, isLoading, initialValues }: SearchFormProps) {
   const { getSubtitleSearchLanguages } = useAPI();
   const [languageOptions, setLanguageOptions] = useState<SubtitleLanguage[]>([]);
   const [languagesLoading, setLanguagesLoading] = useState(true);
   const [languagesError, setLanguagesError] = useState<string | null>(null);
 
   const [formState, setFormState] = useState<SearchFormState>({
-    query: '',
+    query: initialValues?.query || '',
     languages: 'en',
-    imdb_id: '',
-    year: '',
-    type: '',
-    ai_translated: false,
-    hearing_impaired: false,
-    trusted_sources: false,
-    showAdvanced: false,
+    imdb_id: initialValues?.imdb_id || '',
+    year: initialValues?.year || '',
+    type: initialValues?.type || '',
+    showAdvanced: initialValues?.showAdvanced || false,
   });
 
   useEffect(() => {
@@ -66,6 +72,20 @@ function SearchForm({ onSearch, isLoading }: SearchFormProps) {
     loadLanguages();
   }, [getSubtitleSearchLanguages]);
 
+  // Update form state when initialValues change
+  useEffect(() => {
+    if (initialValues) {
+      setFormState(prev => ({
+        ...prev,
+        query: initialValues.query || prev.query,
+        imdb_id: initialValues.imdb_id || prev.imdb_id,
+        year: initialValues.year || prev.year,
+        type: initialValues.type || prev.type,
+        showAdvanced: initialValues.showAdvanced !== undefined ? initialValues.showAdvanced : prev.showAdvanced,
+      }));
+    }
+  }, [initialValues]);
+
   const handleInputChange = (field: keyof SearchFormState, value: string | boolean) => {
     setFormState(prev => ({
       ...prev,
@@ -80,41 +100,58 @@ function SearchForm({ onSearch, isLoading }: SearchFormProps) {
       return;
     }
 
-    const searchParams: SubtitleSearchParams = {
-      query: formState.query.trim(),
-      languages: formState.languages,
-    };
+    if (activeTab === 'subtitles') {
+      const searchParams: SubtitleSearchParams = {
+        query: formState.query.trim(),
+        languages: formState.languages,
+      };
 
-    // Add optional parameters only if they have values
-    if (formState.imdb_id.trim()) {
-      searchParams.imdb_id = formState.imdb_id.trim();
-    }
-
-    if (formState.year.trim()) {
-      const yearNum = parseInt(formState.year.trim());
-      if (!isNaN(yearNum)) {
-        searchParams.year = yearNum;
+      // Add optional parameters only if they have values
+      if (formState.imdb_id.trim()) {
+        searchParams.imdb_id = formState.imdb_id.trim();
       }
-    }
 
-    if (formState.type) {
-      searchParams.type = formState.type;
-    }
+      if (formState.year.trim()) {
+        const yearNum = parseInt(formState.year.trim());
+        if (!isNaN(yearNum)) {
+          searchParams.year = yearNum;
+        }
+      }
 
-    // Add boolean filters
-    if (formState.ai_translated) {
-      searchParams.ai_translated = true;
-    }
+      if (formState.type) {
+        searchParams.type = formState.type;
+      }
 
-    if (formState.hearing_impaired) {
-      searchParams.hearing_impaired = true;
-    }
+      onSearch(searchParams);
+    } else {
+      // Feature search
+      const featureParams: FeatureSearchParams = {
+        query: formState.query.trim(),
+      };
 
-    if (formState.trusted_sources) {
-      searchParams.trusted_sources = true;
-    }
+      // Add optional parameters
+      if (formState.imdb_id.trim()) {
+        featureParams.imdb_id = formState.imdb_id.trim();
+      }
 
-    onSearch(searchParams);
+      if (formState.year.trim()) {
+        const yearNum = parseInt(formState.year.trim());
+        if (!isNaN(yearNum)) {
+          featureParams.year = yearNum;
+        }
+      }
+
+      if (formState.type) {
+        // Map subtitle search types to feature search types
+        const typeMap: { [key: string]: 'movie' | 'tvshow' | 'episode' } = {
+          'movie': 'movie',
+          'episode': 'episode'
+        };
+        featureParams.type = typeMap[formState.type];
+      }
+
+      onSearch(featureParams);
+    }
   };
 
   const toggleAdvanced = () => {
@@ -139,7 +176,7 @@ function SearchForm({ onSearch, isLoading }: SearchFormProps) {
             <div className="search-input-row">
               <input
                 type="text"
-                placeholder="🔍 Search movies & TV shows..."
+                placeholder="Search movies & TV shows..."
                 value={formState.query}
                 onChange={(e) => handleInputChange('query', e.target.value)}
                 style={{
@@ -156,33 +193,35 @@ function SearchForm({ onSearch, isLoading }: SearchFormProps) {
             </div>
 
             <div className="search-controls-row">
-              <select
-                value={formState.languages}
-                onChange={(e) => handleInputChange('languages', e.target.value)}
-                style={{
-                  padding: '12px',
-                  fontSize: '14px',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '6px',
-                  background: 'var(--bg-primary)',
-                  color: 'var(--text-primary)',
-                  minWidth: '120px',
-                  flex: 1,
-                }}
-                disabled={isLoading || languagesLoading}
-              >
-                {languagesLoading ? (
-                  <option value="en">Loading languages...</option>
-                ) : languagesError ? (
-                  <option value="en">Error loading languages</option>
-                ) : (
-                  languageOptions.map(lang => (
-                    <option key={lang.language_code} value={lang.language_code}>
-                      {lang.language_name}
-                    </option>
-                  ))
-                )}
-              </select>
+              {activeTab === 'subtitles' && (
+                <select
+                  value={formState.languages}
+                  onChange={(e) => handleInputChange('languages', e.target.value)}
+                  style={{
+                    padding: '12px',
+                    fontSize: '14px',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '6px',
+                    background: 'var(--bg-primary)',
+                    color: 'var(--text-primary)',
+                    minWidth: '120px',
+                    flex: 1,
+                  }}
+                  disabled={isLoading || languagesLoading}
+                >
+                  {languagesLoading ? (
+                    <option value="en">Loading languages...</option>
+                  ) : languagesError ? (
+                    <option value="en">Error loading languages</option>
+                  ) : (
+                    languageOptions.map(lang => (
+                      <option key={lang.language_code} value={lang.language_code}>
+                        {lang.language_name}
+                      </option>
+                    ))
+                  )}
+                </select>
+              )}
 
               <select
                 value={formState.type}
@@ -222,33 +261,35 @@ function SearchForm({ onSearch, isLoading }: SearchFormProps) {
                   flexShrink: 0,
                 }}
               >
-                {isLoading ? '🔄 Searching...' : '🔍 Search'}
+                {isLoading ? <><i className="fas fa-spinner fa-spin"></i> Searching...</> : <><i className="fas fa-search"></i> Search</>}
               </button>
             </div>
           </div>
         </div>
 
-        {/* Advanced Options Toggle */}
-        <div style={{ marginBottom: '10px' }}>
-          <button
-            type="button"
-            onClick={toggleAdvanced}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--primary-color)',
-              fontSize: '14px',
-              cursor: 'pointer',
-              textDecoration: 'underline',
-            }}
-            disabled={isLoading}
-          >
-            {formState.showAdvanced ? '▼ Hide Advanced Options' : '▶ Show Advanced Options'}
-          </button>
-        </div>
+        {/* Advanced Options Toggle - Only for Subtitle Search */}
+        {activeTab === 'subtitles' && (
+          <div style={{ marginBottom: '10px' }}>
+            <button
+              type="button"
+              onClick={toggleAdvanced}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--primary-color)',
+                fontSize: '14px',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+              }}
+              disabled={isLoading}
+            >
+              {formState.showAdvanced ? '▼ Hide Advanced Options' : '▶ Show Advanced Options'}
+            </button>
+          </div>
+        )}
 
-        {/* Advanced Options */}
-        {formState.showAdvanced && (
+        {/* Advanced Options - Only for Subtitle Search */}
+        {activeTab === 'subtitles' && formState.showAdvanced && (
           <div style={{
             padding: '15px',
             background: 'var(--bg-primary)',
@@ -306,47 +347,6 @@ function SearchForm({ onSearch, isLoading }: SearchFormProps) {
               </div>
             </div>
 
-            {/* Quality Filters */}
-            <div style={{ marginTop: '15px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '10px', color: 'var(--text-secondary)' }}>
-                Quality Filters
-              </label>
-              <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-
-                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: '14px' }}>
-                  <input
-                    type="checkbox"
-                    checked={formState.ai_translated}
-                    onChange={(e) => handleInputChange('ai_translated', e.target.checked)}
-                    style={{ marginRight: '8px' }}
-                    disabled={isLoading}
-                  />
-                  🤖 AI Translated
-                </label>
-
-                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: '14px' }}>
-                  <input
-                    type="checkbox"
-                    checked={formState.hearing_impaired}
-                    onChange={(e) => handleInputChange('hearing_impaired', e.target.checked)}
-                    style={{ marginRight: '8px' }}
-                    disabled={isLoading}
-                  />
-                  🦻 Hearing Impaired
-                </label>
-
-                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: '14px' }}>
-                  <input
-                    type="checkbox"
-                    checked={formState.trusted_sources}
-                    onChange={(e) => handleInputChange('trusted_sources', e.target.checked)}
-                    style={{ marginRight: '8px' }}
-                    disabled={isLoading}
-                  />
-                  ⭐ Trusted Sources Only
-                </label>
-              </div>
-            </div>
           </div>
         )}
       </form>

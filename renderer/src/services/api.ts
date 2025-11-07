@@ -134,11 +134,11 @@ export interface FeatureSearchParams {
 export interface FeatureAttributes {
   title?: string;
   original_title?: string;
-  year?: number;
+  year?: number | string;
   kind?: string;
   imdb_id?: number;
   tmdb_id?: number;
-  feature_id?: number;
+  feature_id?: number | string;
   episode_number?: number;
   season_number?: number;
   parent_title?: string;
@@ -146,9 +146,27 @@ export interface FeatureAttributes {
   parent_tmdb_id?: number;
   parent_feature_id?: number;
   subtitles_count?: number;
+  seasons_count?: number;
   subtitles_counts?: {
     [languageCode: string]: number;
   };
+  ai_subtitles_counts?: {
+    [languageCode: string]: number;
+  };
+  title_aka?: string[];
+  feature_type?: string;
+  url?: string;
+  img_url?: string;
+  seasons?: Array<{
+    season_number: number;
+    episodes: Array<{
+      episode_number: number;
+      title: string;
+      feature_id: number;
+      feature_imdb_id: number;
+      slug: string;
+    }>;
+  }>;
 }
 
 export interface Feature {

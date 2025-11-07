@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { OpenSubtitlesAPI, TranscriptionInfo, TranslationInfo, SubtitleSearchParams, SubtitleDownloadParams, SubtitleLanguage } from '../services/api';
+import { OpenSubtitlesAPI, TranscriptionInfo, TranslationInfo, SubtitleSearchParams, SubtitleDownloadParams, SubtitleLanguage, FeatureSearchParams } from '../services/api';
 import { logger } from '../utils/errorLogger';
 import { isOnline, isFullyOnline, checkAPIConnectivity } from '../utils/networkUtils';
 import { usePower } from './PowerContext';
@@ -38,6 +38,7 @@ interface APIContextType {
   getRecentMedia: () => Promise<{ success: boolean; data?: any; error?: string }>;
   searchSubtitles: (params: SubtitleSearchParams) => Promise<{ success: boolean; data?: any; error?: string }>;
   downloadSubtitle: (params: SubtitleDownloadParams) => Promise<{ success: boolean; data?: any; error?: string }>;
+  searchForFeatures: (params: FeatureSearchParams) => Promise<{ success: boolean; data?: any; error?: string }>;
   getSubtitleSearchLanguages: () => Promise<{ success: boolean; data?: SubtitleLanguage[]; error?: string }>;
 
   // Sync helper functions for filename generation
@@ -551,6 +552,10 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     return await handleAPICall(() => api.downloadSubtitle(params), 'Download Subtitle');
   }, [api, isAuthenticated, handleAPICall]);
 
+  const searchForFeatures = useCallback(async (params: FeatureSearchParams) => {
+    if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };
+    return await handleAPICall(() => api.searchForFeatures(params), 'Search Features');
+  }, [api, isAuthenticated, handleAPICall]);
   const getSubtitleSearchLanguages = useCallback(async () => {
     if (!api) return { success: false, error: 'API not available' };
     return await handleAPICall(() => api.getSubtitleSearchLanguages(), 'Get Subtitle Search Languages');
@@ -611,6 +616,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     getRecentMedia,
     searchSubtitles,
     downloadSubtitle,
+    searchForFeatures,
     getSubtitleSearchLanguages,
     getTranslationLanguageNameSync,
     getTranscriptionLanguageNameSync
