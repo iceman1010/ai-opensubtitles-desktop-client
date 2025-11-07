@@ -42,13 +42,14 @@ jobs:
 
     - name: Install dependencies
       run: |
-        if [ "${{ matrix.platform }}" == "darwin" ]; then
+        if [ "$RUNNER_OS" == "macOS" ]; then
           # Fix for macOS npm optional dependency bug
           rm -rf package-lock.json node_modules
           npm install
         else
           npm ci
         fi
+      shell: bash
 
     - name: Build application
       run: npm run build
