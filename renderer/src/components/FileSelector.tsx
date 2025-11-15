@@ -46,15 +46,21 @@ function FileSelector({ onFileSelect, onMultipleFileSelect, disabled = false }: 
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
       if (files.length === 1) {
-        // Single file - use existing logic
-        const file = files[0];
-        handleFileSelection(file.path || file.name);
+        // Single file - use webUtils to get path
+        const filePath = window.electronAPI.getFilePath(files[0]);
+        if (filePath) {
+          handleFileSelection(filePath);
+        }
       } else if (onMultipleFileSelect) {
-        // Multiple files - use new callback
-        const filePaths = files.map(file => file.path || file.name).filter(path => {
-          const validation = validateFileExtension(path);
-          return validation.isValid;
-        });
+        // Multiple files - get paths using webUtils
+        const filePaths = files
+          .map(file => window.electronAPI.getFilePath(file))
+          .filter((path): path is string => path !== null)
+          .filter(path => {
+            const validation = validateFileExtension(path);
+            return validation.isValid;
+          });
+
         if (filePaths.length > 0) {
           setFileError(null);
           onMultipleFileSelect(filePaths);

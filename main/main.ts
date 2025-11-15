@@ -1180,9 +1180,12 @@ class MainApp {
 
     ipcMain.handle('get-media-info', async (_, filePath: string) => {
       try {
-        return await this.ffmpegManager.getMediaInfo(filePath);
+        console.log('[get-media-info] Received path:', filePath);
+        const result = await this.ffmpegManager.getMediaInfo(filePath);
+        console.log('[get-media-info] Success');
+        return result;
       } catch (error) {
-        console.error('Media info extraction failed:', error);
+        console.error('[get-media-info] Failed for:', filePath, error);
         throw error;
       }
     });

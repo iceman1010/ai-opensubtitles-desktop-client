@@ -366,15 +366,23 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       }
 
       const files = Array.from(e.dataTransfer?.files || []);
+
       if (files.length > 0) {
         if (files.length === 1) {
-          // Single file - use existing logic
-          const filePath = files[0].path || files[0].name;
-          handleFileSelect(filePath);
+          // Use webUtils to get the real file path
+          const filePath = window.electronAPI.getFilePath(files[0]);
+          if (filePath) {
+            handleFileSelect(filePath);
+          }
         } else {
-          // Multiple files - redirect to batch screen
-          const filePaths = files.map(file => file.path || file.name);
-          handleMultipleFileSelect(filePaths);
+          // Multiple files - get paths using webUtils
+          const filePaths = files
+            .map(file => window.electronAPI.getFilePath(file))
+            .filter((path): path is string => path !== null);
+
+          if (filePaths.length > 0) {
+            handleMultipleFileSelect(filePaths);
+          }
         }
       }
     };
@@ -874,7 +882,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           });
         } catch (mediaError: any) {
           // File extension suggests it's media, but FFmpeg can't read it
-          logger.error('MainScreen', 'Invalid media file:', mediaError);
+          logger.error('MainScreen', `Invalid media file (path: ${filePath}):`, mediaError);
           
           // Show detailed error only in debug mode, simple message otherwise
           let errorMessage = 'File is not a valid audio or video file';

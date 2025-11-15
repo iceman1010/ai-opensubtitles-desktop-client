@@ -286,8 +286,13 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
 
       const files = Array.from(e.dataTransfer?.files || []);
       if (files.length > 0) {
-        const filePaths = files.map(file => file.path || file.name);
-        handleMultipleFileSelect(filePaths);
+        const filePaths = files
+          .map(file => window.electronAPI.getFilePath(file))
+          .filter((path): path is string => path !== null);
+
+        if (filePaths.length > 0) {
+          handleMultipleFileSelect(filePaths);
+        }
       }
     };
 

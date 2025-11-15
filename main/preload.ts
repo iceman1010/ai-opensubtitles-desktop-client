@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 
 const electronAPI = {
   getConfig: () => ipcRenderer.invoke('get-config'),
@@ -72,6 +72,14 @@ const electronAPI = {
     ipcRenderer.on('screen-unlock', callback),
   removeScreenUnlockListener: (callback: (event: any) => void) =>
     ipcRenderer.removeListener('screen-unlock', callback),
+  getFilePath: (file: File) => {
+    try {
+      return webUtils.getPathForFile(file);
+    } catch (error) {
+      console.error('Error getting file path:', error);
+      return null;
+    }
+  },
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);
