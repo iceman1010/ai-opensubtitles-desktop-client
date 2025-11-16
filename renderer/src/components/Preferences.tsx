@@ -1193,7 +1193,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
                 maxWidth: '500px',
                 marginBottom: '12px'
               }}>
-                Pattern for naming output files. Available placeholders: <code>{'{filename}'}</code>, <code>{'{timestamp}'}</code>, <code>{'{type}'}</code>, <code>{'{format}'}</code>, <code>{'{language_code}'}</code>, <code>{'{language_name}'}</code>, <code>{'{extension}'}</code>
+                Pattern for naming output files. Available placeholders: <code>{'{filename}'}</code>, <code>{'{timestamp}'}</code>, <code>{'{type}'}</code>, <code>{'{format}'}</code>, <code>{'{language_code}'}</code>, <code>{'{language_name}'}</code>
                 <br />
                 <strong>Example:</strong> <code>movie.en.transcription.srt</code>
               </div>
@@ -1235,8 +1235,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
                   { placeholder: '{language_name}', label: 'Language Name' },
                   { placeholder: '{type}', label: 'Type' },
                   { placeholder: '{format}', label: 'Format' },
-                  { placeholder: '{timestamp}', label: 'Timestamp' },
-                  { placeholder: '{extension}', label: 'Extension' }
+                  { placeholder: '{timestamp}', label: 'Timestamp' }
                 ].map(({ placeholder, label }) => (
                   <button
                     key={placeholder}

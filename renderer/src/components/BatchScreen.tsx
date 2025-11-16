@@ -69,6 +69,8 @@ interface BatchFile {
   creditsUsed?: number;
 }
 
+type WorkflowMode = 'transcribe-only' | 'transcribe-and-translate';
+
 interface BatchSettings {
   transcriptionModel: string;
   translationModel: string;
@@ -76,7 +78,7 @@ interface BatchSettings {
   outputFormat: string;
   outputDirectory: string;
   useCustomOutputDirectory: boolean;
-  enableChaining: boolean;
+  workflowMode: WorkflowMode;  // Replaces enableChaining for better UX
   abortOnError: boolean;
   keepIntermediateFiles: boolean;
 }
@@ -122,10 +124,13 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
     outputFormat: fileFormatsConfig.subtitle[0] || 'srt',
     outputDirectory: '',
     useCustomOutputDirectory: false,
-    enableChaining: false,
+    workflowMode: 'transcribe-only',  // Default: transcribe only
     abortOnError: true,
     keepIntermediateFiles: true,
   });
+
+  // Derived value for backward compatibility
+  const enableChaining = batchSettings.workflowMode === 'transcribe-and-translate';
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -1052,19 +1057,19 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
     // Transcription settings enabled when we have transcription files
     transcriptionEnabled: queueAnalysis.hasTranscriptionFiles,
     // Translation enabled when we have translation files OR when chaining is enabled with transcription files
-    translationEnabled: queueAnalysis.hasTranslationFiles || (batchSettings.enableChaining && queueAnalysis.hasTranscriptionFiles),
-    // Chaining checkbox only relevant when we have transcription files
+    translationEnabled: queueAnalysis.hasTranslationFiles || (enableChaining && queueAnalysis.hasTranscriptionFiles),
+    // Workflow selection only relevant when we have transcription files
     chainingEnabled: queueAnalysis.hasTranscriptionFiles,
-    // Chaining checkbox should be disabled (and unchecked) when we only have translation files
+    // Workflow should reset to transcribe-only when we only have translation files
     shouldDisableChaining: queueAnalysis.hasTranslationFiles && !queueAnalysis.hasTranscriptionFiles
   };
 
-  // Auto-disable chaining when we only have translation files
+  // Auto-reset workflow mode when we only have translation files
   React.useEffect(() => {
-    if (uiState.shouldDisableChaining && batchSettings.enableChaining) {
-      setBatchSettings(prev => ({ ...prev, enableChaining: false }));
+    if (uiState.shouldDisableChaining && enableChaining) {
+      setBatchSettings(prev => ({ ...prev, workflowMode: 'transcribe-only' }));
     }
-  }, [uiState.shouldDisableChaining, batchSettings.enableChaining]);
+  }, [uiState.shouldDisableChaining, enableChaining]);
 
   // Credit tracking helper functions
   const updateFileCredits = (fileId: string, creditsUsed: number) => {
@@ -1180,7 +1185,8 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
       queueLength: totalFiles,
       transcriptionModel: batchSettings.transcriptionModel,
       translationModel: batchSettings.translationModel,
-      enableChaining: batchSettings.enableChaining
+      workflowMode: batchSettings.workflowMode,
+      enableChaining  // Derived from workflowMode
     });
 
     try {
@@ -1385,7 +1391,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
     let outputContent = transcriptionResult.translation || transcriptionResult.data?.return_content;
     
     // Step 3: Translation (if chaining enabled)
-    if (batchSettings.enableChaining && outputContent) {
+    if (enableChaining && outputContent) {
       setQueue(prev => prev.map(f => 
         f.id === file.id ? { ...f, progress: 60 } : f
       ));
@@ -1447,8 +1453,8 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
 
     // Save final output
     if (outputContent) {
-      const type = batchSettings.enableChaining ? 'translation' : 'transcription';
-      const targetLang = batchSettings.enableChaining ? batchSettings.targetLanguage : (file.selectedSourceLanguage || file.detectedLanguage?.ISO_639_1);
+      const type = enableChaining ? 'translation' : 'transcription';
+      const targetLang = enableChaining ? batchSettings.targetLanguage : (file.selectedSourceLanguage || file.detectedLanguage?.ISO_639_1);
       const outputPath = await generateOutputFileName(file.path, type, targetLang);
       const savedPath = await writeFileDirectly(outputContent, outputPath);
 
@@ -1563,7 +1569,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
             // Extract credits used from the completed result
             if (result.data && typeof result.data.total_price === 'number' && result.data.total_price > 0) {
               // For chained operations (translation after transcription), add to existing credits
-              if (type === 'translation' && batchSettings.enableChaining) {
+              if (type === 'translation' && enableChaining) {
                 const existingCredits = batchCreditStats.creditsPerFile.get(file.id) || 0;
                 updateFileCredits(file.id, existingCredits + result.data.total_price);
               } else {
@@ -1915,7 +1921,8 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
       )}
 
       {/* Settings Panel */}
-      <div 
+      <div
+        className="batch-settings-panel"
         style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
@@ -1931,11 +1938,214 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
           visibility: queue.length > 0 ? 'visible' : 'hidden'
         }}
       >
+        {/* Workflow Selection - Only shown when audio/video files present */}
+        {uiState.chainingEnabled && (
+          <div style={{ gridColumn: '1 / -1', marginBottom: '30px', paddingBottom: '20px', borderBottom: '1px solid var(--border-color)' }}>
+            <h4><i className="fas fa-route"></i> Processing Workflow</h4>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '15px' }}>
+              Choose how to process audio/video files:
+            </p>
+
+            {/* Radio Button Selection */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+              <label style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '10px',
+                padding: '12px',
+                border: `2px solid ${batchSettings.workflowMode === 'transcribe-only' ? 'var(--primary-color)' : 'var(--border-color)'}`,
+                borderRadius: '8px',
+                cursor: isProcessing ? 'not-allowed' : 'pointer',
+                backgroundColor: batchSettings.workflowMode === 'transcribe-only' ? 'var(--primary-bg-light, rgba(74, 144, 226, 0.1))' : 'transparent',
+                transition: 'all 0.2s ease'
+              }}>
+                <input
+                  type="radio"
+                  name="workflowMode"
+                  value="transcribe-only"
+                  checked={batchSettings.workflowMode === 'transcribe-only'}
+                  onChange={(e) => setBatchSettings(prev => ({ ...prev, workflowMode: e.target.value as WorkflowMode }))}
+                  disabled={isProcessing}
+                  style={{ marginTop: '3px' }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, marginBottom: '4px' }}>
+                    <i className="fas fa-file-audio"></i> Transcribe only
+                  </div>
+                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                    Produces subtitles in original language
+                  </div>
+                </div>
+              </label>
+
+              <label style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '10px',
+                padding: '12px',
+                border: `2px solid ${batchSettings.workflowMode === 'transcribe-and-translate' ? 'var(--primary-color)' : 'var(--border-color)'}`,
+                borderRadius: '8px',
+                cursor: isProcessing ? 'not-allowed' : 'pointer',
+                backgroundColor: batchSettings.workflowMode === 'transcribe-and-translate' ? 'var(--primary-bg-light, rgba(74, 144, 226, 0.1))' : 'transparent',
+                transition: 'all 0.2s ease'
+              }}>
+                <input
+                  type="radio"
+                  name="workflowMode"
+                  value="transcribe-and-translate"
+                  checked={batchSettings.workflowMode === 'transcribe-and-translate'}
+                  onChange={(e) => setBatchSettings(prev => ({ ...prev, workflowMode: e.target.value as WorkflowMode }))}
+                  disabled={isProcessing}
+                  style={{ marginTop: '3px' }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, marginBottom: '4px' }}>
+                    <i className="fas fa-language"></i> Auto-translate after transcription
+                  </div>
+                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                    Produces subtitles in target language (2-step process)
+                  </div>
+                </div>
+              </label>
+            </div>
+
+            {/* Workflow Diagram - Shows for both modes */}
+            <div style={{
+              padding: '15px',
+              backgroundColor: 'var(--bg-secondary)',
+              borderRadius: '8px',
+              marginBottom: '15px'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-around',
+                gap: '10px',
+                flexWrap: 'wrap'
+              }}>
+                <div style={{ textAlign: 'center', flex: '0 0 auto' }}>
+                  <div style={{ fontSize: '24px', marginBottom: '5px' }}>
+                    <i className="fas fa-film"></i>
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Audio/Video</div>
+                </div>
+                <i className="fas fa-arrow-right" style={{ color: 'var(--primary-color)' }}></i>
+                <div style={{ textAlign: 'center', flex: '0 0 auto' }}>
+                  <div style={{ fontSize: '24px', marginBottom: '5px' }}>
+                    <i className="fas fa-microphone"></i>
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Transcribe</div>
+                </div>
+                {enableChaining && (
+                  <>
+                    <i className="fas fa-arrow-right" style={{ color: 'var(--primary-color)' }}></i>
+                    <div style={{ textAlign: 'center', flex: '0 0 auto' }}>
+                      <div style={{ fontSize: '24px', marginBottom: '5px' }}>
+                        <i className="fas fa-language"></i>
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Translate</div>
+                    </div>
+                  </>
+                )}
+                <i className="fas fa-arrow-right" style={{ color: 'var(--primary-color)' }}></i>
+                <div style={{ textAlign: 'center', flex: '0 0 auto' }}>
+                  <div style={{ fontSize: '24px', marginBottom: '5px' }}>
+                    <i className="fas fa-file-alt"></i>
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Output SRT</div>
+                </div>
+              </div>
+              <div style={{
+                marginTop: '12px',
+                paddingTop: '12px',
+                borderTop: '1px solid var(--border-color)',
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                textAlign: 'center'
+              }}>
+                {enableChaining ? (
+                  <><i className="fas fa-info-circle"></i> Two-step processing uses credits for both operations</>
+                ) : (
+                  <><i className="fas fa-info-circle"></i> Single-step processing: converts speech to text in original language</>
+                )}
+              </div>
+            </div>
+
+            {/* Expected Output Preview */}
+            {queue.length > 0 && (
+              <div style={{
+                marginTop: '15px',
+                padding: '12px',
+                backgroundColor: 'var(--bg-secondary)',
+                borderRadius: '8px'
+              }}>
+                <h5 style={{ margin: '0 0 10px 0', fontSize: '14px' }}>
+                  <i className="fas fa-eye"></i> Expected Output
+                </h5>
+                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px' }}>
+                  {queue.filter(f => f.type === 'transcription').length > 0 && (
+                    <li style={{ marginBottom: '5px' }}>
+                      {queue.filter(f => f.type === 'transcription').length} audio/video file(s) →{' '}
+                      <code style={{
+                        padding: '2px 6px',
+                        backgroundColor: 'var(--bg-primary)',
+                        borderRadius: '4px',
+                        fontSize: '12px'
+                      }}>
+                        {(() => {
+                          const pattern = config.defaultFilenameFormat || '{filename}.{language_code}.{type}.{extension}';
+                          const languageCode = enableChaining ? (batchSettings.targetLanguage || 'target') : 'source';
+                          const type = enableChaining ? 'translation' : 'transcription';
+                          return generateFilename(pattern, 'example.mp4', languageCode, 'Language', type, batchSettings.outputFormat);
+                        })()}
+                      </code>
+                    </li>
+                  )}
+                  {queue.filter(f => f.type === 'translation').length > 0 && (
+                    <li>
+                      {queue.filter(f => f.type === 'translation').length} subtitle file(s) →{' '}
+                      <code style={{
+                        padding: '2px 6px',
+                        backgroundColor: 'var(--bg-primary)',
+                        borderRadius: '4px',
+                        fontSize: '12px'
+                      }}>
+                        {(() => {
+                          const pattern = config.defaultFilenameFormat || '{filename}.{language_code}.{type}.{extension}';
+                          return generateFilename(pattern, 'example.srt', batchSettings.targetLanguage || 'target', 'Language', 'translation', batchSettings.outputFormat);
+                        })()}
+                      </code>
+                      {' '}
+                      <span style={{ color: 'var(--text-secondary)' }}>(translation)</span>
+                    </li>
+                  )}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
         <div>
-          <h4 style={{ opacity: uiState.transcriptionEnabled ? 1 : 0.5 }}>
-            Transcription Settings
-            {!uiState.transcriptionEnabled && <span style={{ fontSize: '12px', fontWeight: 'normal' }}> (No audio/video files)</span>}
+          <h4 style={{
+            opacity: uiState.transcriptionEnabled ? 1 : 0.5,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '5px'
+          }}>
+            <i className="fas fa-microphone" style={{ fontSize: '18px' }}></i>
+            <span>Transcription Settings</span>
           </h4>
+          {!uiState.transcriptionEnabled && (
+            <p style={{
+              fontSize: '12px',
+              color: 'var(--text-secondary)',
+              fontStyle: 'italic',
+              margin: '0 0 10px 0'
+            }}>
+              No audio/video files in queue
+            </p>
+          )}
           <div style={{ marginBottom: '15px' }}>
             <label style={{ display: 'block', marginBottom: '5px' }}>Model:</label>
             <select
@@ -1956,10 +2166,26 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
         </div>
 
         <div>
-          <h4 style={{ opacity: uiState.translationEnabled ? 1 : 0.5 }}>
-            Translation Settings
-            {!uiState.translationEnabled && <span style={{ fontSize: '12px', fontWeight: 'normal' }}> (Enable chaining or add subtitle files)</span>}
+          <h4 style={{
+            opacity: uiState.translationEnabled ? 1 : 0.5,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '5px'
+          }}>
+            <i className="fas fa-language" style={{ fontSize: '18px' }}></i>
+            <span>Translation Settings</span>
           </h4>
+          {!uiState.translationEnabled && (
+            <p style={{
+              fontSize: '12px',
+              color: 'var(--text-secondary)',
+              fontStyle: 'italic',
+              margin: '0 0 10px 0'
+            }}>
+              Select "Auto-translate" workflow or add subtitle files to queue
+            </p>
+          )}
           <div style={{ marginBottom: '15px' }}>
             <label style={{ display: 'block', marginBottom: '5px' }}>Model:</label>
             <select
@@ -1999,7 +2225,15 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
         </div>
 
         <div>
-          <h4>Output Settings</h4>
+          <h4 style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '5px'
+          }}>
+            <i className="fas fa-file-export" style={{ fontSize: '18px' }}></i>
+            <span>Output Settings</span>
+          </h4>
           <div style={{ marginBottom: '15px' }}>
             <label style={{ display: 'block', marginBottom: '5px' }}>Format:</label>
             <select
@@ -2088,24 +2322,15 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
         </div>
 
         <div>
-          <h4>Processing Options</h4>
-          <div style={{ marginBottom: '10px' }}>
-            <label style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '8px',
-              opacity: uiState.chainingEnabled ? 1 : 0.5
-            }}>
-              <input
-                type="checkbox"
-                checked={batchSettings.enableChaining}
-                onChange={(e) => setBatchSettings(prev => ({ ...prev, enableChaining: e.target.checked }))}
-                disabled={isProcessing || !uiState.chainingEnabled}
-              />
-              Enable Transcription <i className="fas fa-arrow-right"></i> Translation Chaining
-              {!uiState.chainingEnabled && <span style={{ fontSize: '12px', fontStyle: 'italic' }}>(No audio/video files)</span>}
-            </label>
-          </div>
+          <h4 style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '5px'
+          }}>
+            <i className="fas fa-cog" style={{ fontSize: '18px' }}></i>
+            <span>Processing Options</span>
+          </h4>
           <div style={{ marginBottom: '10px' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <input
@@ -2118,20 +2343,20 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
             </label>
           </div>
           <div style={{ marginBottom: '10px' }}>
-            <label style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
               gap: '8px',
-              opacity: uiState.transcriptionEnabled ? 1 : 0.5
+              opacity: enableChaining ? 1 : 0.5
             }}>
               <input
                 type="checkbox"
                 checked={batchSettings.keepIntermediateFiles}
                 onChange={(e) => setBatchSettings(prev => ({ ...prev, keepIntermediateFiles: e.target.checked }))}
-                disabled={isProcessing || !uiState.transcriptionEnabled}
+                disabled={isProcessing || !enableChaining}
               />
-              Keep intermediate transcription files
-              {!uiState.transcriptionEnabled && <span style={{ fontSize: '12px', fontStyle: 'italic' }}>(No transcription involved)</span>}
+              Keep original transcription files when auto-translating
+              {!enableChaining && <span style={{ fontSize: '12px', fontStyle: 'italic' }}>(Only applies to "Auto-translate" workflow)</span>}
             </label>
           </div>
         </div>
@@ -2507,6 +2732,14 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
           </div>
         </div>
       )}
+
+      <style>{`
+        @media (max-width: 1024px) {
+          .batch-settings-panel {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };
