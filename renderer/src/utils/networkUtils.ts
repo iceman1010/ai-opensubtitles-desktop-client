@@ -310,6 +310,30 @@ export function updateAPIConnectivityCache(connected: boolean, cacheValidMs: num
 }
 
 /**
+ * Invalidates the API connectivity cache
+ * Useful after system resume to force fresh connectivity check
+ */
+export function invalidateConnectivityCache(): void {
+  logger.debug(2, 'NetworkUtils', 'Invalidating connectivity cache');
+  apiConnectivityCache = {
+    connected: false,
+    lastChecked: 0,
+    cacheValidMs: 30000
+  };
+}
+
+/**
+ * Forces an immediate connectivity check and updates the cache
+ * Returns the updated connectivity status
+ */
+export async function forceConnectivityCheck(apiBaseUrl: string, timeoutMs: number = 5000): Promise<boolean> {
+  logger.debug(2, 'NetworkUtils', 'Forcing immediate connectivity check');
+  const result = await checkAPIConnectivity(apiBaseUrl, timeoutMs);
+  updateAPIConnectivityCache(result.connected, 30000);
+  return result.connected;
+}
+
+/**
  * Gets the current API connectivity status from cache
  */
 export function getAPIConnectivityStatus(): { connected: boolean; lastChecked: number; cacheExpired: boolean } {

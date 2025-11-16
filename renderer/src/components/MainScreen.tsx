@@ -972,11 +972,14 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
   };
 
   const handleMultipleFileSelect = (filePaths: string[]) => {
-    // Redirect to batch screen when multiple files are dropped
-    if (onNavigateToBatch) {
-      setStatusMessage({ 
-        type: 'info', 
-        message: `Redirecting to batch screen for ${filePaths.length} files...` 
+    if (filePaths.length === 1) {
+      // Single file selected - handle locally (stay on current screen)
+      handleFileSelect(filePaths[0]);
+    } else if (onNavigateToBatch) {
+      // Multiple files - redirect to batch screen
+      setStatusMessage({
+        type: 'info',
+        message: `Redirecting to batch screen for ${filePaths.length} files...`
       });
       setTimeout(() => {
         onNavigateToBatch(filePaths);

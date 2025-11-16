@@ -27,6 +27,9 @@ interface PowerContextType {
   // Token validation utility
   isTokenExpired: () => Promise<boolean>;
 
+  // Register connectivity refresh callback
+  registerConnectivityRefreshCallback: (callback: () => Promise<void>) => void;
+
   // Cleanup
   removeAllListeners: () => void;
 }
@@ -55,6 +58,7 @@ export const PowerProvider: React.FC<PowerProviderProps> = ({ children }) => {
   const resumeCallbacks = useRef<(() => void)[]>([]);
   const lockCallbacks = useRef<(() => void)[]>([]);
   const unlockCallbacks = useRef<(() => void)[]>([]);
+  const connectivityRefreshCallback = useRef<(() => Promise<void>) | null>(null);
 
   // Preserved state storage
   const preservedState = useRef<PowerState | null>(null);
@@ -114,11 +118,17 @@ export const PowerProvider: React.FC<PowerProviderProps> = ({ children }) => {
     unlockCallbacks.current.push(callback);
   }, []);
 
+  const registerConnectivityRefreshCallback = useCallback((callback: () => Promise<void>) => {
+    connectivityRefreshCallback.current = callback;
+    logger.debug(2, 'PowerContext', 'Connectivity refresh callback registered');
+  }, []);
+
   const removeAllListeners = useCallback(() => {
     suspendCallbacks.current = [];
     resumeCallbacks.current = [];
     lockCallbacks.current = [];
     unlockCallbacks.current = [];
+    connectivityRefreshCallback.current = null;
     logger.debug(3, 'PowerContext', 'All power event listeners removed');
   }, []);
 
@@ -137,7 +147,7 @@ export const PowerProvider: React.FC<PowerProviderProps> = ({ children }) => {
     });
   }, []);
 
-  const handleSystemResume = useCallback(() => {
+  const handleSystemResume = useCallback(async () => {
     const resumeTime = Date.now();
     console.log('🚀 SYSTEM RESUME DETECTED IN RENDERER! 🚀', resumeTime);
     logger.info('PowerContext', 'System resume detected');
@@ -145,6 +155,17 @@ export const PowerProvider: React.FC<PowerProviderProps> = ({ children }) => {
 
     setIsSystemSuspended(false);
     setLastResumeTime(resumeTime);
+
+    // Call connectivity refresh callback first (proactive connectivity test)
+    if (connectivityRefreshCallback.current) {
+      try {
+        logger.debug(1, 'PowerContext', 'Calling connectivity refresh callback');
+        await connectivityRefreshCallback.current();
+        logger.debug(1, 'PowerContext', 'Connectivity refresh completed');
+      } catch (error) {
+        logger.error('PowerContext', 'Error in connectivity refresh callback:', error);
+      }
+    }
 
     // Execute all registered resume callbacks
     resumeCallbacks.current.forEach((callback, index) => {
@@ -233,6 +254,7 @@ export const PowerProvider: React.FC<PowerProviderProps> = ({ children }) => {
     onSystemResume,
     onScreenLock,
     onScreenUnlock,
+    registerConnectivityRefreshCallback,
     removeAllListeners
   };
 

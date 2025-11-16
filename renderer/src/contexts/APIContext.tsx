@@ -1,12 +1,22 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { OpenSubtitlesAPI, TranscriptionInfo, TranslationInfo, SubtitleSearchParams, SubtitleDownloadParams, SubtitleLanguage, FeatureSearchParams } from '../services/api';
 import { logger } from '../utils/errorLogger';
-import { isOnline, isFullyOnline, checkAPIConnectivity } from '../utils/networkUtils';
+import { isOnline, isFullyOnline, checkAPIConnectivity, invalidateConnectivityCache, forceConnectivityCheck } from '../utils/networkUtils';
 import { usePower } from './PowerContext';
+
+// Authentication state machine
+export enum AuthState {
+  UNAUTHENTICATED = 'unauthenticated',
+  AUTHENTICATING = 'authenticating',
+  AUTHENTICATED = 'authenticated',
+  RETRYING = 'retrying'
+}
 
 interface APIContextType {
   api: OpenSubtitlesAPI | null;
   isAuthenticated: boolean;
+  authState: AuthState;
+  isAuthenticating: boolean;
   credits: { used: number; remaining: number } | null;
   transcriptionInfo: TranscriptionInfo | null;
   translationInfo: TranslationInfo | null;
@@ -20,6 +30,7 @@ interface APIContextType {
   logout: () => Promise<void>;
   refreshCredits: () => Promise<void>;
   updateCredits: (credits: { used: number; remaining: number }) => void;
+  refreshConnectivityAndAuth: () => Promise<void>;
   
   // Centralized API methods
   getServicesInfo: () => Promise<{ success: boolean; data?: any; error?: string }>;
@@ -69,7 +80,7 @@ interface APIProviderProps {
 
 export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfig }) => {
   const [api, setApi] = useState<OpenSubtitlesAPI | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authState, setAuthState] = useState<AuthState>(AuthState.UNAUTHENTICATED);
   const [credits, setCredits] = useState<{ used: number; remaining: number } | null>(null);
   const [transcriptionInfo, setTranscriptionInfo] = useState<TranscriptionInfo | null>(null);
   const [translationInfo, setTranslationInfo] = useState<TranslationInfo | null>(null);
@@ -77,10 +88,14 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [connectivityIssue, setConnectivityIssue] = useState<string | null>(null);
-  const [authenticationInProgress, setAuthenticationInProgress] = useState(false);
+
+  // Derived states for backward compatibility
+  const isAuthenticated = authState === AuthState.AUTHENTICATED;
+  const isAuthenticating = authState === AuthState.AUTHENTICATING || authState === AuthState.RETRYING;
+  const authenticationInProgress = isAuthenticating;
 
   // Power context for hibernation recovery
-  const { lastResumeTime } = usePower();
+  const { lastResumeTime, registerConnectivityRefreshCallback } = usePower();
 
   // Global promise to prevent concurrent authentication attempts
   const authPromiseRef = useRef<Promise<boolean> | null>(null);
@@ -193,13 +208,13 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
   };
 
   const performAuthentication = async (apiInstance: OpenSubtitlesAPI, username: string, password: string) => {
-    setAuthenticationInProgress(true);
+    setAuthState(AuthState.AUTHENTICATING);
     setIsLoading(true);
     setError(null);
-    
+
     try {
       logger.info('APIContext', 'Attempting authentication...');
-      
+
       // Try to load cached token first
       const hasCachedToken = await apiInstance.loadCachedToken();
       if (hasCachedToken) {
@@ -214,18 +229,23 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
           // Schedule a single retry if this is post-hibernation
           if (lastResumeTime && (Date.now() - lastResumeTime) < 30000 && !hibernationRetryTimerRef.current) {
             logger.debug(1, 'APIContext', 'Scheduling hibernation recovery retry in 10 seconds');
+            setAuthState(AuthState.RETRYING);
             hibernationRetryTimerRef.current = setTimeout(() => {
               hibernationRetryTimerRef.current = null;
               if (isOnline() && isFullyOnline()) {
                 logger.info('APIContext', 'Attempting hibernation recovery authentication retry');
                 authenticateUser(apiInstance, username, password).catch(error => {
                   logger.error('APIContext', 'Hibernation recovery retry failed:', error);
+                  setAuthState(AuthState.UNAUTHENTICATED);
                 });
+              } else {
+                setAuthState(AuthState.UNAUTHENTICATED);
               }
             }, 10000);
+          } else {
+            setAuthState(AuthState.UNAUTHENTICATED);
           }
 
-          setAuthenticationInProgress(false);
           setIsLoading(false);
           return false;
         }
@@ -237,18 +257,23 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
           // Schedule a single retry if this is post-hibernation
           if (lastResumeTime && (Date.now() - lastResumeTime) < 30000 && !hibernationRetryTimerRef.current) {
             logger.debug(1, 'APIContext', 'Scheduling hibernation recovery retry in 10 seconds');
+            setAuthState(AuthState.RETRYING);
             hibernationRetryTimerRef.current = setTimeout(() => {
               hibernationRetryTimerRef.current = null;
               if (isOnline() && isFullyOnline()) {
                 logger.info('APIContext', 'Attempting hibernation recovery authentication retry');
                 authenticateUser(apiInstance, username, password).catch(error => {
                   logger.error('APIContext', 'Hibernation recovery retry failed:', error);
+                  setAuthState(AuthState.UNAUTHENTICATED);
                 });
+              } else {
+                setAuthState(AuthState.UNAUTHENTICATED);
               }
             }, 10000);
+          } else {
+            setAuthState(AuthState.UNAUTHENTICATED);
           }
 
-          setAuthenticationInProgress(false);
           setIsLoading(false);
           return false;
         }
@@ -257,7 +282,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
         // Verify token is still valid with a credits check
         const creditsResult = await apiInstance.getCredits();
         if (creditsResult.success) {
-          setIsAuthenticated(true);
+          setAuthState(AuthState.AUTHENTICATED);
           setCredits({ used: 0, remaining: creditsResult.credits || 0 });
           await loadAPIInfo(apiInstance);
 
@@ -273,11 +298,11 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
           logger.warn('APIContext', 'Cached token invalid, attempting fresh login');
         }
       }
-      
+
       // If no cached token or it's invalid, do fresh login
       const loginResult = await apiInstance.login(username, password);
       if (loginResult.success) {
-        setIsAuthenticated(true);
+        setAuthState(AuthState.AUTHENTICATED);
 
         // Clear any pending hibernation retry on successful authentication
         if (hibernationRetryTimerRef.current) {
@@ -296,18 +321,17 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
         return true;
       } else {
         setError(loginResult.error || 'Authentication failed');
-        setIsAuthenticated(false);
+        setAuthState(AuthState.UNAUTHENTICATED);
         return false;
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown authentication error';
       logger.error('APIContext', 'Authentication error:', error);
       setError(errorMessage);
-      setIsAuthenticated(false);
+      setAuthState(AuthState.UNAUTHENTICATED);
       return false;
     } finally {
       setIsLoading(false);
-      setAuthenticationInProgress(false);
     }
   };
 
@@ -370,7 +394,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
         await api.clearCachedToken();
       }
       setApi(null);
-      setIsAuthenticated(false);
+      setAuthState(AuthState.UNAUTHENTICATED);
       setCredits(null);
       setTranscriptionInfo(null);
       setTranslationInfo(null);
@@ -402,6 +426,83 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     logger.info('APIContext', `Credits updated: ${newCredits.remaining} remaining, ${newCredits.used} used`);
   }, []);
 
+  // Refresh connectivity and trigger re-authentication if needed
+  const refreshConnectivityAndAuth = useCallback(async (): Promise<void> => {
+    logger.info('APIContext', 'Refreshing connectivity and authentication after system resume');
+
+    // RACE CONDITION FIX: Cancel any pending hibernation retry timer
+    if (hibernationRetryTimerRef.current) {
+      logger.debug(1, 'APIContext', 'Cancelling pending hibernation retry timer');
+      clearTimeout(hibernationRetryTimerRef.current);
+      hibernationRetryTimerRef.current = null;
+    }
+
+    // Invalidate connectivity cache to force fresh check
+    invalidateConnectivityCache();
+
+    // Force immediate connectivity check if we have API config
+    if (initialConfig?.apiBaseUrl) {
+      const connected = await forceConnectivityCheck(initialConfig.apiBaseUrl, 5000);
+      logger.debug(1, 'APIContext', `Connectivity check result: ${connected}`);
+
+      // If connected and we have credentials, trigger re-authentication
+      if (connected && api && initialConfig?.username && initialConfig?.password) {
+        logger.info('APIContext', 'Network restored, attempting re-authentication');
+
+        // RACE CONDITION FIX: If auth already in progress, wait for it instead of starting new one
+        if (authPromiseRef.current) {
+          logger.debug(1, 'APIContext', 'Authentication already in progress, waiting for completion');
+          await authPromiseRef.current;
+        } else {
+          await authenticateUser(api, initialConfig.username, initialConfig.password);
+        }
+      }
+    }
+  }, [api, initialConfig, authenticateUser]);
+
+  // Register connectivity refresh callback with PowerContext
+  useEffect(() => {
+    registerConnectivityRefreshCallback(refreshConnectivityAndAuth);
+  }, [registerConnectivityRefreshCallback, refreshConnectivityAndAuth]);
+
+  // Global middleware wrapper that handles post-hibernation re-authentication
+  const withAuthRetry = useCallback(async <T,>(
+    apiCall: () => Promise<T>,
+    context: string = 'API Call'
+  ): Promise<T> => {
+    // Check if we're within post-hibernation window and need re-authentication
+    if (lastResumeTime && api && initialConfig?.username && initialConfig?.password) {
+      const timeSinceResume = Date.now() - lastResumeTime;
+      const HIBERNATION_REAUTH_WINDOW_MS = 30000; // 30 seconds
+
+      if (timeSinceResume < HIBERNATION_REAUTH_WINDOW_MS && authState !== AuthState.AUTHENTICATED) {
+        logger.debug(1, 'APIContext', `${context}: Within post-hibernation window, attempting re-authentication`);
+
+        // RACE CONDITION FIX: If authentication is already in progress, wait for it
+        if (authPromiseRef.current) {
+          logger.debug(1, 'APIContext', `${context}: Authentication already in progress, waiting...`);
+          const authSuccess = await authPromiseRef.current;
+          if (!authSuccess) {
+            logger.warn('APIContext', `${context}: Post-hibernation re-authentication failed (waited for existing auth)`);
+            return { success: false, error: 'Authentication failed after system resume' } as T;
+          }
+          logger.info('APIContext', `${context}: Post-hibernation re-authentication successful (waited for existing auth)`);
+        } else {
+          // No auth in progress, start new one
+          const authSuccess = await authenticateUser(api, initialConfig.username, initialConfig.password);
+          if (!authSuccess) {
+            logger.warn('APIContext', `${context}: Post-hibernation re-authentication failed`);
+            return { success: false, error: 'Authentication failed after system resume' } as T;
+          }
+          logger.info('APIContext', `${context}: Post-hibernation re-authentication successful`);
+        }
+      }
+    }
+
+    // Proceed with the API call wrapped in error handling
+    return await handleAPICall(apiCall, context);
+  }, [api, authState, lastResumeTime, initialConfig, authenticateUser]);
+
   // Centralized error handling wrapper
   const handleAPICall = useCallback(async <T,>(
     apiCall: () => Promise<T>,
@@ -419,7 +520,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
         // Only clear token and re-authenticate if not already in progress
         if (!authenticationInProgress && api && initialConfig?.username && initialConfig?.password) {
           await api.clearCachedToken();
-          setIsAuthenticated(false);
+          setAuthState(AuthState.UNAUTHENTICATED);
 
           // Attempt re-authentication
           const success = await authenticateUser(api, initialConfig.username, initialConfig.password);
@@ -455,111 +556,113 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     }
   }, [api, authenticationInProgress, initialConfig, authenticateUser]);
 
-  // Centralized API methods
+  // Centralized API methods - all use withAuthRetry middleware
+  // RACE CONDITION FIX: Allow calls through if authenticated OR authenticating (middleware will handle waiting)
   const getServicesInfo = useCallback(async () => {
-    if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };
-    return await handleAPICall(() => api.getServicesInfo(), 'Get Services Info');
-  }, [api, isAuthenticated, handleAPICall]);
+    if (!api) return { success: false, error: 'API not available' };
+    if (!isAuthenticating && !isAuthenticated) return { success: false, error: 'API not authenticated' };
+    return await withAuthRetry(() => api.getServicesInfo(), 'Get Services Info');
+  }, [api, isAuthenticated, isAuthenticating, withAuthRetry]);
 
   const getCreditPackages = useCallback(async (email?: string) => {
-    if (!api || !isAuthenticated) {
-      // Check if we should attempt re-authentication after hibernation
-      if (lastResumeTime && api && initialConfig?.username && initialConfig?.password) {
-        const timeSinceResume = Date.now() - lastResumeTime;
-        const HIBERNATION_REAUTH_WINDOW_MS = 30000; // 30 seconds
-
-        if (timeSinceResume < HIBERNATION_REAUTH_WINDOW_MS) {
-          logger.debug(1, 'APIContext', 'Attempting post-hibernation re-authentication for getCreditPackages');
-          const authSuccess = await authenticateUser(api, initialConfig.username, initialConfig.password);
-          if (authSuccess) {
-            logger.info('APIContext', 'Post-hibernation re-authentication successful, retrying getCreditPackages');
-            return await handleAPICall(() => api.getCreditPackages(email), 'Get Credit Packages (Post-Hibernation)');
-          }
-        }
-      }
-      return { success: false, error: 'API not authenticated' };
-    }
-    return await handleAPICall(() => api.getCreditPackages(email), 'Get Credit Packages');
-  }, [api, isAuthenticated, handleAPICall, lastResumeTime, initialConfig, authenticateUser]);
+    if (!api) return { success: false, error: 'API not available' };
+    if (!isAuthenticating && !isAuthenticated) return { success: false, error: 'API not authenticated' };
+    return await withAuthRetry(() => api.getCreditPackages(email), 'Get Credit Packages');
+  }, [api, isAuthenticated, isAuthenticating, withAuthRetry]);
 
   const getTranslationLanguagesForApi = useCallback(async (apiId: string) => {
-    if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };
-    return await handleAPICall(() => api.getTranslationLanguagesForApi(apiId), 'Get Translation Languages');
-  }, [api, isAuthenticated, handleAPICall]);
+    if (!api) return { success: false, error: 'API not available' };
+    if (!isAuthenticating && !isAuthenticated) return { success: false, error: 'API not authenticated' };
+    return await withAuthRetry(() => api.getTranslationLanguagesForApi(apiId), 'Get Translation Languages');
+  }, [api, isAuthenticated, isAuthenticating, withAuthRetry]);
 
   const getTranscriptionLanguagesForApi = useCallback(async (apiId: string) => {
-    if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };
-    return await handleAPICall(() => api.getTranscriptionLanguagesForApi(apiId), 'Get Transcription Languages');
-  }, [api, isAuthenticated, handleAPICall]);
+    if (!api) return { success: false, error: 'API not available' };
+    if (!isAuthenticating && !isAuthenticated) return { success: false, error: 'API not authenticated' };
+    return await withAuthRetry(() => api.getTranscriptionLanguagesForApi(apiId), 'Get Transcription Languages');
+  }, [api, isAuthenticated, isAuthenticating, withAuthRetry]);
 
   const getTranslationApisForLanguage = useCallback(async (sourceLanguage: string, targetLanguage: string) => {
-    if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };
-    return await api.getTranslationApisForLanguage(sourceLanguage, targetLanguage);
-  }, [api, isAuthenticated]);
+    if (!api) return { success: false, error: 'API not available' };
+    if (!isAuthenticating && !isAuthenticated) return { success: false, error: 'API not authenticated' };
+    return await withAuthRetry(() => api.getTranslationApisForLanguage(sourceLanguage, targetLanguage), 'Get Translation APIs');
+  }, [api, isAuthenticated, isAuthenticating, withAuthRetry]);
 
   const detectLanguage = useCallback(async (file: File | string, duration?: number) => {
-    if (!api || !isAuthenticated) return { status: 'ERROR', errors: ['API not authenticated'] };
-    return await api.detectLanguage(file, duration);
-  }, [api, isAuthenticated]);
+    if (!api) return { status: 'ERROR', errors: ['API not available'] };
+    if (!isAuthenticating && !isAuthenticated) return { status: 'ERROR', errors: ['API not authenticated'] };
+    return await withAuthRetry(() => api.detectLanguage(file, duration), 'Detect Language');
+  }, [api, isAuthenticated, isAuthenticating, withAuthRetry]);
 
   const checkLanguageDetectionStatus = useCallback(async (correlationId: string) => {
-    if (!api || !isAuthenticated) return { status: 'ERROR', errors: ['API not authenticated'] };
-    return await api.checkLanguageDetectionStatus(correlationId);
-  }, [api, isAuthenticated]);
+    if (!api) return { status: 'ERROR', errors: ['API not available'] };
+    if (!isAuthenticating && !isAuthenticated) return { status: 'ERROR', errors: ['API not authenticated'] };
+    return await withAuthRetry(() => api.checkLanguageDetectionStatus(correlationId), 'Check Language Detection');
+  }, [api, isAuthenticated, isAuthenticating, withAuthRetry]);
 
   const initiateTranscription = useCallback(async (audioFile: File | string, options: any) => {
-    if (!api || !isAuthenticated) return { status: 'ERROR', errors: ['API not authenticated'] };
-    return await api.initiateTranscription(audioFile, options);
-  }, [api, isAuthenticated]);
+    if (!api) return { status: 'ERROR', errors: ['API not available'] };
+    if (!isAuthenticating && !isAuthenticated) return { status: 'ERROR', errors: ['API not authenticated'] };
+    return await withAuthRetry(() => api.initiateTranscription(audioFile, options), 'Initiate Transcription');
+  }, [api, isAuthenticated, isAuthenticating, withAuthRetry]);
 
   const initiateTranslation = useCallback(async (subtitleFile: File | string, options: any) => {
-    if (!api || !isAuthenticated) return { status: 'ERROR', errors: ['API not authenticated'] };
-    return await api.initiateTranslation(subtitleFile, options);
-  }, [api, isAuthenticated]);
+    if (!api) return { status: 'ERROR', errors: ['API not available'] };
+    if (!isAuthenticating && !isAuthenticated) return { status: 'ERROR', errors: ['API not authenticated'] };
+    return await withAuthRetry(() => api.initiateTranslation(subtitleFile, options), 'Initiate Translation');
+  }, [api, isAuthenticated, isAuthenticating, withAuthRetry]);
 
   const checkTranscriptionStatus = useCallback(async (correlationId: string) => {
-    if (!api || !isAuthenticated) return { status: 'ERROR', errors: ['API not authenticated'] };
-    return await api.checkTranscriptionStatus(correlationId);
-  }, [api, isAuthenticated]);
+    if (!api) return { status: 'ERROR', errors: ['API not available'] };
+    if (!isAuthenticating && !isAuthenticated) return { status: 'ERROR', errors: ['API not authenticated'] };
+    return await withAuthRetry(() => api.checkTranscriptionStatus(correlationId), 'Check Transcription Status');
+  }, [api, isAuthenticated, isAuthenticating, withAuthRetry]);
 
   const checkTranslationStatus = useCallback(async (correlationId: string) => {
-    if (!api || !isAuthenticated) return { status: 'ERROR', errors: ['API not authenticated'] };
-    return await api.checkTranslationStatus(correlationId);
-  }, [api, isAuthenticated]);
+    if (!api) return { status: 'ERROR', errors: ['API not available'] };
+    if (!isAuthenticating && !isAuthenticated) return { status: 'ERROR', errors: ['API not authenticated'] };
+    return await withAuthRetry(() => api.checkTranslationStatus(correlationId), 'Check Translation Status');
+  }, [api, isAuthenticated, isAuthenticating, withAuthRetry]);
 
   const downloadFile = useCallback(async (url: string) => {
-    if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };
-    return await api.downloadFile(url);
-  }, [api, isAuthenticated]);
+    if (!api) return { success: false, error: 'API not available' };
+    if (!isAuthenticating && !isAuthenticated) return { success: false, error: 'API not authenticated' };
+    return await withAuthRetry(() => api.downloadFile(url), 'Download File');
+  }, [api, isAuthenticated, isAuthenticating, withAuthRetry]);
 
   const downloadFileByMediaId = useCallback(async (mediaId: string, fileName: string) => {
-    if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };
-    return await api.downloadFileByMediaId(mediaId, fileName);
-  }, [api, isAuthenticated]);
+    if (!api) return { success: false, error: 'API not available' };
+    if (!isAuthenticating && !isAuthenticated) return { success: false, error: 'API not authenticated' };
+    return await withAuthRetry(() => api.downloadFileByMediaId(mediaId, fileName), 'Download File By Media ID');
+  }, [api, isAuthenticated, isAuthenticating, withAuthRetry]);
 
   const getRecentMedia = useCallback(async () => {
-    if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };
-    return await api.getRecentMedia();
-  }, [api, isAuthenticated]);
+    if (!api) return { success: false, error: 'API not available' };
+    if (!isAuthenticating && !isAuthenticated) return { success: false, error: 'API not authenticated' };
+    return await withAuthRetry(() => api.getRecentMedia(), 'Get Recent Media');
+  }, [api, isAuthenticated, isAuthenticating, withAuthRetry]);
 
   const searchSubtitles = useCallback(async (params: SubtitleSearchParams) => {
-    if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };
-    return await handleAPICall(() => api.searchSubtitles(params), 'Search Subtitles');
-  }, [api, isAuthenticated, handleAPICall]);
+    if (!api) return { success: false, error: 'API not available' };
+    if (!isAuthenticating && !isAuthenticated) return { success: false, error: 'API not authenticated' };
+    return await withAuthRetry(() => api.searchSubtitles(params), 'Search Subtitles');
+  }, [api, isAuthenticated, isAuthenticating, withAuthRetry]);
 
   const downloadSubtitle = useCallback(async (params: SubtitleDownloadParams) => {
-    if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };
-    return await handleAPICall(() => api.downloadSubtitle(params), 'Download Subtitle');
-  }, [api, isAuthenticated, handleAPICall]);
+    if (!api) return { success: false, error: 'API not available' };
+    if (!isAuthenticating && !isAuthenticated) return { success: false, error: 'API not authenticated' };
+    return await withAuthRetry(() => api.downloadSubtitle(params), 'Download Subtitle');
+  }, [api, isAuthenticated, isAuthenticating, withAuthRetry]);
 
   const searchForFeatures = useCallback(async (params: FeatureSearchParams) => {
-    if (!api || !isAuthenticated) return { success: false, error: 'API not authenticated' };
-    return await handleAPICall(() => api.searchForFeatures(params), 'Search Features');
-  }, [api, isAuthenticated, handleAPICall]);
+    if (!api) return { success: false, error: 'API not available' };
+    if (!isAuthenticating && !isAuthenticated) return { success: false, error: 'API not authenticated' };
+    return await withAuthRetry(() => api.searchForFeatures(params), 'Search Features');
+  }, [api, isAuthenticated, isAuthenticating, withAuthRetry]);
   const getSubtitleSearchLanguages = useCallback(async () => {
     if (!api) return { success: false, error: 'API not available' };
-    return await handleAPICall(() => api.getSubtitleSearchLanguages(), 'Get Subtitle Search Languages');
-  }, [api, handleAPICall]);
+    return await withAuthRetry(() => api.getSubtitleSearchLanguages(), 'Get Subtitle Search Languages');
+  }, [api, withAuthRetry]);
 
   // Sync helper functions for filename generation using cached data
   const getTranslationLanguageNameSync = useCallback((apiId: string, languageCode: string): string | null => {
@@ -589,6 +692,8 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
   const contextValue: APIContextType = {
     api,
     isAuthenticated,
+    authState,
+    isAuthenticating,
     credits,
     transcriptionInfo,
     translationInfo,
@@ -600,6 +705,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     logout,
     refreshCredits,
     updateCredits,
+    refreshConnectivityAndAuth,
     getServicesInfo,
     getCreditPackages,
     getTranslationLanguagesForApi,

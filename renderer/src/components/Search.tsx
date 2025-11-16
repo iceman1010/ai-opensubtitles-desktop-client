@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAPI } from '../contexts/APIContext';
+import { useAPI, AuthState } from '../contexts/APIContext';
 import { SubtitleSearchParams, FeatureSearchParams, Feature } from '../services/api';
 import SearchForm from './SearchForm';
 import SearchResults from './SearchResults';
@@ -13,7 +13,7 @@ interface SearchProps {
 type SearchTab = 'subtitles' | 'features';
 
 function Search({ setAppProcessing }: SearchProps) {
-  const { searchSubtitles, downloadSubtitle, searchForFeatures } = useAPI();
+  const { searchSubtitles, downloadSubtitle, searchForFeatures, isAuthenticating, authState } = useAPI();
 
   // Tab state
   const [activeTab, setActiveTab] = useState<SearchTab>('subtitles');
@@ -225,6 +225,27 @@ function Search({ setAppProcessing }: SearchProps) {
           </button>
         </div>
       </div>
+
+      {/* Authentication Status Message */}
+      {isAuthenticating && (
+        <div style={{
+          padding: '16px',
+          marginBottom: '20px',
+          background: 'var(--warning-bg, #fff3cd)',
+          border: '1px solid var(--warning-border, #ffc107)',
+          borderRadius: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+        }}>
+          <i className="fas fa-spinner fa-spin" style={{ color: 'var(--warning-text, #856404)' }}></i>
+          <span style={{ color: 'var(--warning-text, #856404)', fontSize: '14px' }}>
+            {authState === AuthState.RETRYING ?
+              'Re-authenticating after system resume, please wait...' :
+              'Authenticating, please wait...'}
+          </span>
+        </div>
+      )}
 
       {/* Search Form */}
       <SearchForm
