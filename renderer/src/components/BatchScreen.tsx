@@ -494,15 +494,28 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
       if (file.id === fileId) {
         // Auto-select source language if this is a translation file and we have translation model info
         let selectedSourceLanguage = file.selectedSourceLanguage;
+
+        // Get the translation/transcription model to use (either from settings or default to first available)
+        const translationModelToUse = batchSettings.translationModel ||
+          (contextTranslationInfo?.apis && contextTranslationInfo.apis.length > 0
+            ? contextTranslationInfo.apis[0]
+            : '');
+
+        const transcriptionModelToUse = batchSettings.transcriptionModel ||
+          (contextTranscriptionInfo?.apis && contextTranscriptionInfo.apis.length > 0
+            ? contextTranscriptionInfo.apis[0]
+            : '');
+
         logger.debug(2, 'BatchScreen', `Auto-selection check for file: ${file.name}`, {
           fileType: file.type,
           hasTranslationInfo: !!contextTranslationInfo,
           translationModel: batchSettings.translationModel,
+          translationModelToUse,
           detectedLanguage: detectedLanguage.ISO_639_1
         });
-        
-        if (file.type === 'translation' && contextTranslationInfo && batchSettings.translationModel) {
-          const apiLanguages = contextTranslationInfo?.languages[batchSettings.translationModel];
+
+        if (file.type === 'translation' && contextTranslationInfo && translationModelToUse) {
+          const apiLanguages = contextTranslationInfo?.languages[translationModelToUse];
           if (apiLanguages) {
             const languageCode = detectedLanguage.ISO_639_1;
             const matching = getMatchingSourceLanguages(languageCode, apiLanguages);
@@ -511,13 +524,14 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
               detectedLanguage: languageCode,
               matchingCount: matching.length,
               selectedSourceLanguage,
-              matchingLanguages: matching.map(l => l.language_code)
+              matchingLanguages: matching.map(l => l.language_code),
+              modelUsed: translationModelToUse
             });
           } else {
-            logger.debug(1, 'BatchScreen', `No API languages found for translation model: ${batchSettings.translationModel}`);
+            logger.debug(1, 'BatchScreen', `No API languages found for translation model: ${translationModelToUse}`);
           }
-        } else if (file.type === 'transcription' && contextTranscriptionInfo && batchSettings.transcriptionModel) {
-          const apiLanguages = contextTranscriptionInfo?.languages[batchSettings.transcriptionModel];
+        } else if (file.type === 'transcription' && contextTranscriptionInfo && transcriptionModelToUse) {
+          const apiLanguages = contextTranscriptionInfo?.languages[transcriptionModelToUse];
           if (apiLanguages) {
             const languageCode = detectedLanguage.ISO_639_1;
             const matching = getMatchingSourceLanguages(languageCode, apiLanguages);
@@ -526,10 +540,11 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
               detectedLanguage: languageCode,
               matchingCount: matching.length,
               selectedSourceLanguage,
-              matchingLanguages: matching.map(l => l.language_code)
+              matchingLanguages: matching.map(l => l.language_code),
+              modelUsed: transcriptionModelToUse
             });
           } else {
-            logger.debug(1, 'BatchScreen', `No API languages found for transcription model: ${batchSettings.transcriptionModel}`);
+            logger.debug(1, 'BatchScreen', `No API languages found for transcription model: ${transcriptionModelToUse}`);
           }
         } else {
           logger.debug(2, 'BatchScreen', 'Auto-selection conditions not met');
