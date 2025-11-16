@@ -52,7 +52,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
   const [apiBaseUrl, setApiBaseUrl] = useState(config.apiBaseUrl || 'https://api.opensubtitles.com/api/v1');
   const [apiUrlParameter, setApiUrlParameter] = useState(config.apiUrlParameter || '');
   const [autoLanguageDetection, setAutoLanguageDetection] = useState(config.autoLanguageDetection ?? false);
-  const [defaultFilenameFormat, setDefaultFilenameFormat] = useState(config.defaultFilenameFormat || '{filename}.{language_code}.{type}.{extension}');
+  const [defaultFilenameFormat, setDefaultFilenameFormat] = useState(config.defaultFilenameFormat || '{filename}.{language_code}.{type}');
   const [apiConnectivityTestIntervalMinutes, setApiConnectivityTestIntervalMinutes] = useState(config.apiConnectivityTestIntervalMinutes ?? 5);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -1327,7 +1327,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
                 marginTop: '6px',
                 fontStyle: 'italic'
               }}>
-                Default: {'{filename}.{language_code}.{type}.{extension}'} • Use dots as separators
+                Default: {'{filename}.{language_code}.{type}'} • Use dots as separators
               </div>
             </div>
           </div>

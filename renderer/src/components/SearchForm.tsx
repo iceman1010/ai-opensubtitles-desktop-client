@@ -9,6 +9,7 @@ interface SearchFormInitialValues {
   imdb_id?: string;
   year?: string;
   type?: string;
+  languages?: string;
   showAdvanced?: boolean;
 }
 
@@ -43,7 +44,7 @@ function SearchForm({ activeTab, onSearch, isLoading, initialValues }: SearchFor
 
   const [formState, setFormState] = useState<SearchFormState>({
     query: initialValues?.query || '',
-    languages: 'en',
+    languages: initialValues?.languages || 'en',
     imdb_id: initialValues?.imdb_id || '',
     year: initialValues?.year || '',
     type: initialValues?.type || '',
@@ -77,12 +78,24 @@ function SearchForm({ activeTab, onSearch, isLoading, initialValues }: SearchFor
     if (initialValues) {
       setFormState(prev => ({
         ...prev,
-        query: initialValues.query || prev.query,
-        imdb_id: initialValues.imdb_id || prev.imdb_id,
-        year: initialValues.year || prev.year,
-        type: initialValues.type || prev.type,
+        query: initialValues.query !== undefined ? initialValues.query : prev.query,
+        imdb_id: initialValues.imdb_id !== undefined ? initialValues.imdb_id : prev.imdb_id,
+        year: initialValues.year !== undefined ? initialValues.year : prev.year,
+        type: initialValues.type !== undefined ? initialValues.type : prev.type,
+        languages: initialValues.languages !== undefined ? initialValues.languages : prev.languages,
         showAdvanced: initialValues.showAdvanced !== undefined ? initialValues.showAdvanced : prev.showAdvanced,
       }));
+
+      // Auto-submit if requested
+      if (initialValues.autoSubmit) {
+        // Use setTimeout to ensure state is updated first
+        setTimeout(() => {
+          const form = document.querySelector('form');
+          if (form) {
+            form.requestSubmit();
+          }
+        }, 100);
+      }
     }
   }, [initialValues]);
 
@@ -91,12 +104,17 @@ function SearchForm({ activeTab, onSearch, isLoading, initialValues }: SearchFor
       ...prev,
       [field]: value,
     }));
+
+    // Save language preference to config when changed
+    if (field === 'languages' && typeof value === 'string') {
+      window.electronAPI?.saveConfig({ lastUsedLanguage: value });
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formState.query.trim()) {
+    if (!formState.query.trim() && !formState.imdb_id.trim()) {
       return;
     }
 
@@ -247,16 +265,16 @@ function SearchForm({ activeTab, onSearch, isLoading, initialValues }: SearchFor
 
               <button
                 type="submit"
-                disabled={isLoading || !formState.query.trim()}
+                disabled={isLoading || (!formState.query.trim() && !formState.imdb_id.trim())}
                 style={{
                   padding: '12px 24px',
                   fontSize: '14px',
                   fontWeight: 'bold',
-                  background: formState.query.trim() ? 'var(--primary-color)' : 'var(--bg-disabled)',
-                  color: formState.query.trim() ? 'var(--button-text)' : 'var(--text-disabled)',
+                  background: (formState.query.trim() || formState.imdb_id.trim()) ? 'var(--primary-color)' : 'var(--bg-disabled)',
+                  color: (formState.query.trim() || formState.imdb_id.trim()) ? 'var(--button-text)' : 'var(--text-disabled)',
                   border: '1px solid var(--border-color)',
                   borderRadius: '6px',
-                  cursor: formState.query.trim() ? 'pointer' : 'not-allowed',
+                  cursor: (formState.query.trim() || formState.imdb_id.trim()) ? 'pointer' : 'not-allowed',
                   minWidth: '100px',
                   flexShrink: 0,
                 }}

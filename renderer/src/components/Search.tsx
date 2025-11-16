@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAPI, AuthState } from '../contexts/APIContext';
 import { SubtitleSearchParams, FeatureSearchParams, Feature } from '../services/api';
 import SearchForm from './SearchForm';
@@ -16,7 +16,7 @@ function Search({ setAppProcessing }: SearchProps) {
   const { searchSubtitles, downloadSubtitle, searchForFeatures, isAuthenticating, authState } = useAPI();
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<SearchTab>('subtitles');
+  const [activeTab, setActiveTab] = useState<SearchTab>('features');
 
   // Subtitle search state
   const [searchResults, setSearchResults] = useState<SubtitleSearchResult[]>([]);
@@ -38,6 +38,20 @@ function Search({ setAppProcessing }: SearchProps) {
   // Form initial values state
   const [formInitialValues, setFormInitialValues] = useState<any>(undefined);
 
+  // Load saved language preference on mount
+  useEffect(() => {
+    const loadSavedLanguage = async () => {
+      const config = await window.electronAPI?.getConfig();
+      if (config?.lastUsedLanguage) {
+        setFormInitialValues((prev: any) => ({
+          ...prev,
+          languages: config.lastUsedLanguage,
+        }));
+      }
+    };
+    loadSavedLanguage();
+  }, []);
+
   const RESULTS_PER_PAGE = 20;
 
   const handleSearch = async (params: SubtitleSearchParams, page: number = 0) => {
@@ -54,7 +68,9 @@ function Search({ setAppProcessing }: SearchProps) {
       const response = await searchSubtitles(searchParamsWithPage);
 
       if (response.success && response.data) {
-        setSearchResults(response.data.data || []);
+        // Ensure data is an array
+        const dataArray = Array.isArray(response.data.data) ? response.data.data : [];
+        setSearchResults(dataArray);
         setCurrentPage(page);
 
         // Use total_pages from API response, fallback to calculation if not available
@@ -63,7 +79,7 @@ function Search({ setAppProcessing }: SearchProps) {
           setTotalPages(totalPagesFromApi);
         } else {
           // Fallback: calculate from total_count if total_pages not available
-          const totalResults = response.data.total_count || response.data.data?.length || 0;
+          const totalResults = response.data.total_count || dataArray.length || 0;
           setTotalPages(Math.ceil(totalResults / RESULTS_PER_PAGE));
         }
 
@@ -141,8 +157,10 @@ function Search({ setAppProcessing }: SearchProps) {
     // Pre-fill form with IMDb ID and open advanced options
     if (feature.attributes.imdb_id) {
       setFormInitialValues({
+        query: '',  // Clear old search text
         imdb_id: feature.attributes.imdb_id.toString(),
         showAdvanced: true,
+        autoSubmit: true,  // Trigger search automatically
       });
     }
   };
@@ -155,8 +173,21 @@ function Search({ setAppProcessing }: SearchProps) {
       const response = await downloadSubtitle({ file_id: fileId });
 
       if (response.success && response.data?.link) {
-        // Open download URL in default browser/download manager
-        window.open(response.data.link, '_blank');
+        // Fetch the subtitle content from the download link
+        const fetchResponse = await fetch(response.data.link);
+        const content = await fetchResponse.text();
+
+        // Ensure filename has .srt extension
+        const defaultFileName = fileName.endsWith('.srt') ? fileName : `${fileName}.srt`;
+
+        // Show save file dialog and save the content
+        const savedPath = await window.electronAPI?.saveFile(content, defaultFileName);
+
+        if (savedPath) {
+          console.log(`Subtitle saved to: ${savedPath}`);
+        } else {
+          console.log('Save cancelled by user');
+        }
       } else {
         console.error('Download failed:', response.error);
       }
@@ -212,16 +243,16 @@ function Search({ setAppProcessing }: SearchProps) {
       <div style={{ marginBottom: '20px' }}>
         <div className="tab-navigation">
           <button
-            className={`tab-button ${activeTab === 'subtitles' ? 'active' : ''}`}
-            onClick={() => setActiveTab('subtitles')}
-          >
-            <i className="fas fa-film"></i> Search Subtitles
-          </button>
-          <button
             className={`tab-button ${activeTab === 'features' ? 'active' : ''}`}
             onClick={() => setActiveTab('features')}
           >
             <i className="fas fa-video"></i> Search Movies
+          </button>
+          <button
+            className={`tab-button ${activeTab === 'subtitles' ? 'active' : ''}`}
+            onClick={() => setActiveTab('subtitles')}
+          >
+            <i className="fas fa-film"></i> Search Subtitles
           </button>
         </div>
       </div>

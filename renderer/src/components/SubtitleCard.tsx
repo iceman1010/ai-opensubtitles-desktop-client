@@ -128,13 +128,17 @@ function SubtitleCard({ result, onDownload, isDownloading = false }: SubtitleCar
     }
   };
 
-  const getRankColor = (rank: string): string => {
+  const getRankColor = (rank: string): { bg: string; text: string } => {
     const rankLower = rank.toLowerCase();
-    if (rankLower.includes('trusted') || rankLower.includes('platinum')) return 'var(--success-color)';
-    if (rankLower.includes('gold')) return 'var(--warning-color)';
-    if (rankLower.includes('silver')) return 'var(--text-muted)';
-    if (rankLower.includes('bronze')) return '#8D6E63';
-    return 'var(--text-secondary)';
+    if (rankLower.includes('trusted') || rankLower.includes('platinum'))
+      return { bg: 'var(--success-color)', text: 'white' };
+    if (rankLower.includes('gold'))
+      return { bg: '#D4AF37', text: 'black' };
+    if (rankLower.includes('silver'))
+      return { bg: '#C0C0C0', text: 'black' };
+    if (rankLower.includes('bronze'))
+      return { bg: '#CD7F32', text: 'white' };
+    return { bg: 'var(--bg-tertiary)', text: 'var(--text-primary)' };
   };
 
   const handleDownloadClick = () => {
@@ -149,8 +153,8 @@ function SubtitleCard({ result, onDownload, isDownloading = false }: SubtitleCar
       background: 'var(--bg-secondary)',
       border: '1px solid var(--border-color)',
       borderRadius: '8px',
-      padding: '16px',
-      marginBottom: '12px',
+      padding: '14px',
+      marginBottom: '10px',
       transition: 'all 0.2s ease',
       cursor: 'pointer',
     }}
@@ -175,9 +179,11 @@ function SubtitleCard({ result, onDownload, isDownloading = false }: SubtitleCar
             fontWeight: 'bold',
             color: 'var(--text-primary)',
             display: 'flex',
-            alignItems: 'center'
+            alignItems: 'center',
+            gap: '8px'
           }}>
-            {attributes.feature_details.feature_type === 'Movie' ? <><i className="fas fa-film"></i> </> : <><i className="fas fa-tv"></i> </>}{attributes.feature_details.title}
+            {attributes.feature_details.feature_type === 'Movie' ? <i className="fas fa-film"></i> : <i className="fas fa-tv"></i>}
+            <span>{attributes.feature_details.title}</span>
             {attributes.feature_details.year && (
               <span style={{
                 fontSize: '14px',
@@ -197,10 +203,14 @@ function SubtitleCard({ result, onDownload, isDownloading = false }: SubtitleCar
         </div>
 
         <div style={{
-          fontSize: '14px',
+          fontSize: '13px',
           color: 'var(--text-secondary)',
-          marginBottom: '8px'
-        }}>
+          marginBottom: '8px',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}
+        title={attributes.release || 'Unknown'}>
           Release: {attributes.release || 'Unknown'}
         </div>
       </div>
@@ -270,19 +280,25 @@ function SubtitleCard({ result, onDownload, isDownloading = false }: SubtitleCar
         <span><i className="fas fa-user"></i> Uploader:</span>
         <span style={{
           fontWeight: 'bold',
-          color: getRankColor(attributes.uploader.rank)
+          color: 'var(--text-primary)'
         }}>
           {attributes.uploader.name}
         </span>
-        <span style={{
-          background: getRankColor(attributes.uploader.rank),
-          color: 'white',
-          padding: '1px 6px',
-          borderRadius: '8px',
-          fontSize: '10px'
-        }}>
-          {attributes.uploader.rank}
-        </span>
+        {(() => {
+          const colors = getRankColor(attributes.uploader.rank);
+          return (
+            <span style={{
+              background: colors.bg,
+              color: colors.text,
+              padding: '2px 8px',
+              borderRadius: '12px',
+              fontSize: '10px',
+              fontWeight: '600'
+            }}>
+              {attributes.uploader.rank}
+            </span>
+          );
+        })()}
       </div>
 
       {/* Action Buttons */}
