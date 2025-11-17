@@ -1731,10 +1731,21 @@ export class OpenSubtitlesAPI {
           throw error;
         }
 
-        const responseData = await response.json();
-        logger.info('API', 'Subtitle download response:', responseData);
+        // Check content type to determine if response is JSON or plain text (SRT file)
+        const contentType = response.headers.get('content-type') || '';
 
-        return responseData;
+        if (contentType.includes('application/json')) {
+          // Normal subtitle download - returns JSON with link
+          const responseData = await response.json();
+          logger.info('API', 'Subtitle download response (JSON):', responseData);
+          return responseData;
+        } else {
+          // AI-generated subtitle - returns SRT content directly
+          const srtContent = await response.text();
+          logger.info('API', 'Subtitle download response (direct SRT)', { length: srtContent.length });
+          // Return in same format as JSON response for compatibility
+          return { file: srtContent };
+        }
       }, 'Download Subtitle', 3);
 
       return {

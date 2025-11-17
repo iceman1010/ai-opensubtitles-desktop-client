@@ -240,10 +240,20 @@ function Search({ setAppProcessing, onNavigateToHelp }: SearchProps) {
 
       const response = await downloadSubtitle({ file_id: fileId });
 
-      if (response.success && response.data?.link) {
-        // Fetch the subtitle content from the download link
-        const fetchResponse = await fetch(response.data.link);
-        const content = await fetchResponse.text();
+      if (response.success && response.data) {
+        let content: string;
+
+        if (response.data.link) {
+          // Normal subtitle - fetch from link
+          const fetchResponse = await fetch(response.data.link);
+          content = await fetchResponse.text();
+        } else if (response.data.file) {
+          // AI-generated subtitle - content returned directly
+          content = response.data.file;
+        } else {
+          console.error('Download failed: No link or file in response');
+          return;
+        }
 
         // Ensure filename has .srt extension
         const defaultFileName = fileName.endsWith('.srt') ? fileName : `${fileName}.srt`;
