@@ -271,7 +271,9 @@ function AppContent({
     isLoading: apiLoading,
     error: apiError,
     login,
-    updateCredits
+    logout,
+    updateCredits,
+    refreshConnectivityAndAuth
   } = useAPI();
 
   // Power management hooks for hibernation recovery
@@ -530,7 +532,12 @@ function AppContent({
   // Centralized status handlers
   const handleNetworkChange = useCallback((isOnline: boolean) => {
     setIsNetworkOnline(isOnline);
-  }, []);
+
+    // Trigger connectivity refresh and re-auth when network comes back
+    if (isOnline) {
+      refreshConnectivityAndAuth();
+    }
+  }, [refreshConnectivityAndAuth]);
 
   const setAppProcessing = (processing: boolean, task?: string) => {
     setIsProcessing(processing);
@@ -597,20 +604,18 @@ function AppContent({
                   <i className="fas fa-layer-group"></i>Batch
                 </button>
               </li>
-              {config?.betaTest && (
-                <li style={{
-                  opacity: 1,
-                  transition: 'opacity 0.3s ease-in-out, transform 0.3s ease-in-out',
-                  transform: 'translateY(0)'
-                }}>
-                  <button
-                    className={currentScreen === 'search' ? 'active' : ''}
-                    onClick={() => handleScreenChange('search')}
-                  >
-                    <i className="fas fa-search"></i>Search
-                  </button>
-                </li>
-              )}
+              <li style={{
+                opacity: 1,
+                transition: 'opacity 0.3s ease-in-out, transform 0.3s ease-in-out',
+                transform: 'translateY(0)'
+              }}>
+                <button
+                  className={currentScreen === 'search' ? 'active' : ''}
+                  onClick={() => handleScreenChange('search')}
+                >
+                  <i className="fas fa-search"></i>Search
+                </button>
+              </li>
               <li>
                 <button
                   className={currentScreen === 'recent-media' ? 'active' : ''}
@@ -812,6 +817,7 @@ function AppContent({
             config={config}
             onSave={handlePreferencesSave}
             setAppProcessing={setAppProcessing}
+            onSimulateOffline={logout}
           />
         )}
         {currentScreen === 'update' && (

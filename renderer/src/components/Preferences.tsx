@@ -33,9 +33,10 @@ interface PreferencesProps {
   config: AppConfig;
   onSave: (config: Partial<AppConfig>) => Promise<boolean>;
   setAppProcessing: (processing: boolean, task?: string) => void;
+  onSimulateOffline?: () => Promise<void>;
 }
 
-function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
+function Preferences({ config, onSave, setAppProcessing, onSimulateOffline }: PreferencesProps) {
   const [username, setUsername] = useState(config.username || '');
   const [password, setPassword] = useState(config.password || '');
   const [apiKey, setApiKey] = useState(config.apiKey || '');
@@ -62,6 +63,7 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
   const [isCheckingAssociations, setIsCheckingAssociations] = useState(false);
   const [isRegisteringAssociations, setIsRegisteringAssociations] = useState(false);
   const [isClearingCache, setIsClearingCache] = useState(false);
+  const [isSimulatingOffline, setIsSimulatingOffline] = useState(false);
 
 
 
@@ -678,6 +680,91 @@ function Preferences({ config, onSave, setAppProcessing }: PreferencesProps) {
                 maxWidth: '500px'
               }}>
                 Controls the verbosity of debug output. Higher levels provide more detailed logging information.
+              </div>
+            </div>
+
+            {/* Error Simulation Section */}
+            <div className="form-group" style={{
+              marginTop: '24px',
+              padding: '16px',
+              background: 'var(--bg-tertiary)',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color)'
+            }}>
+              <h3 style={{
+                margin: '0 0 12px 0',
+                fontSize: '16px',
+                fontWeight: '600',
+                color: 'var(--text-primary)'
+              }}>
+                Error Simulation
+              </h3>
+              <p style={{
+                margin: '0 0 16px 0',
+                fontSize: '13px',
+                color: 'var(--text-secondary)',
+                lineHeight: '1.4'
+              }}>
+                Tools for testing error handling and recovery mechanisms.
+              </p>
+
+              <button
+                onClick={async () => {
+                  if (!isSimulatingOffline) {
+                    // Go offline
+                    if (window.confirm('This will log you out and simulate offline network state. Continue?')) {
+                      try {
+                        // Clear auth token
+                        if (onSimulateOffline) {
+                          await onSimulateOffline();
+                        }
+
+                        // Simulate offline by dispatching offline event
+                        window.dispatchEvent(new Event('offline'));
+                        setIsSimulatingOffline(true);
+
+                        alert('Offline simulation activated. Click the button again to restore online state.');
+                      } catch (error) {
+                        console.error('Error simulating offline:', error);
+                        alert('Failed to simulate offline state');
+                      }
+                    }
+                  } else {
+                    // Go back online
+                    window.dispatchEvent(new Event('online'));
+                    setIsSimulatingOffline(false);
+                    alert('Online state restored. The app should now attempt to re-authenticate.');
+                  }
+                }}
+                style={{
+                  padding: '10px 16px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  background: isSimulatingOffline ? 'var(--success-color, #4caf50)' : 'var(--warning-color, #ff9800)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = isSimulatingOffline ? '#388e3c' : '#f57c00';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = isSimulatingOffline ? 'var(--success-color, #4caf50)' : 'var(--warning-color, #ff9800)';
+                }}
+              >
+                <i className={isSimulatingOffline ? 'fas fa-wifi' : 'fas fa-wifi-slash'} style={{ marginRight: '8px' }}></i>
+                {isSimulatingOffline ? 'Restore Online' : 'Test Offline Network'}
+              </button>
+
+              <div style={{
+                marginTop: '12px',
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                lineHeight: '1.4'
+              }}>
+                This will clear authentication and trigger browser offline event to test automatic re-authentication when network is restored.
               </div>
             </div>
           </>

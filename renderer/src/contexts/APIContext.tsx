@@ -368,7 +368,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     }
 
     logger.info('APIContext', `Starting login for user: ${username}`);
-    setAuthenticationInProgress(true);
+    setAuthState(AuthState.AUTHENTICATING);
 
     try {
       // Reuse existing API instance or create one if none exists
@@ -383,8 +383,10 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
       const result = await authenticateUser(apiInstance, username, password);
       logger.info('APIContext', `Login completed for user: ${username}, success: ${result}`);
       return result;
-    } finally {
-      setAuthenticationInProgress(false);
+    } catch (error) {
+      logger.error('APIContext', 'Login error:', error);
+      setAuthState(AuthState.UNAUTHENTICATED);
+      return false;
     }
   }, [authenticationInProgress, api, initialConfig]);
 

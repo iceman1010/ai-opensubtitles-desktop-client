@@ -107,11 +107,6 @@ const StatusBar: React.FC<StatusBarProps> = ({
         // Update cache with configured interval (convert minutes to ms)
         const cacheValidMs = (config.apiConnectivityTestIntervalMinutes ?? 5) * 60 * 1000;
         updateAPIConnectivityCache(result.connected, cacheValidMs);
-
-        // Notify parent component of connectivity change
-        if (onNetworkChange) {
-          onNetworkChange(result.connected);
-        }
       } catch (error) {
         setApiConnectivity('unreachable');
         const cacheValidMs = (config.apiConnectivityTestIntervalMinutes ?? 5) * 60 * 1000;
