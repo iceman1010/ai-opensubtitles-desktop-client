@@ -1,22 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useAPI, AuthState } from '../contexts/APIContext';
-import { SubtitleSearchParams, FeatureSearchParams, Feature } from '../services/api';
+import { SubtitleSearchParams, FeatureSearchParams, Feature, SubtitleLanguage } from '../services/api';
 import SearchForm from './SearchForm';
 import SearchResults from './SearchResults';
 import FeatureResults from './FeatureResults';
+import FileSearchForm from './FileSearchForm';
 import { SubtitleSearchResult } from './SubtitleCard';
 
 interface SearchProps {
   setAppProcessing: (processing: boolean, task?: string) => void;
 }
 
-type SearchTab = 'subtitles' | 'features';
+type SearchTab = 'subtitles' | 'features' | 'file';
 
 function Search({ setAppProcessing }: SearchProps) {
-  const { searchSubtitles, downloadSubtitle, searchForFeatures, isAuthenticating, authState } = useAPI();
+  const { searchSubtitles, downloadSubtitle, searchForFeatures, getSubtitleSearchLanguages, isAuthenticating, authState } = useAPI();
 
   // Tab state
   const [activeTab, setActiveTab] = useState<SearchTab>('features');
+
+  // Language options for all search types
+  const [languageOptions, setLanguageOptions] = useState<SubtitleLanguage[]>([]);
+  const [languagesLoading, setLanguagesLoading] = useState(true);
+  const [savedLanguage, setSavedLanguage] = useState<string>('en');
 
   // Subtitle search state
   const [searchResults, setSearchResults] = useState<SubtitleSearchResult[]>([]);
@@ -38,19 +44,36 @@ function Search({ setAppProcessing }: SearchProps) {
   // Form initial values state
   const [formInitialValues, setFormInitialValues] = useState<any>(undefined);
 
-  // Load saved language preference on mount
+  // Load language options and saved language preference on mount
   useEffect(() => {
+    const loadLanguages = async () => {
+      try {
+        setLanguagesLoading(true);
+        const response = await getSubtitleSearchLanguages();
+        if (response.success && response.data) {
+          setLanguageOptions(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to load languages:', error);
+      } finally {
+        setLanguagesLoading(false);
+      }
+    };
+
     const loadSavedLanguage = async () => {
       const config = await window.electronAPI?.getConfig();
       if (config?.lastUsedLanguage) {
+        setSavedLanguage(config.lastUsedLanguage);
         setFormInitialValues((prev: any) => ({
           ...prev,
           languages: config.lastUsedLanguage,
         }));
       }
     };
+
+    loadLanguages();
     loadSavedLanguage();
-  }, []);
+  }, [getSubtitleSearchLanguages]);
 
   const RESULTS_PER_PAGE = 20;
 
@@ -165,6 +188,50 @@ function Search({ setAppProcessing }: SearchProps) {
     }
   };
 
+  const handleFileSearch = async (moviehash: string, language: string, fileName: string) => {
+    try {
+      setIsSearching(true);
+      setHasSearched(true);
+      setAppProcessing(true, `Searching for subtitles matching ${fileName}`);
+
+      const searchParams: SubtitleSearchParams = {
+        moviehash: moviehash,
+      };
+
+      // Only add language filter if specified
+      if (language) {
+        searchParams.languages = language;
+      }
+
+      const response = await searchSubtitles(searchParams);
+
+      if (response.success && response.data) {
+        const dataArray = Array.isArray(response.data.data) ? response.data.data : [];
+        setSearchResults(dataArray);
+        setCurrentPage(0);
+
+        const totalPagesFromApi = response.data.total_pages;
+        if (totalPagesFromApi && totalPagesFromApi > 0) {
+          setTotalPages(totalPagesFromApi);
+        } else {
+          const totalResults = response.data.total_count || dataArray.length || 0;
+          setTotalPages(Math.ceil(totalResults / RESULTS_PER_PAGE));
+        }
+      } else {
+        console.error('File search failed:', response.error);
+        setSearchResults([]);
+        setTotalPages(0);
+      }
+    } catch (error) {
+      console.error('File search error:', error);
+      setSearchResults([]);
+      setTotalPages(0);
+    } finally {
+      setIsSearching(false);
+      setAppProcessing(false);
+    }
+  };
+
   const handleDownload = async (fileId: number, fileName: string) => {
     try {
       setDownloadingIds(prev => new Set(prev).add(fileId));
@@ -225,7 +292,11 @@ function Search({ setAppProcessing }: SearchProps) {
           alignItems: 'center',
           gap: '12px',
         }}>
-          <i className="fas fa-search"></i> Search {activeTab === 'subtitles' ? 'Subtitles' : 'Movies & TV Shows'}
+          <i className="fas fa-search"></i> Search {
+            activeTab === 'subtitles' ? 'Subtitles' :
+            activeTab === 'features' ? 'Movies & TV Shows' :
+            'by Video File'
+          }
         </h1>
         <p style={{
           margin: 0,
@@ -234,7 +305,9 @@ function Search({ setAppProcessing }: SearchProps) {
         }}>
           {activeTab === 'subtitles' ?
             'Find and download subtitles for movies and TV shows' :
-            'Discover movies and TV shows, then find their subtitles'
+            activeTab === 'features' ?
+            'Discover movies and TV shows, then find their subtitles' :
+            'Upload your video file to find exact subtitle matches'
           }
         </p>
       </div>
@@ -253,6 +326,12 @@ function Search({ setAppProcessing }: SearchProps) {
             onClick={() => setActiveTab('subtitles')}
           >
             <i className="fas fa-film"></i> Search Subtitles
+          </button>
+          <button
+            className={`tab-button ${activeTab === 'file' ? 'active' : ''}`}
+            onClick={() => setActiveTab('file')}
+          >
+            <i className="fas fa-file-video"></i> Search by File
           </button>
         </div>
       </div>
@@ -279,18 +358,28 @@ function Search({ setAppProcessing }: SearchProps) {
       )}
 
       {/* Search Form */}
-      <SearchForm
-        activeTab={activeTab}
-        onSearch={activeTab === 'subtitles' ?
-          (params) => handleSearch(params as SubtitleSearchParams, 0) :
-          (params) => handleFeatureSearch(params as FeatureSearchParams, 0)
-        }
-        isLoading={activeTab === 'subtitles' ? isSearching : isFeatureSearching}
-        initialValues={formInitialValues}
-      />
+      {activeTab === 'file' ? (
+        <FileSearchForm
+          onSearch={handleFileSearch}
+          isLoading={isSearching}
+          languageOptions={languageOptions}
+          languagesLoading={languagesLoading}
+          defaultLanguage={savedLanguage}
+        />
+      ) : (
+        <SearchForm
+          activeTab={activeTab}
+          onSearch={activeTab === 'subtitles' ?
+            (params) => handleSearch(params as SubtitleSearchParams, 0) :
+            (params) => handleFeatureSearch(params as FeatureSearchParams, 0)
+          }
+          isLoading={activeTab === 'subtitles' ? isSearching : isFeatureSearching}
+          initialValues={formInitialValues}
+        />
+      )}
 
       {/* Results */}
-      {activeTab === 'subtitles' && hasSearched && (
+      {(activeTab === 'subtitles' || activeTab === 'file') && hasSearched && (
         <SearchResults
           results={searchResults}
           totalPages={totalPages}

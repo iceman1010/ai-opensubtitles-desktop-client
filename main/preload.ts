@@ -80,6 +80,7 @@ const electronAPI = {
       return null;
     }
   },
+  calculateMovieHash: (filePath: string) => ipcRenderer.invoke('calculate-moviehash', filePath),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);

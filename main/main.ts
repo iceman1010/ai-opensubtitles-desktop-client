@@ -6,6 +6,7 @@ import { ConfigManager } from './config';
 import { FFmpegManager } from './ffmpeg';
 import { initializePowerSaveBlocker, cleanupPowerSaveBlocker } from './powerSaveBlocker';
 import * as fileFormatsConfig from '../shared/fileFormats.json';
+import { calculateMovieHash } from './utils/moviehash';
 
 class MainApp {
   private mainWindow: BrowserWindow | null = null;
@@ -1217,6 +1218,18 @@ class MainApp {
       } catch (error) {
         console.error('Failed to delete file:', filePath, error);
         throw error;
+      }
+    });
+
+    ipcMain.handle('calculate-moviehash', async (_, filePath: string) => {
+      try {
+        this.debug(2, 'Main', 'Calculating moviehash for:', filePath);
+        const hash = await calculateMovieHash(filePath);
+        this.debug(2, 'Main', 'Moviehash calculated:', hash);
+        return hash;
+      } catch (error: any) {
+        console.error('Failed to calculate moviehash:', error);
+        throw new Error(`Failed to calculate moviehash: ${error?.message || 'Unknown error'}`);
       }
     });
 
