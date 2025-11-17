@@ -783,6 +783,7 @@ function AppContent({
         {currentScreen === 'search' && config && (
           <Search
             setAppProcessing={setAppProcessing}
+            onNavigateToHelp={() => setCurrentScreen('help')}
           />
         )}
         {currentScreen === 'recent-media' && config && (

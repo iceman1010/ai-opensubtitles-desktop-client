@@ -48,9 +48,10 @@ interface SubtitleCardProps {
   result: SubtitleSearchResult;
   onDownload: (fileId: number, fileName: string) => void;
   isDownloading?: boolean;
+  onNavigateToHelp?: () => void;
 }
 
-function SubtitleCard({ result, onDownload, isDownloading = false }: SubtitleCardProps) {
+function SubtitleCard({ result, onDownload, isDownloading = false, onNavigateToHelp }: SubtitleCardProps) {
   const { attributes } = result;
 
   const formatFileSize = (fileName: string): string => {
@@ -278,27 +279,63 @@ function SubtitleCard({ result, onDownload, isDownloading = false }: SubtitleCar
         gap: '8px'
       }}>
         <span><i className="fas fa-user"></i> Uploader:</span>
-        <span style={{
-          fontWeight: 'bold',
-          color: 'var(--text-primary)'
-        }}>
-          {attributes.uploader.name}
-        </span>
-        {(() => {
-          const colors = getRankColor(attributes.uploader.rank);
-          return (
-            <span style={{
-              background: colors.bg,
-              color: colors.text,
-              padding: '2px 8px',
+        {attributes.uploader.name === 'AI.OpenSubtitles.com' ? (
+          <span
+            style={{
+              background: '#9C27B0',
+              color: 'white',
+              padding: '4px 12px',
               borderRadius: '12px',
-              fontSize: '10px',
-              fontWeight: '600'
+              fontSize: '11px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'background 0.2s ease'
+            }}
+            title="This subtitle will be generated on-demand by OpenSubtitles when you download it. Click to learn more."
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onNavigateToHelp) {
+                onNavigateToHelp();
+              }
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#7B1FA2';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#9C27B0';
+            }}
+          >
+            AI.OpenSubtitles.com
+            <i className="fas fa-info-circle"></i>
+          </span>
+        ) : (
+          <>
+            <span style={{
+              fontWeight: 'bold',
+              color: 'var(--text-primary)'
             }}>
-              {attributes.uploader.rank}
+              {attributes.uploader.name}
             </span>
-          );
-        })()}
+            {(() => {
+              const colors = getRankColor(attributes.uploader.rank);
+              return (
+                <span style={{
+                  background: colors.bg,
+                  color: colors.text,
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  fontSize: '10px',
+                  fontWeight: '600'
+                }}>
+                  {attributes.uploader.rank}
+                </span>
+              );
+            })()}
+          </>
+        )}
       </div>
 
       {/* Action Buttons */}

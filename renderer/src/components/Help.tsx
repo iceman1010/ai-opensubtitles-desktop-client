@@ -4,7 +4,7 @@ import * as fileFormatsConfig from '../../../shared/fileFormats.json';
 interface HelpProps {}
 
 const Help: React.FC<HelpProps> = ({}) => {
-  const [activeSection, setActiveSection] = useState<'getting-started' | 'command-line' | 'file-associations' | 'file-formats' | 'transcription' | 'translation' | 'batch-processing' | 'troubleshooting' | 'shortcuts'>('getting-started');
+  const [activeSection, setActiveSection] = useState<'getting-started' | 'command-line' | 'file-associations' | 'file-formats' | 'transcription' | 'translation' | 'batch-processing' | 'troubleshooting' | 'search' | 'shortcuts'>('getting-started');
 
   const sections = {
     'getting-started': {
@@ -454,6 +454,125 @@ const Help: React.FC<HelpProps> = ({}) => {
             <li><strong>Usage:</strong> Credits are consumed when processing files</li>
             <li><strong>Monitoring:</strong> Credit balance updates in real-time after each operation</li>
             <li><strong>Depletion:</strong> Processing automatically stops when credits are exhausted</li>
+          </ul>
+        </div>
+      )
+    },
+    'search': {
+      title: 'Subtitle Search',
+      content: (
+        <div>
+          <h3>Subtitle Search</h3>
+          <p>
+            Search the OpenSubtitles database to find and download subtitles for your movies and TV shows.
+            The search feature offers three different methods to find exactly what you need.
+          </p>
+
+          <h4>Search Methods</h4>
+
+          <h5><i className="fas fa-video"></i> Search Movies & TV Shows</h5>
+          <p>Browse the OpenSubtitles movie and TV show database:</p>
+          <ul>
+            <li>Search by title, year, and media type (movie/episode)</li>
+            <li>View detailed information including IMDb/TMDB IDs</li>
+            <li>Click "Find Subtitles" to search for subtitles for that specific title</li>
+            <li>Results show posters, ratings, and release information</li>
+          </ul>
+
+          <h5><i className="fas fa-film"></i> Search Subtitles</h5>
+          <p>Search directly for subtitle files:</p>
+          <ul>
+            <li><strong>Basic Search:</strong> Enter movie/show name and select language</li>
+            <li><strong>Advanced Options:</strong> Filter by IMDb ID, release year, and media type</li>
+            <li><strong>Language Selection:</strong> Choose from 50+ languages (your preference is saved)</li>
+            <li><strong>Results Display:</strong> Shows quality badges (HD, HI), uploader info, download counts, and ratings</li>
+          </ul>
+
+          <h5><i className="fas fa-file-video"></i> Search by File</h5>
+          <p>Upload your video file for exact subtitle matching:</p>
+          <ul>
+            <li>Drag & drop or browse to select your video file</li>
+            <li>App calculates a unique file fingerprint (moviehash)</li>
+            <li>Finds subtitles that match your exact video file, even if filename changed</li>
+            <li>Most accurate method for finding perfectly synced subtitles</li>
+            <li>Optional language filter (or search all languages)</li>
+          </ul>
+
+          <h4>Search Results</h4>
+          <p>Subtitle search results display comprehensive information:</p>
+          <ul>
+            <li><strong>Title & Year:</strong> Movie or TV show name with release year</li>
+            <li><strong>Quality Badges:</strong> HD, HI (Hearing Impaired), AI (auto-generated)</li>
+            <li><strong>Release Info:</strong> Specific release version the subtitle is for</li>
+            <li><strong>Details:</strong> Language, download count, file size, FPS, number of CDs</li>
+            <li><strong>Uploader:</strong> Username and rank (Trusted, Gold, Silver, Bronze)</li>
+            <li><strong>Upload Date:</strong> When the subtitle was added</li>
+          </ul>
+
+          <h4>Downloading Subtitles</h4>
+          <p>Click "Download SRT" on any result to download:</p>
+          <ul>
+            <li>Opens a save dialog to choose where to save the file</li>
+            <li>Automatically adds .srt extension if needed</li>
+            <li>Suggests filename based on the subtitle release name</li>
+            <li>Downloaded subtitles are standard SRT format, compatible with all players</li>
+          </ul>
+
+          <h4>Understanding AI.OpenSubtitles.com Results</h4>
+          <section style={{
+            padding: '16px',
+            backgroundColor: 'var(--bg-tertiary)',
+            borderLeft: '4px solid #9C27B0',
+            borderRadius: '4px',
+            marginTop: '16px',
+            marginBottom: '16px'
+          }}>
+            <p style={{ margin: 0, fontSize: '14px' }}>
+              <strong style={{ color: '#9C27B0' }}>Note:</strong> You may see results with uploader "AI.OpenSubtitles.com".
+              These represent on-demand translations that will be created by OpenSubtitles when you download them (not by this app).
+              They appear when human-uploaded subtitles don't exist in your requested language.
+            </p>
+          </section>
+
+          <h5>What are AI.OpenSubtitles.com Results?</h5>
+          <p>
+            These are <strong>on-demand translations</strong> that OpenSubtitles will create for you when you download them.
+            They appear in search results when:
+          </p>
+          <ul>
+            <li>No human-uploaded subtitles exist in your requested language</li>
+            <li>Both target and source languages are supported by DeepL</li>
+            <li>A source subtitle exists that can be translated</li>
+          </ul>
+          <p>
+            <strong>Important:</strong> These subtitles don't exist yet when you see them in search results.
+            They are generated on-the-fly by OpenSubtitles when you click "Download SRT", using DeepL translation technology.
+          </p>
+
+          <h5>How to Identify Them</h5>
+          <p>Potential on-demand translations are clearly marked with:</p>
+          <ul>
+            <li><strong>Purple "AI" badge</strong> in the quality badges section</li>
+            <li><strong>Clickable purple "AI.OpenSubtitles.com" uploader badge</strong> (click to return to this help section)</li>
+          </ul>
+
+          <h5>Quality Considerations</h5>
+          <ul>
+            <li><strong>Generated when you download</strong> - Translation happens in real-time on OpenSubtitles servers</li>
+            <li><strong>Generally high quality</strong> - DeepL is one of the best translation systems</li>
+            <li><strong>Best for:</strong> Standard dialogue, common phrases, general conversation</li>
+            <li><strong>May need review for:</strong> Technical terms, wordplay, idioms, cultural references</li>
+            <li><strong>Free to use</strong> - Same as regular subtitles, no extra cost</li>
+            <li><strong>Valuable for:</strong> Rare language pairs or new content without human translations</li>
+          </ul>
+
+          <h4>Tips for Better Search Results</h4>
+          <ul>
+            <li><strong>Use IMDb ID:</strong> For most accurate results, search by IMDb ID (found on IMDb.com)</li>
+            <li><strong>Try file-based search:</strong> Upload your video file for perfect sync matches</li>
+            <li><strong>Check release version:</strong> Ensure the subtitle release matches your video file release</li>
+            <li><strong>Sort by downloads:</strong> Popular subtitles tend to have better quality</li>
+            <li><strong>Look for trusted uploaders:</strong> Users with "Trusted" rank provide reliable content</li>
           </ul>
         </div>
       )
