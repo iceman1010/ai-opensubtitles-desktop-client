@@ -9,12 +9,11 @@ import { SubtitleSearchResult } from './SubtitleCard';
 
 interface SearchProps {
   setAppProcessing: (processing: boolean, task?: string) => void;
-  onNavigateToHelp?: () => void;
 }
 
 type SearchTab = 'subtitles' | 'features' | 'file';
 
-function Search({ setAppProcessing, onNavigateToHelp }: SearchProps) {
+function Search({ setAppProcessing }: SearchProps) {
   const { searchSubtitles, downloadSubtitle, searchForFeatures, getSubtitleSearchLanguages, isAuthenticating, authState } = useAPI();
 
   // Tab state
@@ -399,7 +398,6 @@ function Search({ setAppProcessing, onNavigateToHelp }: SearchProps) {
           onDownload={handleDownload}
           isLoading={isSearching}
           downloadingIds={downloadingIds}
-          onNavigateToHelp={onNavigateToHelp}
         />
       )}
 

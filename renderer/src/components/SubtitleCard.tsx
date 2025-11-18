@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import AISubtitleModal from './AISubtitleModal';
 
 export interface SubtitleSearchResult {
   id: string;
@@ -48,11 +49,11 @@ interface SubtitleCardProps {
   result: SubtitleSearchResult;
   onDownload: (fileId: number, fileName: string) => void;
   isDownloading?: boolean;
-  onNavigateToHelp?: () => void;
 }
 
-function SubtitleCard({ result, onDownload, isDownloading = false, onNavigateToHelp }: SubtitleCardProps) {
+function SubtitleCard({ result, onDownload, isDownloading = false }: SubtitleCardProps) {
   const { attributes } = result;
+  const [showAIModal, setShowAIModal] = useState(false);
 
   const formatFileSize = (fileName: string): string => {
     // Estimate file size based on filename and CD count
@@ -297,9 +298,7 @@ function SubtitleCard({ result, onDownload, isDownloading = false, onNavigateToH
             title="This subtitle will be generated on-demand by OpenSubtitles when you download it. Click to learn more."
             onClick={(e) => {
               e.stopPropagation();
-              if (onNavigateToHelp) {
-                onNavigateToHelp();
-              }
+              setShowAIModal(true);
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = '#7B1FA2';
@@ -379,6 +378,12 @@ function SubtitleCard({ result, onDownload, isDownloading = false, onNavigateToH
           {isDownloading ? <><i className="fas fa-spinner fa-spin"></i> Downloading...</> : <><i className="fas fa-download"></i> Download SRT</>}
         </button>
       </div>
+
+      {/* AI Subtitle Info Modal */}
+      <AISubtitleModal
+        isOpen={showAIModal}
+        onClose={() => setShowAIModal(false)}
+      />
     </div>
   );
 }

@@ -11,7 +11,6 @@ interface SearchResultsProps {
   onDownload: (fileId: number, fileName: string) => void;
   isLoading: boolean;
   downloadingIds: Set<number>;
-  onNavigateToHelp?: () => void;
 }
 
 function SearchResults({
@@ -21,8 +20,7 @@ function SearchResults({
   onPageChange,
   onDownload,
   isLoading,
-  downloadingIds,
-  onNavigateToHelp
+  downloadingIds
 }: SearchResultsProps) {
   if (isLoading) {
     return (
@@ -138,7 +136,6 @@ function SearchResults({
             isDownloading={result.attributes.files.some(file =>
               downloadingIds.has(file.file_id)
             )}
-            onNavigateToHelp={onNavigateToHelp}
           />
         ))}
       </div>
