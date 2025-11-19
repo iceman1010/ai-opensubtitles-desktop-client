@@ -1620,15 +1620,14 @@ MimeType=`;
   }
 
   private async testFfmpegPath(path: string): Promise<{success: boolean, message: string}> {
-    if (!path.trim()) {
-      return { success: false, message: 'Path is empty. Use auto-detection instead.' };
-    }
+    // If path is empty, test auto-detected FFmpeg (system or bundled)
+    const ffmpegCommand = path.trim() || 'ffmpeg';
 
-    this.debug(2, 'FFmpeg', `Testing FFmpeg path: ${path}`);
-    
+    this.debug(2, 'FFmpeg', `Testing FFmpeg path: ${ffmpegCommand}${!path.trim() ? ' (auto-detected)' : ''}`);
+
     return new Promise((resolve) => {
       const { spawn } = require('child_process');
-      const child = spawn(path, ['-version'], { stdio: 'pipe' });
+      const child = spawn(ffmpegCommand, ['-version'], { stdio: 'pipe' });
       
       let output = '';
       child.stdout.on('data', (data: any) => {
@@ -1637,10 +1636,11 @@ MimeType=`;
 
       child.on('close', (code: number) => {
         const success = code === 0;
-        const message = success 
-          ? `FFmpeg path is valid and working: ${path}`
-          : `FFmpeg path failed to execute. Exit code: ${code}`;
-        
+        const pathInfo = !path.trim() ? 'Auto-detected FFmpeg' : `FFmpeg path: ${ffmpegCommand}`;
+        const message = success
+          ? `${pathInfo} is valid and working`
+          : `${pathInfo} failed to execute. Exit code: ${code}`;
+
         this.debug(2, 'FFmpeg', `FFmpeg test result: ${success ? 'SUCCESS' : 'FAILED'} - ${message}`);
         resolve({ success, message });
       });

@@ -1574,25 +1574,27 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline }: Pr
               )}
             </div>
             
-            <div style={{
-              fontSize: '12px',
-              color: 'var(--text-secondary)',
-              lineHeight: '1.4'
-            }}>
-              <strong>macOS users:</strong> If FFmpeg is not found automatically, try installing it with:
+            {window.electronAPI?.platform === 'darwin' && (
               <div style={{
-                backgroundColor: 'var(--bg-secondary)',
-                padding: '8px',
-                borderRadius: '4px',
-                fontFamily: 'monospace',
-                margin: '8px 0',
-                color: 'var(--text-primary)',
-                border: '1px solid var(--border-color)'
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                lineHeight: '1.4'
               }}>
-                brew install ffmpeg
+                <strong>macOS users:</strong> If FFmpeg is not found automatically, try installing it with:
+                <div style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  padding: '8px',
+                  borderRadius: '4px',
+                  fontFamily: 'monospace',
+                  margin: '8px 0',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-color)'
+                }}>
+                  brew install ffmpeg
+                </div>
+                Then restart the application or specify the path manually.
               </div>
-              Then restart the application or specify the path manually.
-            </div>
+            )}
           </div>
         </div>
 

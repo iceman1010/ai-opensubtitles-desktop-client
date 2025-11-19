@@ -316,8 +316,8 @@ export function updateAPIConnectivityCache(connected: boolean, cacheValidMs: num
 export function invalidateConnectivityCache(): void {
   logger.debug(2, 'NetworkUtils', 'Invalidating connectivity cache');
   apiConnectivityCache = {
-    connected: false,
-    lastChecked: 0,
+    connected: true,  // Optimistic: assume online until check proves otherwise
+    lastChecked: 0,   // Force expired so next check runs immediately
     cacheValidMs: 30000
   };
 }
