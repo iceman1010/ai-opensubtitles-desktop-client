@@ -174,11 +174,12 @@ function SubtitleCard({ result, onDownload, isDownloading = false }: SubtitleCar
     >
       {/* Header - Movie/Show Info */}
       <div style={{ marginBottom: '12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+        {/* Title Row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
           <h3 style={{
             margin: 0,
-            fontSize: '18px',
-            fontWeight: 'bold',
+            fontSize: '16px',
+            fontWeight: '600',
             color: 'var(--text-primary)',
             display: 'flex',
             alignItems: 'center',
@@ -189,161 +190,192 @@ function SubtitleCard({ result, onDownload, isDownloading = false }: SubtitleCar
             {attributes.feature_details.year && (
               <span style={{
                 fontSize: '14px',
-                fontWeight: 'normal',
-                color: 'var(--text-secondary)',
-                marginLeft: '8px'
+                fontWeight: '400',
+                color: 'var(--text-secondary)'
               }}>
                 ({attributes.feature_details.year})
               </span>
             )}
-            {getTrustBadge()}
           </h3>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             {getQualityBadges()}
+            {getTrustBadge()}
           </div>
         </div>
 
+        {/* Release + IMDb Row */}
         <div style={{
-          fontSize: '13px',
+          fontSize: '12px',
           color: 'var(--text-secondary)',
-          marginBottom: '8px',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap'
         }}
         title={attributes.release || 'Unknown'}>
-          Release: {attributes.release || 'Unknown'}
+          <span>Release: {attributes.release || 'Unknown'}</span>
+
+          {attributes.feature_details.imdb_id && (
+            <>
+              <span style={{ color: 'var(--border-color)', margin: '0 8px' }}>|</span>
+              <span
+                style={{
+                  cursor: 'pointer',
+                  transition: 'color 0.2s ease'
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const imdbUrl = `https://www.imdb.com/title/tt${attributes.feature_details.imdb_id.toString().padStart(7, '0')}`;
+                  window.electronAPI?.openExternal(imdbUrl);
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = 'var(--primary-color)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'var(--text-secondary)';
+                }}
+                title="Click to open on IMDb"
+              >
+                IMDb: {attributes.feature_details.imdb_id}
+                <i className="fas fa-external-link-alt" style={{ fontSize: '9px', marginLeft: '3px' }}></i>
+              </span>
+            </>
+          )}
         </div>
       </div>
 
       {/* Subtitle Details */}
       <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-        gap: '12px',
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '8px 16px',
         marginBottom: '12px',
-        fontSize: '13px'
+        fontSize: '12px',
+        color: 'var(--text-secondary)'
       }}>
-        <div>
-          <span style={{ color: 'var(--text-secondary)' }}>Language:</span>{' '}
-          <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
-            <i className="fas fa-globe"></i> {attributes.language.toUpperCase()}
+        <div style={{ minWidth: '100px' }}>
+          <span>Language:</span>{' '}
+          <span style={{ fontWeight: '500', color: 'var(--text-primary)' }}>
+            {attributes.language.toUpperCase()}
           </span>
         </div>
 
-        <div>
-          <span style={{ color: 'var(--text-secondary)' }}>Downloads:</span>{' '}
-          <span style={{ fontWeight: 'bold', color: 'var(--primary-color)' }}>
-            <i className="fas fa-download"></i> {attributes.download_count.toLocaleString()}
+        <div style={{ minWidth: '110px' }}>
+          <span>Downloads:</span>{' '}
+          <span style={{ fontWeight: '500', color: 'var(--text-primary)' }}>
+            {attributes.download_count.toLocaleString()}
           </span>
         </div>
 
-        <div>
-          <span style={{ color: 'var(--text-secondary)' }}>File Size:</span>{' '}
-          <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
-            <i className="fas fa-hdd"></i> {formatFileSize(attributes.files[0]?.file_name || '')}
+        <div style={{ minWidth: '100px' }}>
+          <span>File Size:</span>{' '}
+          <span style={{ fontWeight: '500', color: 'var(--text-primary)' }}>
+            {formatFileSize(attributes.files[0]?.file_name || '')}
           </span>
         </div>
 
         {attributes.fps > 0 && (
-          <div>
-            <span style={{ color: 'var(--text-secondary)' }}>FPS:</span>{' '}
-            <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
-              <i className="fas fa-clock"></i> {attributes.fps}
+          <div style={{ minWidth: '80px' }}>
+            <span>FPS:</span>{' '}
+            <span style={{ fontWeight: '500', color: 'var(--text-primary)' }}>
+              {attributes.fps.toFixed(2)}
             </span>
           </div>
         )}
 
-        <div>
-          <span style={{ color: 'var(--text-secondary)' }}>CDs:</span>{' '}
-          <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
-            <i className="fas fa-compact-disc"></i> {attributes.nb_cd}
+        <div style={{ minWidth: '60px' }}>
+          <span>CDs:</span>{' '}
+          <span style={{ fontWeight: '500', color: 'var(--text-primary)' }}>
+            {attributes.nb_cd}
           </span>
         </div>
 
-        <div>
-          <span style={{ color: 'var(--text-secondary)' }}>Uploaded:</span>{' '}
-          <span style={{ color: 'var(--text-primary)' }}>
-            <i className="fas fa-calendar"></i> {formatUploadDate(attributes.upload_date)}
+        <div style={{ minWidth: '120px' }}>
+          <span>Uploaded:</span>{' '}
+          <span style={{ fontWeight: '500', color: 'var(--text-primary)' }}>
+            {formatUploadDate(attributes.upload_date)}
           </span>
         </div>
       </div>
 
-      {/* Uploader Info */}
+      {/* Footer: Uploader + Download Button */}
       <div style={{
-        fontSize: '12px',
-        color: 'var(--text-secondary)',
-        marginBottom: '12px',
         display: 'flex',
         alignItems: 'center',
-        gap: '8px'
+        justifyContent: 'space-between',
+        gap: '12px',
+        paddingTop: '8px',
+        borderTop: '1px solid var(--border-color)'
       }}>
-        <span><i className="fas fa-user"></i> Uploader:</span>
-        {attributes.uploader.name === 'AI.OpenSubtitles.com' ? (
-          <span
-            style={{
-              background: '#9C27B0',
-              color: 'white',
-              padding: '4px 12px',
-              borderRadius: '12px',
-              fontSize: '11px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'background 0.2s ease'
-            }}
-            title="This subtitle will be generated on-demand by OpenSubtitles when you download it. Click to learn more."
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowAIModal(true);
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#7B1FA2';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#9C27B0';
-            }}
-          >
-            AI.OpenSubtitles.com
-            <i className="fas fa-info-circle"></i>
-          </span>
-        ) : (
-          <>
-            <span style={{
-              fontWeight: 'bold',
-              color: 'var(--text-primary)'
-            }}>
-              {attributes.uploader.name}
+        {/* Uploader Info */}
+        <div style={{
+          fontSize: '11px',
+          color: 'var(--text-secondary)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          flex: '1 1 auto'
+        }}>
+          <span>Uploader:</span>
+          {attributes.uploader.name === 'AI.OpenSubtitles.com' ? (
+            <span
+              style={{
+                background: '#9C27B0',
+                color: 'white',
+                padding: '3px 10px',
+                borderRadius: '10px',
+                fontSize: '10px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'background 0.2s ease'
+              }}
+              title="This subtitle will be generated on-demand by OpenSubtitles when you download it. Click to learn more."
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowAIModal(true);
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#7B1FA2';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#9C27B0';
+              }}
+            >
+              AI.OpenSubtitles.com
+              <i className="fas fa-info-circle" style={{ fontSize: '9px' }}></i>
             </span>
-            {(() => {
-              const colors = getRankColor(attributes.uploader.rank);
-              return (
-                <span style={{
-                  background: colors.bg,
-                  color: colors.text,
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                  fontSize: '10px',
-                  fontWeight: '600'
-                }}>
-                  {attributes.uploader.rank}
-                </span>
-              );
-            })()}
-          </>
-        )}
-      </div>
+          ) : (
+            <>
+              <span style={{
+                fontWeight: '600',
+                color: 'var(--text-primary)',
+                fontSize: '11px'
+              }}>
+                {attributes.uploader.name}
+              </span>
+              {(() => {
+                const colors = getRankColor(attributes.uploader.rank);
+                return (
+                  <span style={{
+                    background: colors.bg,
+                    color: colors.text,
+                    padding: '2px 6px',
+                    borderRadius: '8px',
+                    fontSize: '9px',
+                    fontWeight: '600'
+                  }}>
+                    {attributes.uploader.rank}
+                  </span>
+                );
+              })()}
+            </>
+          )}
+        </div>
 
-      {/* Action Buttons */}
-      <div style={{
-        display: 'flex',
-        gap: '10px',
-        justifyContent: 'flex-end',
-        alignItems: 'center'
-      }}>
+        {/* Download Button */}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -351,27 +383,26 @@ function SubtitleCard({ result, onDownload, isDownloading = false }: SubtitleCar
           }}
           disabled={isDownloading || attributes.files.length === 0}
           style={{
-            padding: '8px 20px',
-            fontSize: '13px',
-            fontWeight: 'bold',
+            padding: '7px 16px',
+            fontSize: '12px',
+            fontWeight: '600',
             background: isDownloading ? 'var(--bg-disabled)' : 'var(--primary-color)',
             color: isDownloading ? 'var(--text-disabled)' : 'var(--button-text)',
             border: 'none',
             borderRadius: '4px',
             cursor: isDownloading ? 'not-allowed' : 'pointer',
             transition: 'all 0.2s ease',
-            minWidth: '120px',
+            minWidth: '110px',
+            flex: '0 0 auto'
           }}
           onMouseEnter={(e) => {
             if (!isDownloading) {
               e.currentTarget.style.background = 'var(--primary-dark)';
-              e.currentTarget.style.transform = 'translateY(-1px)';
             }
           }}
           onMouseLeave={(e) => {
             if (!isDownloading) {
               e.currentTarget.style.background = 'var(--primary-color)';
-              e.currentTarget.style.transform = 'translateY(0)';
             }
           }}
         >
