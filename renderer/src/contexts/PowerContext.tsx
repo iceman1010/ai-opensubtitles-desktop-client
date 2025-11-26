@@ -145,7 +145,7 @@ export const PowerProvider: React.FC<PowerProviderProps> = ({ children }) => {
         logger.error('PowerContext', 'Error in suspend callback:', error);
       }
     });
-  }, []);
+  }, []); // Empty deps - function is stable
 
   const handleSystemResume = useCallback(async () => {
     const resumeTime = Date.now();
@@ -178,7 +178,7 @@ export const PowerProvider: React.FC<PowerProviderProps> = ({ children }) => {
     });
 
     logger.debug(1, 'PowerContext', 'All resume callbacks executed');
-  }, []);
+  }, []); // Empty deps - function is stable
 
   const handleScreenLock = useCallback(() => {
     logger.debug(2, 'PowerContext', 'Screen lock detected');
@@ -192,7 +192,7 @@ export const PowerProvider: React.FC<PowerProviderProps> = ({ children }) => {
         logger.error('PowerContext', 'Error in screen lock callback:', error);
       }
     });
-  }, []);
+  }, []); // Empty deps - function is stable
 
   const handleScreenUnlock = useCallback(() => {
     logger.debug(2, 'PowerContext', 'Screen unlock detected');
@@ -206,7 +206,7 @@ export const PowerProvider: React.FC<PowerProviderProps> = ({ children }) => {
         logger.error('PowerContext', 'Error in screen unlock callback:', error);
       }
     });
-  }, []);
+  }, []); // Empty deps - function is stable
 
   // Setup power monitoring when component mounts
   useEffect(() => {

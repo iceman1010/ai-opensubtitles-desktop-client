@@ -788,6 +788,7 @@ function AppContent({
         {currentScreen === 'search' && config && (
           <Search
             setAppProcessing={setAppProcessing}
+            showNotification={showNotificationRef.current}
           />
         )}
         {currentScreen === 'recent-media' && config && (

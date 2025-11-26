@@ -175,7 +175,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
                 apiCreatedRef.current ? 'already created' : 'unknown'
       });
     }
-  }, [initialConfig?.apiKey, initialConfig?.username, initialConfig?.password, initialConfig?.apiBaseUrl, initialConfig?.apiUrlParameter, api, lastResumeTime]);
+  }, [initialConfig?.apiKey, initialConfig?.username, initialConfig?.password, initialConfig?.apiBaseUrl, initialConfig?.apiUrlParameter, api]);
 
   // Cleanup timer on unmount
   useEffect(() => {

@@ -6,14 +6,16 @@ import SearchResults from './SearchResults';
 import FeatureResults from './FeatureResults';
 import FileSearchForm from './FileSearchForm';
 import { SubtitleSearchResult } from './SubtitleCard';
+import { logger } from '../utils/errorLogger';
 
 interface SearchProps {
   setAppProcessing: (processing: boolean, task?: string) => void;
+  showNotification?: ((message: string, duration?: number) => void) | null;
 }
 
 type SearchTab = 'subtitles' | 'features' | 'file';
 
-function Search({ setAppProcessing }: SearchProps) {
+function Search({ setAppProcessing, showNotification }: SearchProps) {
   const { searchSubtitles, downloadSubtitle, searchForFeatures, getSubtitleSearchLanguages, isAuthenticating, authState } = useAPI();
 
   // Tab state
@@ -250,9 +252,18 @@ function Search({ setAppProcessing }: SearchProps) {
           // AI-generated subtitle - content returned directly
           content = response.data.file;
         } else {
-          console.error('Download failed: No link or file in response');
+          logger.error('Search', 'Download failed: No link or file in response');
           return;
         }
+
+        // Log quota information from API response
+        const { remaining, requests, reset_time, message } = response.data;
+        logger.info('Search', 'Subtitle download quota info:', {
+          remaining,
+          requests,
+          reset_time,
+          message
+        });
 
         // Ensure filename has .srt extension
         const defaultFileName = fileName.endsWith('.srt') ? fileName : `${fileName}.srt`;
@@ -261,12 +272,17 @@ function Search({ setAppProcessing }: SearchProps) {
         const savedPath = await window.electronAPI?.saveFile(content, defaultFileName);
 
         if (savedPath) {
-          console.log(`Subtitle saved to: ${savedPath}`);
+          logger.info('Search', `Subtitle saved to: ${savedPath}`);
+
+          // Show quota info in status bar notification
+          if (showNotification && remaining !== undefined) {
+            showNotification(`Downloaded - ${remaining} downloads remaining`, 5000);
+          }
         } else {
-          console.log('Save cancelled by user');
+          logger.info('Search', 'Save cancelled by user');
         }
       } else {
-        console.error('Download failed:', response.error);
+        logger.error('Search', 'Download failed:', response.error);
       }
     } catch (error) {
       console.error('Download error:', error);
