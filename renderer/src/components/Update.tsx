@@ -8,6 +8,7 @@ interface ReleaseInfo {
   name: string;
   published_at: string;
   body: string;
+  html_url: string;
 }
 
 function Update({}: UpdateProps) {
@@ -16,6 +17,7 @@ function Update({}: UpdateProps) {
   const [currentVersion, setCurrentVersion] = useState<string>('');
   const [releaseHistory, setReleaseHistory] = useState<ReleaseInfo[]>([]);
   const [showHistory, setShowHistory] = useState(true);
+  const [currentReleaseUrl, setCurrentReleaseUrl] = useState<string>('');
 
   useEffect(() => {
     // Get current version from package.json
@@ -50,10 +52,17 @@ function Update({}: UpdateProps) {
         tag_name: release.tag_name,
         name: release.name || release.tag_name,
         published_at: release.published_at,
-        body: release.body || 'No release notes available.'
+        body: release.body || 'No release notes available.',
+        html_url: release.html_url
       }));
 
       setReleaseHistory(formattedReleases);
+
+      // Find and store the current release URL
+      const currentRelease = formattedReleases.find(r => r.tag_name === `v${packageJson.version}`);
+      if (currentRelease) {
+        setCurrentReleaseUrl(currentRelease.html_url);
+      }
     } catch (error) {
       console.error('Failed to load release history:', error);
     }
@@ -94,6 +103,12 @@ function Update({}: UpdateProps) {
                .filter(line => line.trim());
   };
 
+  const handleDownloadRelease = () => {
+    if (currentReleaseUrl) {
+      window.electronAPI?.openExternal?.(currentReleaseUrl) || window.open(currentReleaseUrl, '_blank');
+    }
+  };
+
   return (
     <div className="preferences-container" style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '20px' }}>
       <h1>Updates</h1>
@@ -107,15 +122,48 @@ function Update({}: UpdateProps) {
           marginBottom: '20px'
         }}>
           <h3 style={{ marginBottom: '15px', fontSize: '18px', color: 'var(--text-primary)' }}>Current Version</h3>
-          <div style={{ 
-            fontSize: '24px', 
-            fontWeight: 'bold', 
+          <div style={{
+            fontSize: '24px',
+            fontWeight: 'bold',
             color: '#28a745',
-            marginBottom: '20px'
+            marginBottom: '10px'
           }}>
             v{currentVersion}
           </div>
-          
+
+          {currentReleaseUrl && (
+            <div style={{ marginBottom: '20px' }}>
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleDownloadRelease();
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '14px',
+                  color: '#007bff',
+                  textDecoration: 'none',
+                  cursor: 'pointer',
+                  transition: 'color 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = '#0056b3';
+                  e.currentTarget.style.textDecoration = 'underline';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = '#007bff';
+                  e.currentTarget.style.textDecoration = 'none';
+                }}
+              >
+                <i className="fas fa-download"></i>
+                Download Current Release
+              </a>
+            </div>
+          )}
+
           <div style={{ marginBottom: '20px' }}>
             <button
               type="button"
