@@ -109,128 +109,7 @@ function App() {
   // Determine if we have valid credentials
   const hasCredentials = config?.username && config?.password && config?.apiKey;
 
-  // Show splash screen overlay with fade transition
-  if (showSplashScreen) {
-    return (
-      <>
-        {/* Main app content loads behind splash screen - ready for reveal */}
-        {!isLoading && (
-          <PowerProvider>
-            <APIProvider
-              initialConfig={hasCredentials ? {
-                username: config.username,
-                password: config.password,
-                apiKey: config.apiKey,
-                apiBaseUrl: config.apiBaseUrl,
-                apiUrlParameter: config.apiUrlParameter
-              } : undefined}
-            >
-              <AppContent
-                config={config}
-                setConfig={setConfig}
-                hasCredentials={!!hasCredentials}
-                isLoading={isLoading}
-              />
-            </APIProvider>
-          </PowerProvider>
-        )}
-
-        {/* Splash screen overlay */}
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          backgroundColor: config?.darkMode ? '#1a1a1a' : '#ffffff',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          opacity: splashOpacity,
-          transition: 'opacity 1000ms ease-out'
-        }}>
-          <style>
-            {`
-              @keyframes splashBounceGlow {
-                0% {
-                  transform: translateY(-100px) scale(0.3);
-                  opacity: 0;
-                  box-shadow: 0 0 20px rgba(74, 144, 226, 0.3);
-                }
-                50% {
-                  transform: translateY(10px) scale(1.1);
-                  opacity: 0.8;
-                  box-shadow: 0 0 30px rgba(74, 144, 226, 0.5);
-                }
-                70% {
-                  transform: translateY(-5px) scale(0.95);
-                  opacity: 1;
-                  box-shadow: 0 0 25px rgba(74, 144, 226, 0.4);
-                }
-                100% {
-                  transform: translateY(0) scale(1);
-                  opacity: 1;
-                  box-shadow: 0 0 20px rgba(74, 144, 226, 0.3);
-                }
-              }
-
-              @keyframes splashGlowPulse {
-                0% {
-                  box-shadow: 0 0 20px rgba(74, 144, 226, 0.3);
-                }
-                50% {
-                  box-shadow: 0 0 30px rgba(74, 144, 226, 0.6);
-                }
-                100% {
-                  box-shadow: 0 0 20px rgba(74, 144, 226, 0.3);
-                }
-              }
-
-              .splash-logo {
-                animation: splashBounceGlow 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards,
-                           splashGlowPulse 2s ease-in-out infinite 1.2s;
-              }
-            `}
-          </style>
-          <img
-            src={logoImage}
-            alt="Logo"
-            className="splash-logo"
-            style={{
-              width: '120px',
-              height: '120px',
-              borderRadius: '50%',
-              marginBottom: '16px'
-            }}
-          />
-          <div style={{
-            position: 'absolute',
-            bottom: '10px',
-            fontSize: '11px',
-            color: config?.darkMode ? '#aaa' : '#6c757d',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            fontWeight: '300'
-          }}>
-            v{packageInfo.version}
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="app">
-        <div className="main-content">
-          <p>Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Normal app flow after splash screen is hidden
+  // Render providers ONCE at top level - never unmount/remount them
   return (
     <PowerProvider>
       <APIProvider
@@ -242,6 +121,91 @@ function App() {
           apiUrlParameter: config.apiUrlParameter
         } : undefined}
       >
+        {/* Splash screen overlay - conditional render inside providers */}
+        {showSplashScreen && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: config?.darkMode ? '#1a1a1a' : '#ffffff',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            opacity: splashOpacity,
+            transition: 'opacity 1000ms ease-out'
+          }}>
+            <style>
+              {`
+                @keyframes splashBounceGlow {
+                  0% {
+                    transform: translateY(-100px) scale(0.3);
+                    opacity: 0;
+                    box-shadow: 0 0 20px rgba(74, 144, 226, 0.3);
+                  }
+                  50% {
+                    transform: translateY(10px) scale(1.1);
+                    opacity: 0.8;
+                    box-shadow: 0 0 30px rgba(74, 144, 226, 0.5);
+                  }
+                  70% {
+                    transform: translateY(-5px) scale(0.95);
+                    opacity: 1;
+                    box-shadow: 0 0 25px rgba(74, 144, 226, 0.4);
+                  }
+                  100% {
+                    transform: translateY(0) scale(1);
+                    opacity: 1;
+                    box-shadow: 0 0 20px rgba(74, 144, 226, 0.3);
+                  }
+                }
+
+                @keyframes splashGlowPulse {
+                  0% {
+                    box-shadow: 0 0 20px rgba(74, 144, 226, 0.3);
+                  }
+                  50% {
+                    box-shadow: 0 0 30px rgba(74, 144, 226, 0.6);
+                  }
+                  100% {
+                    box-shadow: 0 0 20px rgba(74, 144, 226, 0.3);
+                  }
+                }
+
+                .splash-logo {
+                  animation: splashBounceGlow 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards,
+                             splashGlowPulse 2s ease-in-out infinite 1.2s;
+                }
+              `}
+            </style>
+            <img
+              src={logoImage}
+              alt="Logo"
+              className="splash-logo"
+              style={{
+                width: '120px',
+                height: '120px',
+                borderRadius: '50%',
+                marginBottom: '16px'
+              }}
+            />
+            <div style={{
+              position: 'absolute',
+              bottom: '10px',
+              fontSize: '11px',
+              color: config?.darkMode ? '#aaa' : '#6c757d',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              fontWeight: '300'
+            }}>
+              v{packageInfo.version}
+            </div>
+          </div>
+        )}
+
+        {/* Main app content always rendered underneath splash */}
         <AppContent
           config={config}
           setConfig={setConfig}
