@@ -191,7 +191,7 @@ function SearchForm({ activeTab, onSearch, isLoading, initialValues }: SearchFor
         {/* Primary Search */}
         <div style={{ marginBottom: '15px' }}>
           <div className="search-form-container">
-            <div className="search-input-row">
+            <div className="search-input-row" style={{ position: 'relative' }}>
               <input
                 type="text"
                 placeholder="Search movies & TV shows..."
@@ -199,7 +199,7 @@ function SearchForm({ activeTab, onSearch, isLoading, initialValues }: SearchFor
                 onChange={(e) => handleInputChange('query', e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '12px 16px',
+                  padding: '12px 40px 12px 16px',
                   fontSize: '16px',
                   border: '1px solid var(--border-color)',
                   borderRadius: '6px',
@@ -208,6 +208,32 @@ function SearchForm({ activeTab, onSearch, isLoading, initialValues }: SearchFor
                 }}
                 disabled={isLoading}
               />
+              {formState.query && (
+                <button
+                  type="button"
+                  onClick={() => handleInputChange('query', '')}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    fontSize: '18px',
+                    lineHeight: 1,
+                    opacity: 0.6,
+                    transition: 'opacity 0.2s',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                  onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
+                  title="Clear search"
+                >
+                  <i className="fas fa-times-circle"></i>
+                </button>
+              )}
             </div>
 
             <div className="search-controls-row">
@@ -321,22 +347,50 @@ function SearchForm({ activeTab, onSearch, isLoading, initialValues }: SearchFor
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '5px', color: 'var(--text-secondary)' }}>
                   IMDb ID (e.g., tt0133093)
                 </label>
-                <input
-                  type="text"
-                  placeholder="tt0133093"
-                  value={formState.imdb_id}
-                  onChange={(e) => handleInputChange('imdb_id', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    fontSize: '14px',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '4px',
-                    background: 'var(--bg-secondary)',
-                    color: 'var(--text-primary)',
-                  }}
-                  disabled={isLoading}
-                />
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="text"
+                    placeholder="tt0133093"
+                    value={formState.imdb_id}
+                    onChange={(e) => handleInputChange('imdb_id', e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 32px 8px 12px',
+                      fontSize: '14px',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '4px',
+                      background: 'var(--bg-secondary)',
+                      color: 'var(--text-primary)',
+                    }}
+                    disabled={isLoading}
+                  />
+                  {formState.imdb_id && (
+                    <button
+                      type="button"
+                      onClick={() => handleInputChange('imdb_id', '')}
+                      style={{
+                        position: 'absolute',
+                        right: '8px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-secondary)',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        fontSize: '16px',
+                        lineHeight: 1,
+                        opacity: 0.6,
+                        transition: 'opacity 0.2s',
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                      onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
+                      title="Clear IMDb ID"
+                    >
+                      <i className="fas fa-times-circle"></i>
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Year */}
@@ -344,24 +398,52 @@ function SearchForm({ activeTab, onSearch, isLoading, initialValues }: SearchFor
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '5px', color: 'var(--text-secondary)' }}>
                   Release Year
                 </label>
-                <input
-                  type="number"
-                  placeholder="2023"
-                  min="1900"
-                  max="2030"
-                  value={formState.year}
-                  onChange={(e) => handleInputChange('year', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    fontSize: '14px',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '4px',
-                    background: 'var(--bg-secondary)',
-                    color: 'var(--text-primary)',
-                  }}
-                  disabled={isLoading}
-                />
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="number"
+                    placeholder="2023"
+                    min="1900"
+                    max="2030"
+                    value={formState.year}
+                    onChange={(e) => handleInputChange('year', e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 32px 8px 12px',
+                      fontSize: '14px',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '4px',
+                      background: 'var(--bg-secondary)',
+                      color: 'var(--text-primary)',
+                    }}
+                    disabled={isLoading}
+                  />
+                  {formState.year && (
+                    <button
+                      type="button"
+                      onClick={() => handleInputChange('year', '')}
+                      style={{
+                        position: 'absolute',
+                        right: '8px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-secondary)',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        fontSize: '16px',
+                        lineHeight: 1,
+                        opacity: 0.6,
+                        transition: 'opacity 0.2s',
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                      onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
+                      title="Clear Year"
+                    >
+                      <i className="fas fa-times-circle"></i>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
