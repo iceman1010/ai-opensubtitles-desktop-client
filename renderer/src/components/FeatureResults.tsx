@@ -2,6 +2,7 @@ import React from 'react';
 import ReactPaginate from 'react-paginate';
 import FeatureCard from './FeatureCard';
 import { Feature } from '../services/api';
+import WorkflowDiagram from './WorkflowDiagram';
 
 interface FeatureResultsProps {
   results: Feature[];
@@ -10,6 +11,7 @@ interface FeatureResultsProps {
   onPageChange: (page: number) => void;
   onFindSubtitles?: (feature: Feature) => void;
   isLoading: boolean;
+  hasSearched?: boolean;
 }
 
 function FeatureResults({
@@ -18,7 +20,8 @@ function FeatureResults({
   currentPage,
   onPageChange,
   onFindSubtitles,
-  isLoading
+  isLoading,
+  hasSearched = false
 }: FeatureResultsProps) {
   if (isLoading) {
     return (
@@ -39,24 +42,7 @@ function FeatureResults({
   }
 
   if (results.length === 0) {
-    return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '60px 20px',
-        fontSize: '18px',
-        color: 'var(--text-secondary)',
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '48px', marginBottom: '20px' }}><i className="fas fa-film"></i></div>
-          <div style={{ marginBottom: '8px' }}>No movies or TV shows found</div>
-          <div style={{ fontSize: '14px', color: 'var(--text-tertiary)' }}>
-            Try adjusting your search terms
-          </div>
-        </div>
-      </div>
-    );
+    return <WorkflowDiagram searchType="features" hasSearched={hasSearched} />;
   }
 
   const renderPagination = (marginStyles: React.CSSProperties) => (

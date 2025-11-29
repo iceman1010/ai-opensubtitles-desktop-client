@@ -405,7 +405,7 @@ function Search({ setAppProcessing, showNotification }: SearchProps) {
       )}
 
       {/* Results */}
-      {(activeTab === 'subtitles' || activeTab === 'file') && hasSearched && (
+      {(activeTab === 'subtitles' || activeTab === 'file') && (
         <SearchResults
           results={searchResults}
           totalPages={totalPages}
@@ -414,10 +414,12 @@ function Search({ setAppProcessing, showNotification }: SearchProps) {
           onDownload={handleDownload}
           isLoading={isSearching}
           downloadingIds={downloadingIds}
+          searchType={activeTab === 'file' ? 'file' : 'subtitles'}
+          hasSearched={hasSearched}
         />
       )}
 
-      {activeTab === 'features' && hasFeatureSearched && (
+      {activeTab === 'features' && (
         <FeatureResults
           results={featureResults}
           totalPages={featureTotalPages}
@@ -425,6 +427,7 @@ function Search({ setAppProcessing, showNotification }: SearchProps) {
           onPageChange={handleFeaturePageChange}
           onFindSubtitles={handleFindSubtitles}
           isLoading={isFeatureSearching}
+          hasSearched={hasFeatureSearched}
         />
       )}
 

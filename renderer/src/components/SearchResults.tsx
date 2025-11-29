@@ -2,6 +2,7 @@ import React from 'react';
 import ReactPaginate from 'react-paginate';
 import SubtitleCard from './SubtitleCard';
 import { SubtitleSearchResult } from './SubtitleCard';
+import WorkflowDiagram from './WorkflowDiagram';
 
 interface SearchResultsProps {
   results: SubtitleSearchResult[];
@@ -11,6 +12,8 @@ interface SearchResultsProps {
   onDownload: (fileId: number, fileName: string) => void;
   isLoading: boolean;
   downloadingIds: Set<number>;
+  searchType?: 'subtitles' | 'file';
+  hasSearched?: boolean;
 }
 
 function SearchResults({
@@ -20,7 +23,9 @@ function SearchResults({
   onPageChange,
   onDownload,
   isLoading,
-  downloadingIds
+  downloadingIds,
+  searchType = 'subtitles',
+  hasSearched = false
 }: SearchResultsProps) {
   if (isLoading) {
     return (
@@ -41,24 +46,7 @@ function SearchResults({
   }
 
   if (results.length === 0) {
-    return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '60px 20px',
-        fontSize: '18px',
-        color: 'var(--text-secondary)',
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '48px', marginBottom: '20px' }}><i className="fas fa-folder-open"></i></div>
-          <div style={{ marginBottom: '8px' }}>No subtitles found</div>
-          <div style={{ fontSize: '14px', color: 'var(--text-tertiary)' }}>
-            Try adjusting your search terms or filters
-          </div>
-        </div>
-      </div>
-    );
+    return <WorkflowDiagram searchType={searchType} hasSearched={hasSearched} />;
   }
 
   const renderPagination = (marginStyles: React.CSSProperties) => (
