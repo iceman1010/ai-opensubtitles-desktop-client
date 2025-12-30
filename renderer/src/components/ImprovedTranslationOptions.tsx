@@ -42,15 +42,25 @@ const ImprovedTranslationOptions: React.FC<ImprovedTranslationOptionsProps> = ({
 
     const consolidated = consolidateLanguages(translationInfo.languages);
     const compatibility = buildCompatibilityMatrix(
-      translationInfo.languages, 
+      translationInfo.languages,
       translationInfo.apis
     );
 
-    return { 
-      consolidatedLanguages: consolidated, 
-      compatibilityMatrix: compatibility 
+    return {
+      consolidatedLanguages: consolidated,
+      compatibilityMatrix: compatibility
     };
   }, [translationInfo]);
+
+  // Track if language data is ready for current model
+  const isLanguageDataReady = useMemo(() => {
+    if (!translationInfo || !options.model) return false;
+
+    // Check if at least one language has variants for the current model
+    return consolidatedLanguages.some(lang =>
+      lang.variants.some(v => v.api === options.model)
+    );
+  }, [consolidatedLanguages, options.model, translationInfo]);
 
   // Build model options
   const modelOptions: SmartSelectOption[] = useMemo(() => {
@@ -65,25 +75,20 @@ const ImprovedTranslationOptions: React.FC<ImprovedTranslationOptionsProps> = ({
 
   // Build language options based on current selections
   const buildLanguageOptions = (excludeLanguage?: string): SmartSelectOption[] => {
-    return consolidatedLanguages.map(lang => {
-      const compatibleApis = compatibilityMatrix[lang.id] || [];
-      const isCompatibleWithCurrentModel = options.model ? compatibleApis.includes(options.model) : true;
-      
-      // Don't show the same language in both dropdowns
-      const isSameAsOtherSelection = excludeLanguage === lang.id;
+    return consolidatedLanguages
+      .filter(lang => {
+        const compatibleApis = compatibilityMatrix[lang.id] || [];
+        const isCompatibleWithCurrentModel = options.model ? compatibleApis.includes(options.model) : true;
+        const isSameAsOtherSelection = excludeLanguage === lang.id;
 
-      let tooltip = '';
-      if (!isCompatibleWithCurrentModel && compatibleApis.length > 0) {
-        tooltip = `Available in: ${compatibleApis.map(api => api.toUpperCase()).join(', ')}`;
-      }
-
-      return {
+        // Only include compatible languages that aren't selected in the other dropdown
+        return isCompatibleWithCurrentModel && !isSameAsOtherSelection;
+      })
+      .map(lang => ({
         id: lang.id,
         label: lang.displayName,
-        compatible: isCompatibleWithCurrentModel && !isSameAsOtherSelection,
-        tooltip: tooltip || undefined
-      };
-    });
+        compatible: true // All returned languages are compatible
+      }));
   };
 
   // Get current consolidated language for source and destination
@@ -121,6 +126,12 @@ const ImprovedTranslationOptions: React.FC<ImprovedTranslationOptionsProps> = ({
       currentOptions: options
     });
 
+    // Guard against race condition - wait for language data to be ready
+    if (!isLanguageDataReady && consolidatedId !== 'auto-detect') {
+      logger.warn('ImprovedTranslationOptions', 'Language data not ready yet, deferring selection');
+      return;
+    }
+
     const consolidatedLang = getConsolidatedLanguageById(consolidatedLanguages, consolidatedId);
     if (!consolidatedLang) {
       logger.error('ImprovedTranslationOptions', `No consolidated language found for ID: ${consolidatedId}`);
@@ -145,46 +156,21 @@ const ImprovedTranslationOptions: React.FC<ImprovedTranslationOptionsProps> = ({
     logger.debug(2, 'ImprovedTranslationOptions', 'getBestVariantForApi result', {
       model: options.model,
       bestVariant,
-      availableVariants: consolidatedLang.variants.filter(v => v.api === options.model)
+      allVariants: consolidatedLang.variants,
+      availableVariantsForModel: consolidatedLang.variants.filter(v => v.api === options.model)
     });
 
     if (bestVariant) {
       logger.debug(2, 'ImprovedTranslationOptions', 'Calling onLanguageChange with', { field, bestVariant });
       onLanguageChange(field, bestVariant);
     } else {
-      // If no variant found for current model, use fallbacks in order of preference
-      const fallbackCode = consolidatedLang.primaryCode ||
-                           (consolidatedLang.variants.length > 0 ? consolidatedLang.variants[0].code : null);
-
-      if (fallbackCode) {
-        logger.warn('ImprovedTranslationOptions', `No variant found for model ${options.model}, using fallback: ${fallbackCode}`, {
-          primaryCode: consolidatedLang.primaryCode,
-          firstVariantCode: consolidatedLang.variants[0]?.code,
-          chosenFallback: fallbackCode
-        });
-        onLanguageChange(field, fallbackCode);
-      } else {
-        logger.error('ImprovedTranslationOptions', `Cannot select language ${consolidatedId}: no valid language code found`, {
-          consolidatedLang,
-          model: options.model
-        });
-        // Don't call onLanguageChange with undefined/null - just abort the selection
-        return;
-      }
-    }
-  };
-
-  // Handle incompatible language click - switch to compatible model
-  const handleIncompatibleLanguageClick = (consolidatedId: string) => {
-    const compatibleApis = compatibilityMatrix[consolidatedId] || [];
-    if (compatibleApis.length > 0) {
-      // Switch to the first compatible model
-      onModelChange(compatibleApis[0]);
-      
-      // Then select the language
-      setTimeout(() => {
-        handleLanguageSelection('destinationLanguage', consolidatedId);
-      }, 100);
+      // This should never happen since we only show compatible languages
+      logger.error('ImprovedTranslationOptions', `No variant found for compatible language ${consolidatedId}`, {
+        consolidatedLang,
+        model: options.model
+      });
+      // Don't call onLanguageChange - abort the selection
+      return;
     }
   };
 
@@ -211,17 +197,7 @@ const ImprovedTranslationOptions: React.FC<ImprovedTranslationOptionsProps> = ({
           value={currentSourceConsolidated?.id || ''}
           options={buildLanguageOptions(currentDestConsolidated?.id)}
           onChange={(value) => handleLanguageSelection('sourceLanguage', value)}
-          onIncompatibleClick={(value) => {
-            // For source language, also switch model if needed
-            const compatibleApis = compatibilityMatrix[value] || [];
-            if (compatibleApis.length > 0) {
-              onModelChange(compatibleApis[0]);
-              setTimeout(() => {
-                handleLanguageSelection('sourceLanguage', value);
-              }, 100);
-            }
-          }}
-          disabled={disabled}
+          disabled={disabled || !isLanguageDataReady}
           placeholder="Select Source Language"
         />
       </div>
@@ -233,8 +209,7 @@ const ImprovedTranslationOptions: React.FC<ImprovedTranslationOptionsProps> = ({
           value={currentDestConsolidated?.id || ''}
           options={buildLanguageOptions(currentSourceConsolidated?.id)}
           onChange={(value) => handleLanguageSelection('destinationLanguage', value)}
-          onIncompatibleClick={handleIncompatibleLanguageClick}
-          disabled={disabled}
+          disabled={disabled || !isLanguageDataReady}
           placeholder="Select Destination Language"
         />
       </div>

@@ -12,7 +12,7 @@ import Help from './components/Help';
 import StatusBar from './components/StatusBar';
 import ErrorLogControls from './components/ErrorLogControls';
 import { APIProvider, useAPI } from './contexts/APIContext';
-import { PowerProvider, usePowerEvents, useHibernationRecovery } from './contexts/PowerContext';
+import { PowerProvider, usePower, usePowerEvents, useHibernationRecovery } from './contexts/PowerContext';
 import { logger } from './utils/errorLogger'; // Initialize global error handlers
 import appConfig from './config/appConfig.json';
 import packageInfo from '../../package.json';
@@ -237,12 +237,14 @@ function AppContent({
     login,
     logout,
     updateCredits,
-    refreshConnectivityAndAuth
+    refreshConnectivityAndAuth,
+    prepareForHibernationTest
   } = useAPI();
 
   // Power management hooks for hibernation recovery
   const { onSystemSuspend, onSystemResume } = usePowerEvents();
   const { preserveState, restoreState, clearPreservedState, isTokenExpired } = useHibernationRecovery();
+  const { simulateSystemResume } = usePower();
 
   const [currentScreen, setCurrentScreen] = useState<'login' | 'main' | 'batch' | 'search' | 'recent-media' | 'preferences' | 'update' | 'info' | 'credits' | 'help'>('main');
   const [pendingBatchFiles, setPendingBatchFiles] = useState<string[]>([]);
@@ -782,6 +784,10 @@ function AppContent({
             onSave={handlePreferencesSave}
             setAppProcessing={setAppProcessing}
             onSimulateOffline={logout}
+            onSimulateHibernation={() => {
+              prepareForHibernationTest();
+              simulateSystemResume();
+            }}
           />
         )}
         {currentScreen === 'update' && (

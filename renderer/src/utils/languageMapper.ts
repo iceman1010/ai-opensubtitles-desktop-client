@@ -147,9 +147,9 @@ export function consolidateLanguages(
       }
       
       const consolidated = consolidatedMap.get(consolidatedId)!;
-      
-      // Check if this variant already exists (from another API)
-      const existingVariant = consolidated.variants.find(v => v.code === lang.language_code);
+
+      // Check if this exact variant (code + api combination) already exists
+      const existingVariant = consolidated.variants.find(v => v.code === lang.language_code && v.api === api);
       if (!existingVariant) {
         consolidated.variants.push({
           code: lang.language_code,

@@ -30,6 +30,9 @@ interface PowerContextType {
   // Register connectivity refresh callback
   registerConnectivityRefreshCallback: (callback: () => Promise<void>) => void;
 
+  // Test functions
+  simulateSystemResume: () => void;
+
   // Cleanup
   removeAllListeners: () => void;
 }
@@ -121,6 +124,35 @@ export const PowerProvider: React.FC<PowerProviderProps> = ({ children }) => {
   const registerConnectivityRefreshCallback = useCallback((callback: () => Promise<void>) => {
     connectivityRefreshCallback.current = callback;
     logger.debug(2, 'PowerContext', 'Connectivity refresh callback registered');
+  }, []);
+
+  // Test function to simulate system resume from hibernation
+  const simulateSystemResume = useCallback(() => {
+    logger.info('PowerContext', '🧪 TEST: Simulating system hibernation resume');
+
+    const now = Date.now();
+    setLastResumeTime(now);
+
+    // Execute all registered resume callbacks
+    logger.debug(1, 'PowerContext', `Executing ${resumeCallbacks.current.length} resume callbacks`);
+    resumeCallbacks.current.forEach((callback, index) => {
+      try {
+        logger.debug(1, 'PowerContext', `Executing resume callback ${index + 1}/${resumeCallbacks.current.length}`);
+        callback();
+      } catch (error) {
+        logger.error('PowerContext', `Error in resume callback ${index + 1}:`, error);
+      }
+    });
+
+    // Also execute connectivity refresh callback if registered
+    if (connectivityRefreshCallback.current) {
+      logger.debug(1, 'PowerContext', 'Executing connectivity refresh callback');
+      connectivityRefreshCallback.current().catch((error) => {
+        logger.error('PowerContext', 'Error in connectivity refresh callback:', error);
+      });
+    }
+
+    logger.info('PowerContext', '🧪 TEST: All hibernation resume callbacks executed');
   }, []);
 
   const removeAllListeners = useCallback(() => {
@@ -255,6 +287,7 @@ export const PowerProvider: React.FC<PowerProviderProps> = ({ children }) => {
     onScreenLock,
     onScreenUnlock,
     registerConnectivityRefreshCallback,
+    simulateSystemResume,
     removeAllListeners
   };
 

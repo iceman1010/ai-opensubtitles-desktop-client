@@ -34,9 +34,10 @@ interface PreferencesProps {
   onSave: (config: Partial<AppConfig>) => Promise<boolean>;
   setAppProcessing: (processing: boolean, task?: string) => void;
   onSimulateOffline?: () => Promise<void>;
+  onSimulateHibernation?: () => void;
 }
 
-function Preferences({ config, onSave, setAppProcessing, onSimulateOffline }: PreferencesProps) {
+function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSimulateHibernation }: PreferencesProps) {
   const [username, setUsername] = useState(config.username || '');
   const [password, setPassword] = useState(config.password || '');
   const [apiKey, setApiKey] = useState(config.apiKey || '');
@@ -765,6 +766,63 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline }: Pr
                 lineHeight: '1.4'
               }}>
                 This will clear authentication and trigger browser offline event to test automatic re-authentication when network is restored.
+              </div>
+            </div>
+
+            {/* Test Hibernation Recovery */}
+            <div style={{
+              marginTop: '16px',
+              padding: '16px',
+              background: 'var(--bg-secondary)',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color)'
+            }}>
+              <h4 style={{
+                margin: '0 0 12px',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: 'var(--text-primary)'
+              }}>
+                <i className="fas fa-bed" style={{ marginRight: '8px' }}></i>
+                Hibernation Recovery Test
+              </h4>
+
+              <button
+                onClick={() => {
+                  if (window.confirm('This will clear authentication and simulate system hibernation resume. Continue?')) {
+                    onSimulateHibernation?.();
+                    alert('Hibernation simulated. Watch console logs for re-authentication attempts.');
+                  }
+                }}
+                style={{
+                  padding: '10px 16px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  background: 'var(--warning-color, #ff9800)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#f57c00';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'var(--warning-color, #ff9800)';
+                }}
+              >
+                <i className="fas fa-bed" style={{ marginRight: '8px' }}></i>
+                Test Hibernation Recovery
+              </button>
+
+              <div style={{
+                marginTop: '12px',
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                lineHeight: '1.4'
+              }}>
+                This will clear authentication and simulate system resume from hibernation to test automatic re-authentication with DNS retry logic.
               </div>
             </div>
           </>

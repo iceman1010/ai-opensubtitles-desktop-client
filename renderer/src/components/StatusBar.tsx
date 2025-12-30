@@ -24,6 +24,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
 }) => {
   const [online, setOnline] = useState(isOnline());
   const [apiConnectivity, setApiConnectivity] = useState<'connected' | 'unreachable'>('connected');
+  const [apiErrorMessage, setApiErrorMessage] = useState<string | null>(null);
   const [showConnectionChange, setShowConnectionChange] = useState(false);
   const [isApiActive, setIsApiActive] = useState(false);
   const [currentApiContext, setCurrentApiContext] = useState<string | null>(null);
@@ -104,11 +105,19 @@ const StatusBar: React.FC<StatusBarProps> = ({
         const newConnectivity = result.connected ? 'connected' : 'unreachable';
         setApiConnectivity(newConnectivity);
 
+        // Store error message if connection failed
+        if (!result.connected && result.error) {
+          setApiErrorMessage(result.error);
+        } else {
+          setApiErrorMessage(null);
+        }
+
         // Update cache with configured interval (convert minutes to ms)
         const cacheValidMs = (config.apiConnectivityTestIntervalMinutes ?? 5) * 60 * 1000;
         updateAPIConnectivityCache(result.connected, cacheValidMs);
       } catch (error) {
         setApiConnectivity('unreachable');
+        setApiErrorMessage('Failed to check API connectivity');
         const cacheValidMs = (config.apiConnectivityTestIntervalMinutes ?? 5) * 60 * 1000;
         updateAPIConnectivityCache(false, cacheValidMs);
       }
@@ -306,11 +315,39 @@ const StatusBar: React.FC<StatusBarProps> = ({
 
     // Orange: Online but API server unreachable
     if (apiConnectivity === 'unreachable') {
+      // Extract user-friendly message from error
+      let displayText = 'API Issues';
+      let tooltipText = 'Cannot reach API server - check network or DNS settings';
+
+      if (apiErrorMessage) {
+        // Try to extract the actual error message from the full error string
+        // Format: "API server responded with status XXX: {json}" or plain message
+        const statusMatch = apiErrorMessage.match(/status \d+: (.+)/);
+        if (statusMatch) {
+          try {
+            // Parse JSON error response
+            const errorJson = JSON.parse(statusMatch[1]);
+            if (errorJson.message) {
+              displayText = errorJson.message;
+              tooltipText = `API Error: ${errorJson.message}`;
+            }
+          } catch {
+            // If not JSON, use the raw message after status
+            displayText = statusMatch[1].substring(0, 50);
+            tooltipText = `API Error: ${statusMatch[1]}`;
+          }
+        } else {
+          // Use the full error message if no status match
+          displayText = apiErrorMessage.substring(0, 50);
+          tooltipText = apiErrorMessage;
+        }
+      }
+
       return {
         color: '#fd7e14',
         icon: 'fas fa-exclamation-circle',
-        text: 'API Issues',
-        title: 'Cannot reach API server - check network or DNS settings'
+        text: displayText,
+        title: tooltipText
       };
     }
 

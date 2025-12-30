@@ -1,0 +1,330 @@
+# AI.Opensubtitles.com Client - Application Overview
+
+## What It Is
+A desktop application (Electron-based) that uses AI to transcribe audio/video files into text subtitles and translate existing subtitles between languages using OpenSubtitles.com AI services.
+
+Built with React + TypeScript for the renderer and Electron for the main process.
+Multi-platform support: Windows, macOS, and Linux.
+
+## Core Features - The Main Purpose
+
+### 1. AI Transcription (Audio/Video → Text Subtitles)
+**This is the primary feature.**
+
+- Upload audio or video files (MP4, MP3, WAV, MKV, etc.)
+- AI automatically transcribes speech to text subtitles
+- Multiple AI transcription models available (different providers)
+- Auto-detect language or manually select source language
+- Extract audio from video files automatically (uses FFmpeg)
+- Convert audio formats as needed
+- Output formats: SRT, VTT, and other subtitle formats
+- Credit-based pricing per transcription
+
+**Workflow:**
+1. Select audio/video file
+2. (Optional) Detect language to find compatible AI models
+3. Choose transcription model and language
+4. Start transcription (AI processes asynchronously)
+5. Preview result
+6. Save subtitle file
+
+### 2. AI Translation (Subtitle → Different Language)
+**The second primary feature.**
+
+- Upload existing subtitle files (SRT, VTT, etc.)
+- AI translates subtitles to target language
+- Multiple translation AI models (different providers)
+- Auto-detect source language or select manually
+- Select destination language
+- Output formats: SRT, VTT, and other subtitle formats
+- Credit-based pricing per translation
+- Character count estimation (500 chars ≈ 1 credit)
+
+**Workflow:**
+1. Select subtitle file
+2. (Optional) Detect source language to find compatible models
+3. Choose translation model, source language, and target language
+4. Start translation (AI processes asynchronously)
+5. Preview result
+6. Save translated subtitle file
+
+### 3. Batch Processing
+**Process multiple files at once.**
+
+- Add multiple audio/video/subtitle files to queue
+- Two workflow modes:
+  - **Transcribe Only**: Transcribe audio/video files
+  - **Transcribe & Translate**: Transcribe audio/video, then automatically translate result
+- Auto-detect languages for all files
+- Configure settings once, apply to all files
+- Real-time progress tracking per file
+- Credit tracking per file and batch total
+- Completion summary with statistics
+- Options:
+  - Abort on first error or continue
+  - Keep/delete intermediate files
+  - Custom output directory or same as source
+
+**Batch Workflow:**
+1. Add files to queue
+2. (Optional) Auto-detect languages for all
+3. Configure batch settings (models, target language, output)
+4. Process all files sequentially
+5. View summary (time taken, credits used, success rate)
+
+### 4. Language Detection (AI-Powered)
+**Automatically identify file language.**
+
+- For audio/video: extracts first 3 minutes, sends to AI for detection
+- For subtitles: analyzes text content
+- Returns detected language with ISO codes
+- Shows compatible AI models for that language
+- Auto-updates language selections in UI
+- Async processing with polling for completion
+
+### 5. Smart File Handling
+- Drag & drop support (anywhere in window)
+- File type auto-detection (video/audio/subtitle)
+- Media file validation (FFmpeg)
+- Subtitle file parsing and validation
+- Automatic audio extraction from video
+- Automatic audio format conversion
+- Temporary file cleanup
+- File path suggestions for output
+
+## Secondary Features (Recently Added)
+
+### Subtitle Search & Download
+- Search OpenSubtitles database by:
+  - Movie/TV show name
+  - IMDb ID, season, episode
+  - Video file hash (upload video, find exact match)
+- Browse and download subtitles
+- Multiple languages supported
+- AI translation on-demand if subtitle doesn't exist in your language
+
+## Technical Architecture
+
+### Main Screen
+- Single file processing UI
+- File selector with drag & drop
+- File info display:
+  - Audio/video: duration, format, streams
+  - Subtitles: character count, word count, line count
+- Language detection section
+- Transcription/Translation options (dynamic based on file type)
+- Credit cost estimation
+- Preview dialog for results
+- System sleep prevention during processing
+
+### Batch Screen
+- Queue management (add/remove files)
+- Batch settings configuration
+- Language detection for all files
+- Sequential processing with pause/resume
+- Per-file status and progress
+- Batch statistics and credit tracking
+- Completion summary modal
+
+### Core Processing Flow
+**2-Step Async Process (Critical):**
+
+1. **Initiate**: Upload file, get correlation_id
+2. **Poll**: Check status repeatedly until COMPLETED or ERROR
+
+This applies to:
+- Language detection (audio files)
+- Transcription
+- Translation
+
+**Status progression:**
+- CREATED → PENDING → COMPLETED
+- or CREATED → PENDING → ERROR
+
+### Credit System
+- Purchase credits from OpenSubtitles
+- Credits required for all AI operations:
+  - Transcription (varies by model and duration)
+  - Translation (~500 characters per credit)
+  - Language detection (minimal cost)
+- Credit balance display in UI
+- Credit warnings before processing
+- Per-operation credit tracking
+- Batch credit statistics
+
+### File Processing Pipeline
+
+**For Transcription:**
+1. Validate file (FFmpeg media info)
+2. Extract audio if video file
+3. Convert audio format if needed
+4. Initiate transcription via API
+5. Poll for completion
+6. Download result
+7. Clean up temp files
+8. Save subtitle file
+
+**For Translation:**
+1. Read and parse subtitle file
+2. Validate content (character count)
+3. Initiate translation via API
+4. Poll for completion
+5. Download result
+6. Save translated subtitle file
+
+**For Batch (Transcribe & Translate):**
+1. Transcribe audio/video → subtitle
+2. Save intermediate file (optional)
+3. Automatically translate result → target language
+4. Save final file
+5. Clean up intermediate file (optional)
+
+### AI Models
+- Multiple providers available for both transcription and translation
+- Model compatibility varies by language
+- Language detection shows compatible models
+- Different models have different pricing/quality trade-offs
+
+### Filename Generation
+- Smart filename generation with customizable patterns
+- Variables: {filename}, {language_code}, {language_name}, {type}, {extension}
+- Default: original.en.transcription.srt
+- Saves to same directory as source file by default
+
+### FFmpeg Integration
+- Audio extraction from video
+- Audio format conversion
+- Media info retrieval (duration, streams, format)
+- Background processing
+
+### Error Handling
+- Comprehensive error logging
+- File validation before processing
+- API error messages displayed to user
+- Timeout handling for long operations
+- Automatic retry on network issues
+- Clean cancellation of operations
+
+### Network & Authentication
+- OAuth2 with OpenSubtitles
+- Automatic token refresh
+- Network status monitoring
+- Offline detection
+- Session persistence
+
+### UI/UX Features
+- Dark/Light theme support
+- Drag & drop file handling
+- Window-wide drop zones
+- Real-time progress indicators
+- Status messages (success/error/info)
+- Preview dialogs for results
+- Animated credit updates
+- File type icons (video/audio/subtitle)
+- Responsive layouts
+- Workflow diagrams showing process steps
+
+## User Workflows
+
+### Single File Transcription
+1. Open Main screen
+2. Select video/audio file
+3. (Optional) Click "Detect Language"
+4. Choose transcription model and language
+5. Click "Start Transcription"
+6. Wait for completion (status updates shown)
+7. Preview result
+8. Save subtitle file
+
+### Single File Translation
+1. Open Main screen
+2. Select subtitle file
+3. (Optional) Click "Detect Language"
+4. Choose translation model, source language, target language
+5. Click "Start Translation"
+6. Wait for completion
+7. Preview result
+8. Save translated file
+
+### Batch Transcription
+1. Open Batch screen
+2. Add multiple video/audio files
+3. Click "Detect Languages" (optional but recommended)
+4. Set workflow mode to "Transcribe Only"
+5. Choose transcription model
+6. Choose output format
+7. Click "Process All Files"
+8. View completion summary
+
+### Batch Transcribe & Translate
+1. Open Batch screen
+2. Add multiple video/audio files
+3. Click "Detect Languages"
+4. Set workflow mode to "Transcribe & Translate"
+5. Choose transcription model and translation model
+6. Choose target language
+7. Choose output format
+8. Configure output directory
+9. Click "Process All Files"
+10. View completion summary with total credits used
+
+## Data Privacy
+- Files uploaded to OpenSubtitles AI servers for processing
+- Language detection: only first 3 minutes of audio sent
+- No telemetry or tracking
+- Authentication tokens stored locally
+
+## Configuration
+- API credentials (username, password, API key)
+- Polling intervals and timeouts
+- Debug mode and logging levels
+- Auto-update settings
+- Default filename format
+- Audio extraction duration for language detection
+- Dark/Light theme
+- Auto-remove completed files
+
+## File Structure
+/renderer - React frontend
+  /src
+    /components
+      - MainScreen.tsx (single file processing)
+      - BatchScreen.tsx (batch processing)
+      - Search.tsx (subtitle search - secondary feature)
+      - FileSelector.tsx
+      - ImprovedTranscriptionOptions.tsx
+      - ImprovedTranslationOptions.tsx
+    /contexts
+      - APIContext.tsx (centralized API state)
+    /services
+      - api.ts (OpenSubtitles API)
+    /utils
+      - subtitleParser.ts
+      - filenameGenerator.ts
+      - errorLogger.ts
+      - networkUtils.ts
+/main - Electron main process
+  - FFmpeg integration
+  - File system operations
+  - IPC handlers
+/scripts - Build and release automation
+/shared - Shared configs (file formats)
+
+## Recent Improvements
+- Centralized API context for better state management
+- Workflow diagrams showing process steps
+- Enhanced batch processing with statistics
+- Credit tracking per file and batch
+- Completion summaries
+- Language detection validation
+- Better error messages
+- System sleep prevention during processing
+- Temp file cleanup improvements
+
+## Key Constraints
+- Requires OpenSubtitles API credentials
+- Credits required for all AI operations
+- Internet connection required
+- FFmpeg required for audio/video processing
+- Async processing (can take minutes for long files)
+- Polling-based status checking (not real-time)

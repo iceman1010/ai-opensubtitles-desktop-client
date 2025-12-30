@@ -31,6 +31,9 @@ interface APIContextType {
   refreshCredits: () => Promise<void>;
   updateCredits: (credits: { used: number; remaining: number }) => void;
   refreshConnectivityAndAuth: () => Promise<void>;
+
+  // Test functions
+  prepareForHibernationTest: () => void;
   
   // Centralized API methods
   getServicesInfo: () => Promise<{ success: boolean; data?: any; error?: string }>;
@@ -428,6 +431,15 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     logger.info('APIContext', `Credits updated: ${newCredits.remaining} remaining, ${newCredits.used} used`);
   }, []);
 
+  // Test function to prepare authentication state for hibernation simulation
+  const prepareForHibernationTest = useCallback(() => {
+    logger.info('APIContext', '🧪 TEST: Preparing for hibernation simulation');
+    setAuthState(AuthState.UNAUTHENTICATED);
+    setIsAuthenticated(false);
+    // Token stays in API instance for re-authentication
+    logger.debug(1, 'APIContext', '🧪 TEST: Authentication state cleared, ready for hibernation simulation');
+  }, []);
+
   // Refresh connectivity and trigger re-authentication if needed
   const refreshConnectivityAndAuth = useCallback(async (): Promise<void> => {
     logger.info('APIContext', 'Refreshing connectivity and authentication after system resume');
@@ -444,8 +456,16 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
 
     // Force immediate connectivity check if we have API config
     if (initialConfig?.apiBaseUrl) {
-      const connected = await forceConnectivityCheck(initialConfig.apiBaseUrl, 5000);
-      logger.debug(1, 'APIContext', `Connectivity check result: ${connected}`);
+      let connected = await forceConnectivityCheck(initialConfig.apiBaseUrl, 5000);
+      logger.debug(1, 'APIContext', `Initial connectivity check result: ${connected}`);
+
+      // If initial check fails, retry after a short delay (DNS might not be ready yet after resume)
+      if (!connected && navigator.onLine) {
+        logger.info('APIContext', 'Initial connectivity check failed but network is online, retrying after delay...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        connected = await forceConnectivityCheck(initialConfig.apiBaseUrl, 5000);
+        logger.debug(1, 'APIContext', `Retry connectivity check result: ${connected}`);
+      }
 
       // If connected and we have credentials, trigger re-authentication
       if (connected && api && initialConfig?.username && initialConfig?.password) {
@@ -458,6 +478,8 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
         } else {
           await authenticateUser(api, initialConfig.username, initialConfig.password);
         }
+      } else if (!connected && api && initialConfig?.username && initialConfig?.password) {
+        logger.warn('APIContext', 'Connectivity check failed after retry, but will rely on withAuthRetry middleware for re-authentication on next API call');
       }
     }
   }, [api, initialConfig, authenticateUser]);
@@ -708,6 +730,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     refreshCredits,
     updateCredits,
     refreshConnectivityAndAuth,
+    prepareForHibernationTest,
     getServicesInfo,
     getCreditPackages,
     getTranslationLanguagesForApi,
