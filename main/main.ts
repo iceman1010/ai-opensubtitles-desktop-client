@@ -1335,6 +1335,11 @@ class MainApp {
     ipcMain.handle('open-ffmpeg-dialog', async () => {
       return this.openFfmpegDialog();
     });
+
+    // Terminal logging for dev mode
+    ipcMain.on('log-to-terminal', (event, message: string) => {
+      console.log(message);
+    });
   }
 
   private async checkFileAssociations(): Promise<{registered: boolean, associatedFormats: string[]}> {

@@ -60,12 +60,27 @@ class ErrorLogger {
     // Only log to console if debug level allows it
     if (this.shouldLog(level, category)) {
       const logMessage = `[${category}] ${message}`;
+      const dataStr = data !== undefined ? ` ${JSON.stringify(data)}` : '';
+      const fullMessage = logMessage + dataStr;
+
       if (level === 'error') {
         console.error(logMessage, data);
       } else if (level === 'warn') {
         console.warn(logMessage, data);
       } else {
         console.log(logMessage, data);
+      }
+
+      // Also output to terminal in dev mode
+      if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
+        try {
+          // Send to main process for terminal output
+          if (typeof window !== 'undefined' && (window as any).electronAPI?.logToTerminal) {
+            (window as any).electronAPI.logToTerminal(fullMessage);
+          }
+        } catch (e) {
+          // Ignore if not available
+        }
       }
     }
   }

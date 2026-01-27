@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import CacheManager from '../services/cache';
 import { logger } from '../utils/errorLogger';
+import { useAPI } from '../contexts/APIContext';
 
 interface AppConfig {
   username: string;
@@ -66,7 +67,8 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
   const [isClearingCache, setIsClearingCache] = useState(false);
   const [isSimulatingOffline, setIsSimulatingOffline] = useState(false);
 
-
+  // Get API context for refreshing model info
+  const { refreshModelInfo } = useAPI();
 
   const handleResetSettings = async () => {
     if (window.confirm('Are you sure you want to reset all settings? This will clear your login credentials and all preferences. This action cannot be undone.')) {
@@ -237,10 +239,17 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
     if (window.confirm('Clear all cached API data? This will force fresh data to be fetched from the server on next use.')) {
       setIsClearingCache(true);
       try {
+        logger.debug(2, 'Preferences', 'Clearing localStorage cache...');
         CacheManager.clear();
-        alert('Cache cleared successfully! Fresh data will be loaded on next API call.');
+        logger.debug(2, 'Preferences', 'Cache cleared, refreshing model info...');
+
+        // Refresh model info in APIContext
+        await refreshModelInfo();
+        logger.debug(2, 'Preferences', 'Model info refreshed and version incremented');
+
+        alert('Cache cleared and model data refreshed successfully!');
       } catch (error) {
-        console.error('Failed to clear cache:', error);
+        logger.error('Preferences', 'Failed to clear cache:', error);
         alert('Failed to clear cache. Please try again.');
       } finally {
         setIsClearingCache(false);

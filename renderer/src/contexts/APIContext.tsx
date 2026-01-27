@@ -3,6 +3,7 @@ import { OpenSubtitlesAPI, TranscriptionInfo, TranslationInfo, SubtitleSearchPar
 import { logger } from '../utils/errorLogger';
 import { isOnline, isFullyOnline, checkAPIConnectivity, invalidateConnectivityCache, forceConnectivityCheck } from '../utils/networkUtils';
 import { usePower } from './PowerContext';
+import CacheManager from '../services/cache';
 
 // Authentication state machine
 export enum AuthState {
@@ -20,6 +21,7 @@ interface APIContextType {
   credits: { used: number; remaining: number } | null;
   transcriptionInfo: TranscriptionInfo | null;
   translationInfo: TranslationInfo | null;
+  modelInfoVersion: number;
   userInfo: any | null;
   isLoading: boolean;
   error: string | null;
@@ -31,6 +33,7 @@ interface APIContextType {
   refreshCredits: () => Promise<void>;
   updateCredits: (credits: { used: number; remaining: number }) => void;
   refreshConnectivityAndAuth: () => Promise<void>;
+  refreshModelInfo: () => Promise<void>;
 
   // Test functions
   prepareForHibernationTest: () => void;
@@ -87,6 +90,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
   const [credits, setCredits] = useState<{ used: number; remaining: number } | null>(null);
   const [transcriptionInfo, setTranscriptionInfo] = useState<TranscriptionInfo | null>(null);
   const [translationInfo, setTranslationInfo] = useState<TranslationInfo | null>(null);
+  const [modelInfoVersion, setModelInfoVersion] = useState(0);
   const [userInfo, setUserInfo] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -341,27 +345,45 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
   const loadAPIInfo = async (apiInstance: OpenSubtitlesAPI) => {
     try {
       logger.info('APIContext', 'Loading API info...');
-      
+
       const [transcriptionResult, translationResult] = await Promise.all([
         apiInstance.getTranscriptionInfo(),
         apiInstance.getTranslationInfo()
       ]);
-      
+
       if (transcriptionResult.success && transcriptionResult.data) {
         setTranscriptionInfo(transcriptionResult.data);
         logger.info('APIContext', 'Transcription info loaded');
       }
-      
+
       if (translationResult.success && translationResult.data) {
         setTranslationInfo(translationResult.data);
         logger.info('APIContext', 'Translation info loaded');
       }
-      
+
       logger.info('APIContext', 'API info loading completed');
     } catch (error) {
       logger.error('APIContext', 'Failed to load API info:', error);
     }
   };
+
+  const refreshModelInfo = useCallback(async () => {
+    if (!api) return;
+
+    logger.info('APIContext', 'Refreshing model info...');
+
+    // Clear cache entries
+    CacheManager.remove('transcription_info');
+    CacheManager.remove('translation_info');
+    CacheManager.remove('services_info');
+
+    // Reload fresh data
+    await loadAPIInfo(api);
+
+    // Increment version to notify listeners
+    setModelInfoVersion(prev => prev + 1);
+    logger.debug(2, 'APIContext', 'Model info version incremented');
+  }, [api]);
 
   const login = useCallback(async (username: string, password: string, apiKey: string): Promise<boolean> => {
     // Prevent multiple simultaneous login attempts
@@ -721,6 +743,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     credits,
     transcriptionInfo,
     translationInfo,
+    modelInfoVersion,
     userInfo,
     isLoading,
     error,
@@ -730,6 +753,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     refreshCredits,
     updateCredits,
     refreshConnectivityAndAuth,
+    refreshModelInfo,
     prepareForHibernationTest,
     getServicesInfo,
     getCreditPackages,

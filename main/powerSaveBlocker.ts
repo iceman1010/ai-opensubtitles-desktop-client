@@ -10,7 +10,11 @@ export class PowerSaveBlockerManager {
 
   private debug(message: string, ...args: any[]) {
     if (this.isDebugEnabled) {
-      console.log(`[PowerSaveBlocker] ${message}`, ...args);
+      try {
+        console.log(`[PowerSaveBlocker] ${message}`, ...args);
+      } catch (error) {
+        // Silently ignore EPIPE and other console errors
+      }
     }
   }
 

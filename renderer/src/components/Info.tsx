@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LanguageInfo, ServicesInfo, ServiceModel } from '../services/api';
 import { useAPI } from '../contexts/APIContext';
 import { logger } from '../utils/errorLogger';
@@ -24,22 +24,20 @@ interface InfoProps {
 }
 
 function Info({ config, setAppProcessing }: InfoProps) {
-  const { transcriptionInfo: contextTranscriptionInfo, translationInfo, getServicesInfo, isAuthenticated } = useAPI();
-  
+  const { transcriptionInfo: contextTranscriptionInfo, translationInfo, getServicesInfo, isAuthenticated, modelInfoVersion } = useAPI();
+
   const [servicesInfo, setServicesInfo] = useState<ServicesInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Prevent double loading in React StrictMode
-  const dataLoadedRef = useRef(false);
-
   useEffect(() => {
-    if (isAuthenticated && !dataLoadedRef.current) {
-      dataLoadedRef.current = true;
+    if (isAuthenticated) {
       loadModelInfo();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, modelInfoVersion]);
 
   const loadModelInfo = async () => {
+    // Clear existing data to force re-render
+    setServicesInfo(null);
     setIsLoading(true);
     setAppProcessing(true, 'Loading model info...');
 
@@ -162,7 +160,7 @@ function Info({ config, setAppProcessing }: InfoProps) {
 
   return (
     <>
-      <div className="info-container" style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '20px' }}>
+      <div key={modelInfoVersion} className="info-container" style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '20px' }}>
       <h1>AI Model Information & Pricing</h1>
       <p style={{ marginBottom: '30px', color: 'var(--text-secondary)' }}>
         Learn about the available AI models and their pricing structure. All prices are in credits.
@@ -174,15 +172,15 @@ function Info({ config, setAppProcessing }: InfoProps) {
           Transcription Models
         </h2>
         {servicesInfo?.Transcription && servicesInfo.Transcription.length > 0 ? (
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', 
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
             gridAutoRows: '1fr',
-            gap: '16px', 
-            width: '100%' 
+            gap: '16px',
+            width: '100%'
           }}>
-            {servicesInfo.Transcription.map((model) => (
-              <div key={model.name} style={{
+            {servicesInfo.Transcription.map((model, index) => (
+              <div key={`${modelInfoVersion}-transcription-${model.name}-${index}`} style={{
                 padding: '20px',
                 border: '1px solid var(--border-color)',
                 borderRadius: '8px',
@@ -270,15 +268,15 @@ function Info({ config, setAppProcessing }: InfoProps) {
           Translation Models
         </h2>
         {servicesInfo?.Translation && servicesInfo.Translation.length > 0 ? (
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', 
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
             gridAutoRows: '1fr',
-            gap: '16px', 
-            width: '100%' 
+            gap: '16px',
+            width: '100%'
           }}>
-            {servicesInfo.Translation.map((model) => (
-              <div key={model.name} style={{
+            {servicesInfo.Translation.map((model, index) => (
+              <div key={`${modelInfoVersion}-translation-${model.name}-${index}`} style={{
                 padding: '20px',
                 border: '1px solid var(--border-color)',
                 borderRadius: '8px',
@@ -289,18 +287,18 @@ function Info({ config, setAppProcessing }: InfoProps) {
                 gridTemplateAreas: '"header" "description" "spacer" "footer"',
                 height: '100%'
               }}>
-                <div style={{ 
+                <div style={{
                   gridArea: 'header',
-                  display: 'flex', 
+                  display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   marginBottom: '12px',
                   minHeight: '72px',
                   justifyContent: 'center'
                 }}>
-                  <div style={{ 
+                  <div style={{
                     fontSize: '18px',
-                    fontWeight: 'bold', 
+                    fontWeight: 'bold',
                     color: 'var(--text-primary)',
                     textAlign: 'center',
                     marginBottom: '8px'

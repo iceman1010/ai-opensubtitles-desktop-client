@@ -81,6 +81,7 @@ const electronAPI = {
     }
   },
   calculateMovieHash: (filePath: string) => ipcRenderer.invoke('calculate-moviehash', filePath),
+  logToTerminal: (message: string) => ipcRenderer.send('log-to-terminal', message),
   platform: process.platform,
 };
 
