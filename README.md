@@ -40,6 +40,7 @@ Download the latest installer for your platform from the [Releases page](https:/
 - **Linux**: `.AppImage` or `.deb` package
 - **Windows**: `.exe` installer or portable version  
 - **macOS**: `.dmg` package
+   (to run it on an ARM OSX run: xattr -cr "/Applications/AI.Opensubtitles.com Client.app")
 
 ### System Requirements
 - **Linux**: Ubuntu 18.04+ or equivalent
