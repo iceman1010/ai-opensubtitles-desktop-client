@@ -44,6 +44,7 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
   const [apiKey, setApiKey] = useState(config.apiKey || '');
   const [debugMode, setDebugMode] = useState(config.debugMode || false);
   const [debugLevel, setDebugLevel] = useState(config.debugLevel ?? 0);
+  const [debugSectionOpen, setDebugSectionOpen] = useState(true);
   const [checkUpdatesOnStart, setCheckUpdatesOnStart] = useState(config.checkUpdatesOnStart ?? true);
   const [autoRemoveCompletedFiles, setAutoRemoveCompletedFiles] = useState(config.autoRemoveCompletedFiles ?? false);
   const [cacheExpirationHours, setCacheExpirationHours] = useState(config.cacheExpirationHours ?? 24);
@@ -503,8 +504,50 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
         </div>
 
         {debugMode && (
-          <>
-            <div className="form-group">
+          <div style={{
+            marginTop: '24px',
+            borderLeft: '4px solid var(--warning-color, #ff9800)',
+            paddingLeft: '16px'
+          }}>
+            <div 
+              onClick={() => setDebugSectionOpen(!debugSectionOpen)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                padding: '12px 16px',
+                background: 'var(--bg-tertiary)',
+                borderRadius: '8px',
+                marginBottom: '16px',
+                border: '1px solid var(--border-color)'
+              }}
+            >
+              <h3 style={{
+                margin: 0,
+                fontSize: '16px',
+                fontWeight: '600',
+                color: 'var(--warning-text, #ff9800)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <i className="fas fa-flask"></i>
+                Developer Options
+              </h3>
+              <i 
+                className={`fas fa-chevron-${debugSectionOpen ? 'up' : 'down'}`}
+                style={{
+                  color: 'var(--text-secondary)',
+                  fontSize: '14px',
+                  transition: 'transform 0.2s ease'
+                }}
+              ></i>
+            </div>
+
+            {debugSectionOpen && (
+              <>
+                <div className="form-group">
               <label htmlFor="api-base-url" style={{
                 display: 'block',
                 marginBottom: '8px',
@@ -694,21 +737,25 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
             </div>
 
             {/* Error Simulation Section */}
-            <div className="form-group" style={{
-              marginTop: '24px',
+            <div style={{
+              marginTop: '16px',
               padding: '16px',
               background: 'var(--bg-tertiary)',
               borderRadius: '8px',
               border: '1px solid var(--border-color)'
             }}>
-              <h3 style={{
+              <h4 style={{
                 margin: '0 0 12px 0',
-                fontSize: '16px',
+                fontSize: '14px',
                 fontWeight: '600',
-                color: 'var(--text-primary)'
+                color: 'var(--text-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
               }}>
+                <i className="fas fa-bug"></i>
                 Error Simulation
-              </h3>
+              </h4>
               <p style={{
                 margin: '0 0 16px 0',
                 fontSize: '13px',
@@ -750,7 +797,7 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
                   padding: '10px 16px',
                   fontSize: '14px',
                   fontWeight: '500',
-                  background: isSimulatingOffline ? 'var(--success-color, #4caf50)' : 'var(--warning-color, #ff9800)',
+                  background: isSimulatingOffline ? 'var(--success-color, #4caf50)' : '#e65100',
                   color: 'white',
                   border: 'none',
                   borderRadius: '6px',
@@ -758,10 +805,10 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
                   transition: 'background 0.2s ease'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = isSimulatingOffline ? '#388e3c' : '#f57c00';
+                  e.currentTarget.style.background = isSimulatingOffline ? '#388e3c' : '#bf360c';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = isSimulatingOffline ? 'var(--success-color, #4caf50)' : 'var(--warning-color, #ff9800)';
+                  e.currentTarget.style.background = isSimulatingOffline ? 'var(--success-color, #4caf50)' : '#e65100';
                 }}
               >
                 <i className={isSimulatingOffline ? 'fas fa-wifi' : 'fas fa-wifi-slash'} style={{ marginRight: '8px' }}></i>
@@ -782,17 +829,20 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
             <div style={{
               marginTop: '16px',
               padding: '16px',
-              background: 'var(--bg-secondary)',
+              background: 'var(--bg-tertiary)',
               borderRadius: '8px',
               border: '1px solid var(--border-color)'
             }}>
               <h4 style={{
-                margin: '0 0 12px',
+                margin: '0 0 12px 0',
                 fontSize: '14px',
                 fontWeight: '600',
-                color: 'var(--text-primary)'
+                color: 'var(--text-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
               }}>
-                <i className="fas fa-bed" style={{ marginRight: '8px' }}></i>
+                <i className="fas fa-bed"></i>
                 Hibernation Recovery Test
               </h4>
 
@@ -807,7 +857,7 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
                   padding: '10px 16px',
                   fontSize: '14px',
                   fontWeight: '500',
-                  background: 'var(--warning-color, #ff9800)',
+                  background: '#e65100',
                   color: 'white',
                   border: 'none',
                   borderRadius: '6px',
@@ -815,10 +865,10 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
                   transition: 'background 0.2s ease'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#f57c00';
+                  e.currentTarget.style.background = '#bf360c';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'var(--warning-color, #ff9800)';
+                  e.currentTarget.style.background = '#e65100';
                 }}
               >
                 <i className="fas fa-bed" style={{ marginRight: '8px' }}></i>
@@ -834,7 +884,59 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
                 This will clear authentication and simulate system resume from hibernation to test automatic re-authentication with DNS retry logic.
               </div>
             </div>
-          </>
+
+            {/* Reset Settings Section */}
+            <div style={{
+              marginTop: '16px',
+              padding: '16px',
+              background: 'var(--danger-bg)',
+              borderRadius: '8px',
+              border: '1px solid var(--danger-border)'
+            }}>
+              <h4 style={{
+                margin: '0 0 12px 0',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: 'var(--danger-text)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <i className="fas fa-exclamation-triangle"></i>
+                Reset Settings
+              </h4>
+              <p style={{ fontSize: '13px', color: 'var(--danger-text)', marginBottom: '16px', lineHeight: '1.4', opacity: 0.9 }}>
+                This will clear all saved settings and reset the application to its default state. You will need to re-enter your credentials.
+              </p>
+              <button
+                onClick={handleResetSettings}
+                disabled={isLoading}
+                style={{
+                  padding: '10px 16px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  background: 'var(--danger-color)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                  opacity: isLoading ? 0.6 : 1,
+                  transition: 'background 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isLoading) e.currentTarget.style.background = '#c62828';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'var(--danger-color)';
+                }}
+              >
+                <i className="fas fa-trash-alt" style={{ marginRight: '8px' }}></i>
+                Reset All Settings
+              </button>
+            </div>
+            </>
+          )}
+        </div>
         )}
 
         <div className="form-group">
@@ -1800,29 +1902,6 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
           </div>
         </div>
 
-        {/* Visual divider */}
-        <div style={{
-          margin: '30px 0',
-          height: '1px',
-          background: 'linear-gradient(to right, transparent, var(--border-color) 20%, var(--border-color) 80%, transparent)',
-          position: 'relative'
-        }}>
-          <div style={{
-            position: 'absolute',
-            top: '-10px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            backgroundColor: 'var(--bg-primary)',
-            padding: '0 15px',
-            fontSize: '12px',
-            color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '1px'
-          }}>
-            Danger Zone
-          </div>
-        </div>
-
         {/* Beta Test Section */}
         <div className="form-group">
           <div style={{
@@ -1861,56 +1940,6 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
             <p style={{ fontSize: '12px', color: 'var(--warning-text)', marginTop: '8px', lineHeight: '1.4', opacity: 0.8 }}>
               Receive prerelease versions and experimental features. May contain bugs.
             </p>
-          </div>
-        </div>
-
-        {/* Reset Settings Section */}
-        <div className="form-group">
-          <div style={{
-            padding: '20px',
-            backgroundColor: 'var(--danger-bg)',
-            border: '2px solid var(--danger-border)',
-            borderRadius: '6px',
-            marginBottom: '15px'
-          }}>
-            <h3 style={{ marginBottom: '12px', fontSize: '16px', color: 'var(--danger-text)', fontWeight: 'bold' }}>Reset Settings</h3>
-            <p style={{ fontSize: '14px', color: 'var(--danger-text)', marginBottom: '18px', lineHeight: '1.4', opacity: 0.8 }}>
-              This will permanently clear all your login credentials and preferences. Use this to test the fresh install experience or when switching to a different OpenSubtitles account.
-            </p>
-            <button
-              type="button"
-              onClick={handleResetSettings}
-              disabled={isLoading}
-              style={{
-                backgroundColor: '#e53e3e',
-                borderColor: '#c53030',
-                color: 'white',
-                padding: '10px 20px',
-                border: '2px solid',
-                borderRadius: '5px',
-                cursor: isLoading ? 'not-allowed' : 'pointer',
-                fontSize: '14px',
-                fontWeight: '600',
-                transition: 'all 0.2s ease',
-                opacity: isLoading ? 0.6 : 1
-              }}
-              onMouseOver={(e) => {
-                if (!isLoading) {
-                  e.currentTarget.style.backgroundColor = '#c53030';
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                  e.currentTarget.style.boxShadow = '0 4px 8px rgba(197, 48, 48, 0.3)';
-                }
-              }}
-              onMouseOut={(e) => {
-                if (!isLoading) {
-                  e.currentTarget.style.backgroundColor = '#e53e3e';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }
-              }}
-            >
-              Reset All Settings
-            </button>
           </div>
         </div>
       </form>

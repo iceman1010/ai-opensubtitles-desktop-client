@@ -197,7 +197,8 @@ class MainApp {
 
     const isDev = process.env.NODE_ENV === 'development';
     if (isDev) {
-      this.mainWindow.loadURL('http://localhost:5173');
+      const devPort = process.env.VITE_DEV_PORT || '5173';
+      this.mainWindow.loadURL(`http://localhost:${devPort}`);
       // this.mainWindow.webContents.openDevTools(); // Commented out for cleaner UI
     } else {
       // Smart path resolution for different packaging formats
