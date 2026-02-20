@@ -6,9 +6,11 @@ import logoImage from '../assets/logo.png';
 interface LoginProps {
   onLogin: (username: string, password: string, apiKey: string) => Promise<boolean>;
   setAppProcessing: (processing: boolean, task?: string) => void;
+  isPreviewMode?: boolean;
+  onCancelPreview?: () => void;
 }
 
-function Login({ onLogin, setAppProcessing }: LoginProps) {
+function Login({ onLogin, setAppProcessing, isPreviewMode, onCancelPreview }: LoginProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [apiKey, setApiKey] = useState('');
@@ -46,6 +48,27 @@ function Login({ onLogin, setAppProcessing }: LoginProps) {
 
   return (
     <div style={{ maxWidth: '400px', margin: '5px auto 20px auto', textAlign: 'center' }}>
+      {isPreviewMode && (
+        <div style={{ marginBottom: '10px' }}>
+          <button
+            type="button"
+            onClick={onCancelPreview}
+            style={{
+              padding: '8px 16px',
+              fontSize: '13px',
+              background: 'transparent',
+              color: 'var(--text-secondary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '6px',
+              cursor: 'pointer'
+            }}
+          >
+            <i className="fas fa-arrow-left" style={{ marginRight: '6px' }}></i>
+            Back to App
+          </button>
+        </div>
+      )}
+      
       {/* Logo at the top */}
       <div style={{ marginBottom: '10px' }}>
         <img 

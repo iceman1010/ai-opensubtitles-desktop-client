@@ -247,6 +247,7 @@ function AppContent({
   const { simulateSystemResume } = usePower();
 
   const [currentScreen, setCurrentScreen] = useState<'login' | 'main' | 'batch' | 'search' | 'recent-media' | 'preferences' | 'update' | 'info' | 'credits' | 'help'>('main');
+  const [forceShowSetup, setForceShowSetup] = useState(false);
   const [pendingBatchFiles, setPendingBatchFiles] = useState<string[]>([]);
   const [pendingMainFile, setPendingMainFile] = useState<string | null>(null);
 
@@ -266,6 +267,8 @@ function AppContent({
 
   // Set initial screen based on authentication state
   useEffect(() => {
+    if (forceShowSetup) return; // Skip auto-redirect if forcing setup screen view
+    
     if (!hasCredentials) {
       // Only show login screen if no credentials exist at all
       setCurrentScreen('login');
@@ -275,7 +278,7 @@ function AppContent({
       setCurrentScreen('main');
     }
     // Don't auto-navigate when user is already on functional screens (credits, batch, etc.)
-  }, [hasCredentials, isAuthenticated, currentScreen]);
+  }, [hasCredentials, isAuthenticated, currentScreen, forceShowSetup]);
 
   useEffect(() => {
     // Set up keyboard shortcut listener
@@ -717,10 +720,17 @@ function AppContent({
       )}
 
       <div className="main-content">
-        {currentScreen === 'login' && (
+        {(currentScreen === 'login' || forceShowSetup) && (
           <Login
             onLogin={handleLogin}
             setAppProcessing={setAppProcessing}
+            isPreviewMode={forceShowSetup}
+            onCancelPreview={() => {
+              setForceShowSetup(false);
+              if (!hasCredentials) {
+                setCurrentScreen('login');
+              }
+            }}
           />
         )}
         {currentScreen === 'main' && config && (
@@ -787,6 +797,10 @@ function AppContent({
             onSimulateHibernation={() => {
               prepareForHibernationTest();
               simulateSystemResume();
+            }}
+            onShowSetup={() => {
+              setForceShowSetup(true);
+              setCurrentScreen('login');
             }}
           />
         )}

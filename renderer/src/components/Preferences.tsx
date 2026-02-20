@@ -36,9 +36,10 @@ interface PreferencesProps {
   setAppProcessing: (processing: boolean, task?: string) => void;
   onSimulateOffline?: () => Promise<void>;
   onSimulateHibernation?: () => void;
+  onShowSetup?: () => void;
 }
 
-function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSimulateHibernation }: PreferencesProps) {
+function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSimulateHibernation, onShowSetup }: PreferencesProps) {
   const [username, setUsername] = useState(config.username || '');
   const [password, setPassword] = useState(config.password || '');
   const [apiKey, setApiKey] = useState(config.apiKey || '');
@@ -883,6 +884,61 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
               }}>
                 This will clear authentication and simulate system resume from hibernation to test automatic re-authentication with DNS retry logic.
               </div>
+            </div>
+
+            {/* Show Setup Screen */}
+            <div style={{
+              marginTop: '16px',
+              padding: '16px',
+              background: 'var(--bg-tertiary)',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color)'
+            }}>
+              <h4 style={{
+                margin: '0 0 12px 0',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: 'var(--text-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <i className="fas fa-play-circle"></i>
+                Show Setup Screen
+              </h4>
+              <p style={{
+                margin: '0 0 16px 0',
+                fontSize: '13px',
+                color: 'var(--text-secondary)',
+                lineHeight: '1.4'
+              }}>
+                Display the initial setup/login screen as if this was the first time running the app.
+              </p>
+              <button
+                onClick={() => {
+                  onShowSetup?.();
+                }}
+                style={{
+                  padding: '10px 16px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  background: '#e65100',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#bf360c';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#e65100';
+                }}
+              >
+                <i className="fas fa-sign-in-alt" style={{ marginRight: '8px' }}></i>
+                Show Setup Screen
+              </button>
             </div>
 
             {/* Reset Settings Section */}
