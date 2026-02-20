@@ -394,18 +394,25 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
               type="text"
               id="apiKey"
               value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              required
-              disabled={isLoading}
-              placeholder="Your OpenSubtitles API Key"
+              disabled={true}
+              placeholder="API Key (pre-configured)"
+              style={{
+                backgroundColor: 'var(--bg-tertiary)',
+                color: 'var(--text-secondary)',
+                cursor: 'not-allowed'
+              }}
             />
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+              <i className="fas fa-lock" style={{ marginRight: '4px' }}></i>
+              This API key is pre-configured and cannot be changed
+            </div>
           </div>
 
           <div className="button-group">
             <button
               type="submit"
               className="button"
-              disabled={isLoading || !username || !password || !apiKey}
+              disabled={isLoading || !username || !password}
               style={{
                 backgroundColor: '#007bff',
                 borderColor: '#007bff',

@@ -1,10 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as fileFormatsConfig from '../../../shared/fileFormats.json';
 
 interface HelpProps {}
 
 const Help: React.FC<HelpProps> = ({}) => {
   const [activeSection, setActiveSection] = useState<'getting-started' | 'command-line' | 'file-associations' | 'file-formats' | 'transcription' | 'translation' | 'batch-processing' | 'troubleshooting' | 'search' | 'shortcuts'>('getting-started');
+  const [isNarrow, setIsNarrow] = useState(false);
+
+  useEffect(() => {
+    const checkWidth = () => {
+      setIsNarrow(window.innerWidth <= 800);
+    };
+    checkWidth();
+    window.addEventListener('resize', checkWidth);
+    return () => window.removeEventListener('resize', checkWidth);
+  }, []);
 
   const sections = {
     'getting-started': {
@@ -16,7 +26,7 @@ const Help: React.FC<HelpProps> = ({}) => {
           
           <h4>Quick Start</h4>
           <ol>
-            <li><strong>Login:</strong> Enter your OpenSubtitles credentials and API key in Preferences</li>
+            <li><strong>Login:</strong> Enter your OpenSubtitles credentials in Preferences</li>
             <li><strong>Choose Processing Mode:</strong> 
               <ul style={{ marginTop: '8px', marginBottom: '8px' }}>
                 <li><strong>Single File Screen:</strong> For single files with immediate results and detailed control</li>
@@ -418,10 +428,10 @@ const Help: React.FC<HelpProps> = ({}) => {
 
           <h5>Authentication Errors</h5>
           <ul>
-            <li><strong>Invalid Credentials:</strong> Verify username, password, and API key in Preferences</li>
+            <li><strong>Invalid Credentials:</strong> Verify username and password in Preferences</li>
             <li><strong>Expired Token:</strong> App automatically refreshes tokens - restart if persistent</li>
             <li><strong>Account Issues:</strong> Check OpenSubtitles account status on website</li>
-            <li><strong>API Key:</strong> Ensure API key is correctly copied without extra spaces</li>
+            <li><strong>API Key:</strong> The API key is pre-configured and should not need changes</li>
           </ul>
 
           <h4>Advanced Troubleshooting</h4>
@@ -628,6 +638,68 @@ const Help: React.FC<HelpProps> = ({}) => {
     }
   };
 
+  const sectionKeys = Object.keys(sections) as (keyof typeof sections)[];
+
+  const NavTabs = () => (
+    <div style={{
+      display: 'flex',
+      background: 'var(--bg-tertiary)',
+      borderBottom: '1px solid var(--border-color)',
+      overflowX: 'auto',
+      flexShrink: 0,
+      scrollbarWidth: 'thin'
+    }}>
+      {sectionKeys.map((key) => (
+        <button
+          key={key}
+          onClick={() => setActiveSection(key)}
+          style={{
+            padding: '12px 16px',
+            background: activeSection === key ? 'var(--button-bg)' : 'transparent',
+            color: activeSection === key ? 'var(--button-text)' : 'var(--text-primary)',
+            border: 'none',
+            borderBottom: activeSection === key ? '2px solid var(--button-bg)' : '2px solid transparent',
+            cursor: 'pointer',
+            fontSize: '13px',
+            whiteSpace: 'nowrap',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          {sections[key].title}
+        </button>
+      ))}
+    </div>
+  );
+
+  const NavDropdown = () => (
+    <div style={{
+      padding: '12px 16px',
+      background: 'var(--bg-tertiary)',
+      borderBottom: '1px solid var(--border-color)'
+    }}>
+      <select
+        value={activeSection}
+        onChange={(e) => setActiveSection(e.target.value as keyof typeof sections)}
+        style={{
+          width: '100%',
+          padding: '10px 12px',
+          background: 'var(--bg-secondary)',
+          color: 'var(--text-primary)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '4px',
+          fontSize: '14px',
+          cursor: 'pointer'
+        }}
+      >
+        {sectionKeys.map((key) => (
+          <option key={key} value={key}>
+            {sections[key].title}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+
   return (
     <div style={{
       display: 'flex',
@@ -635,115 +707,68 @@ const Help: React.FC<HelpProps> = ({}) => {
       height: '100%',
       background: 'var(--bg-secondary)'
     }}>
-      {/* Header */}
+      {/* Compact Header */}
       <div style={{
         display: 'flex',
-        justifyContent: 'center',
         alignItems: 'center',
-        padding: '20px',
+        padding: '12px 20px',
         borderBottom: '1px solid var(--border-color)',
         background: 'var(--bg-tertiary)'
       }}>
-        <h1 style={{ margin: 0, fontSize: '24px', color: 'var(--text-primary)' }}>Help & Documentation</h1>
+        <h1 style={{ margin: 0, fontSize: '18px', color: 'var(--text-primary)' }}>Help & Documentation</h1>
       </div>
+
+      {/* Navigation */}
+      {isNarrow ? <NavDropdown /> : <NavTabs />}
 
       {/* Content Area */}
       <div style={{
-        display: 'flex',
         flex: 1,
-        overflow: 'hidden'
+        padding: '20px',
+        overflowY: 'auto',
+        lineHeight: '1.6'
       }}>
-        {/* Sidebar Navigation */}
-        <div style={{
-          width: '250px',
-          background: 'var(--bg-tertiary)',
-          borderRight: '1px solid var(--border-color)',
-          overflowY: 'auto'
-        }}>
-          <nav style={{ padding: '20px 0' }}>
-            {Object.entries(sections).map(([key, section]) => (
-              <button
-                key={key}
-                onClick={() => setActiveSection(key as keyof typeof sections)}
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  padding: '12px 20px',
-                  background: activeSection === key ? 'var(--button-bg)' : 'transparent',
-                  color: activeSection === key ? 'var(--button-text)' : 'var(--text-primary)',
-                  border: 'none',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  borderLeft: activeSection === key ? '3px solid var(--button-bg)' : '3px solid transparent',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => {
-                  if (activeSection !== key) {
-                    e.currentTarget.style.background = 'var(--bg-secondary)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (activeSection !== key) {
-                    e.currentTarget.style.background = 'transparent';
-                  }
-                }}
-              >
-                {section.title}
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        {/* Content Area */}
-        <div style={{
-          flex: 1,
-          padding: '30px',
-          overflowY: 'auto',
-          lineHeight: '1.6'
-        }}>
-          <style>{`
-            .help-content h3 {
-              color: var(--button-bg);
-              margin-top: 30px;
-              margin-bottom: 15px;
-              font-size: 20px;
-              border-bottom: 2px solid var(--border-color);
-              padding-bottom: 5px;
-            }
-            .help-content h4 {
-              color: var(--text-primary);
-              margin-top: 25px;
-              margin-bottom: 12px;
-              font-size: 16px;
-            }
-            .help-content p {
-              margin-bottom: 15px;
-              color: var(--text-secondary);
-            }
-            .help-content ul, .help-content ol {
-              margin-bottom: 20px;
-              padding-left: 25px;
-            }
-            .help-content li {
-              margin-bottom: 8px;
-              color: var(--text-secondary);
-            }
-            .help-content li strong {
-              color: var(--text-primary);
-            }
-            .help-content code {
-              background: var(--bg-tertiary);
-              color: var(--text-primary);
-              padding: 2px 6px;
-              border-radius: 3px;
-              font-family: 'Courier New', monospace;
-              font-size: 14px;
-            }
-          `}</style>
-          <div className="help-content">
-            {sections[activeSection].content}
-          </div>
+        <style>{`
+          .help-content h3 {
+            color: var(--button-bg);
+            margin-top: 24px;
+            margin-bottom: 12px;
+            font-size: 18px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 5px;
+          }
+          .help-content h4 {
+            color: var(--text-primary);
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 15px;
+          }
+          .help-content p {
+            margin-bottom: 12px;
+            color: var(--text-secondary);
+          }
+          .help-content ul, .help-content ol {
+            margin-bottom: 16px;
+            padding-left: 20px;
+          }
+          .help-content li {
+            margin-bottom: 6px;
+            color: var(--text-secondary);
+          }
+          .help-content li strong {
+            color: var(--text-primary);
+          }
+          .help-content code {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+          }
+        `}</style>
+        <div className="help-content">
+          {sections[activeSection].content}
         </div>
       </div>
     </div>
