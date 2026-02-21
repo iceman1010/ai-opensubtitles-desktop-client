@@ -13,6 +13,7 @@ import StatusBar from './components/StatusBar';
 import ErrorLogControls from './components/ErrorLogControls';
 import { APIProvider, useAPI } from './contexts/APIContext';
 import { PowerProvider, usePower, usePowerEvents, useHibernationRecovery } from './contexts/PowerContext';
+import { activityTracker } from './utils/activityTracker';
 import { logger } from './utils/errorLogger'; // Initialize global error handlers
 import appConfig from './config/appConfig.json';
 import packageInfo from '../../package.json';
@@ -259,6 +260,7 @@ function AppContent({
   const [isNetworkOnline, setIsNetworkOnline] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentTask, setCurrentTask] = useState<string | undefined>(undefined);
+  const [isApiActive, setIsApiActive] = useState(false);
 
   // Notification function for StatusBar instant messages (duplicate files, validation errors, etc.)
   // This provides orange notification style distinct from blue processing status
@@ -345,6 +347,21 @@ function AppContent({
       window.electronAPI?.removeExternalFileListener?.(handleExternalFile);
       window.electronAPI?.removeExternalFilesListener?.(handleExternalFiles);
     };
+  }, []);
+
+  // Track API activity for logo glow effect
+  useEffect(() => {
+    const cleanup = activityTracker.addListener({
+      onActivityStart: () => setIsApiActive(true),
+      onActivityEnd: () => setIsApiActive(false)
+    });
+
+    // Check initial state
+    if (activityTracker.isActive()) {
+      setIsApiActive(true);
+    }
+
+    return cleanup;
   }, []);
 
   // Hibernation recovery management
@@ -700,6 +717,7 @@ function AppContent({
             <img
               src={logoImage}
               alt="Logo"
+              className={isApiActive ? 'sidebar-logo-glow' : ''}
               style={{
                 width: '100%',
                 maxWidth: '60px', // Smaller size for bottom positioning

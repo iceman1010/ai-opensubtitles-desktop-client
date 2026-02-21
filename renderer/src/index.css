@@ -514,6 +514,24 @@ input[type="file"][webkitdirectory]::-moz-file-upload-button {
   opacity: 0.7;
 }
 
+/* Logo glow animation - bright blue glow on API activity (similar to splash screen) */
+@keyframes logoGlowPulse {
+  0% {
+    box-shadow: 0 0 20px rgba(74, 144, 226, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 35px rgba(74, 144, 226, 0.7);
+  }
+  100% {
+    box-shadow: 0 0 20px rgba(74, 144, 226, 0.3);
+  }
+}
+
+.sidebar-logo-glow {
+  animation: logoGlowPulse 2s ease-in-out infinite;
+  transition: box-shadow 0.3s ease;
+}
+
 /* FontAwesome icon spacing for sidebar navigation */
 .sidebar nav button i {
   margin-right: 8px;
