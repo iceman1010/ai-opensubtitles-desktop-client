@@ -254,6 +254,18 @@ commit_and_push() {
     log_success "Changes committed and pushed"
 }
 
+# Read release notes template
+read_release_template() {
+    local template_file="$PROJECT_ROOT/scripts/release-notes-template.md"
+    
+    if [ -f "$template_file" ]; then
+        cat "$template_file"
+    else
+        log_warning "Release notes template not found at $template_file"
+        echo ""
+    fi
+}
+
 # Update GitHub release with changelog
 update_release_notes() {
     local tag="$1"
@@ -265,25 +277,15 @@ update_release_notes() {
 
     log_info "Updating GitHub release with changelog..."
 
-    # Create release notes with changelog
+    # Read the template
+    local template_content=$(read_release_template)
+    
+    # Create release notes with changelog and template
     local release_notes="$GENERATED_CHANGELOG
 
 ---
 
-## Auto-Updater Support
-This release includes proper auto-updater metadata for all platforms:
-- ✅ Windows (latest.yml)
-- ✅ macOS (latest-mac.yml)
-- ✅ Linux (latest-linux.yml)
-
-## Installation
-Download the appropriate installer for your platform from the assets below.
-
-### macOS Note
-If you see \"app is damaged and can't be opened\", run this command:
-\`\`\`bash
-xattr -cr \"/Applications/AI.Opensubtitles.com Client.app\"
-\`\`\`"
+$template_content"
 
     # Add delay to ensure GitHub has processed the release
     log_info "Waiting 10 seconds for GitHub to process the release..."
