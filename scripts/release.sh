@@ -734,8 +734,8 @@ fix_metadata_checksums() {
         generated_count=$((generated_count + 1))
     fi
 
-    # macOS x64 ZIP (latest-mac.yml) - Use ZIP for auto-updater, not DMG
-    local mac_file="AI.Opensubtitles.com.Client-x64.zip"
+    # macOS x64 DMG (latest-mac.yml)
+    local mac_file="AI.Opensubtitles.com.Client-x64.dmg"
     if generate_metadata_with_fallback "$version" "$mac_file" "latest-mac.yml" "$release_date" "$tag"; then
         generated_count=$((generated_count + 1))
     fi
