@@ -15,6 +15,9 @@ latest.yml
 .env.local
 .env.production
 
+# Agent instructions (should not be committed)
+AGENTS.md
+
 # User data (just in case any config files end up in project)
 config.json
 *.config
