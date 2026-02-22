@@ -1,6 +1,6 @@
 {
   "name": "ai-opensubtitles-client",
-  "version": "1.8.17",
+  "version": "1.8.18",
   "description": "Cross-platform desktop client for AI.Opensubtitles.com",
   "main": "dist/main/main.js",
   "homepage": "./",
@@ -431,6 +431,7 @@
     ]
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/fluent-ffmpeg": "^2.1.28",
     "@types/node": "^22.10.0",
     "@types/react": "^18.3.12",
@@ -439,6 +440,7 @@
     "concurrently": "^9.1.0",
     "electron": "^39.1.0",
     "electron-builder": "^25.1.8",
+    "electron-playwright-helpers": "^2.1.0",
     "typescript": "^5.7.2",
     "vite": "^6.0.1"
   },

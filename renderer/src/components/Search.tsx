@@ -181,9 +181,14 @@ function Search({ setAppProcessing, showNotification }: SearchProps) {
 
     // Pre-fill form with IMDb ID and open advanced options
     if (feature.attributes.imdb_id) {
+      const imdbId = feature.attributes.imdb_id.toString();
+      const isTvshow = feature.attributes.feature_type === 'Tvshow';
+
       setFormInitialValues({
         query: '',  // Clear old search text
-        imdb_id: feature.attributes.imdb_id.toString(),
+        // For TV shows, use parent_imdb_id so the API searches for subtitles under the show
+        imdb_id: isTvshow ? '' : imdbId,
+        parent_imdb_id: isTvshow ? imdbId : '',
         showAdvanced: true,
         autoSubmit: true,  // Trigger search automatically
       });

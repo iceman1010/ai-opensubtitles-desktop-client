@@ -7,10 +7,12 @@ type SearchTab = 'subtitles' | 'features';
 interface SearchFormInitialValues {
   query?: string;
   imdb_id?: string;
+  parent_imdb_id?: string;
   year?: string;
   type?: string;
   languages?: string;
   showAdvanced?: boolean;
+  autoSubmit?: boolean;
 }
 
 interface SearchFormProps {
@@ -24,6 +26,7 @@ interface SearchFormState {
   query: string;
   languages: string;
   imdb_id: string;
+  parent_imdb_id: string;
   year: string;
   type: string;
   showAdvanced: boolean;
@@ -46,6 +49,7 @@ function SearchForm({ activeTab, onSearch, isLoading, initialValues }: SearchFor
     query: initialValues?.query || '',
     languages: initialValues?.languages || 'en',
     imdb_id: initialValues?.imdb_id || '',
+    parent_imdb_id: initialValues?.parent_imdb_id || '',
     year: initialValues?.year || '',
     type: initialValues?.type || '',
     showAdvanced: initialValues?.showAdvanced || false,
@@ -80,6 +84,7 @@ function SearchForm({ activeTab, onSearch, isLoading, initialValues }: SearchFor
         ...prev,
         query: initialValues.query !== undefined ? initialValues.query : prev.query,
         imdb_id: initialValues.imdb_id !== undefined ? initialValues.imdb_id : prev.imdb_id,
+        parent_imdb_id: initialValues.parent_imdb_id !== undefined ? initialValues.parent_imdb_id : prev.parent_imdb_id,
         year: initialValues.year !== undefined ? initialValues.year : prev.year,
         type: initialValues.type !== undefined ? initialValues.type : prev.type,
         languages: initialValues.languages !== undefined ? initialValues.languages : prev.languages,
@@ -114,7 +119,7 @@ function SearchForm({ activeTab, onSearch, isLoading, initialValues }: SearchFor
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formState.query.trim() && !formState.imdb_id.trim()) {
+    if (!formState.query.trim() && !formState.imdb_id.trim() && !formState.parent_imdb_id.trim()) {
       return;
     }
 
@@ -125,7 +130,9 @@ function SearchForm({ activeTab, onSearch, isLoading, initialValues }: SearchFor
       };
 
       // Add optional parameters only if they have values
-      if (formState.imdb_id.trim()) {
+      if (formState.parent_imdb_id.trim()) {
+        searchParams.parent_imdb_id = formState.parent_imdb_id.trim();
+      } else if (formState.imdb_id.trim()) {
         searchParams.imdb_id = formState.imdb_id.trim();
       }
 
@@ -291,16 +298,16 @@ function SearchForm({ activeTab, onSearch, isLoading, initialValues }: SearchFor
 
               <button
                 type="submit"
-                disabled={isLoading || (!formState.query.trim() && !formState.imdb_id.trim())}
+                disabled={isLoading || (!formState.query.trim() && !formState.imdb_id.trim() && !formState.parent_imdb_id.trim())}
                 style={{
                   padding: '12px 24px',
                   fontSize: '14px',
                   fontWeight: 'bold',
-                  background: (formState.query.trim() || formState.imdb_id.trim()) ? 'var(--primary-color)' : 'var(--bg-disabled)',
-                  color: (formState.query.trim() || formState.imdb_id.trim()) ? 'var(--button-text)' : 'var(--text-disabled)',
+                  background: (formState.query.trim() || formState.imdb_id.trim() || formState.parent_imdb_id.trim()) ? 'var(--primary-color)' : 'var(--bg-disabled)',
+                  color: (formState.query.trim() || formState.imdb_id.trim() || formState.parent_imdb_id.trim()) ? 'var(--button-text)' : 'var(--text-disabled)',
                   border: '1px solid var(--border-color)',
                   borderRadius: '6px',
-                  cursor: (formState.query.trim() || formState.imdb_id.trim()) ? 'pointer' : 'not-allowed',
+                  cursor: (formState.query.trim() || formState.imdb_id.trim() || formState.parent_imdb_id.trim()) ? 'pointer' : 'not-allowed',
                   minWidth: '100px',
                   flexShrink: 0,
                 }}
