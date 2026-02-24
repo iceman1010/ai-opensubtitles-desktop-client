@@ -433,17 +433,24 @@ wait_for_builds() {
     
     log_info "Waiting for GitHub Actions builds to complete..."
     log_info "Tag: $tag | Max wait time: $((max_wait / 60)) minutes"
-    
+
+    # Give GitHub time to register the tag push and start the workflow
+    log_info "Waiting 15 seconds for GitHub to start the workflow..."
+    sleep 15
+
     while [ $wait_time -lt $max_wait ]; do
-        # First check workflow runs for this tag
-        local workflow_status=$(gh run list --repo "$REPO_OWNER/$REPO_NAME" --limit 5 --json status,conclusion,headBranch,headSha --jq "
-            map(select(.headBranch == \"main\" or .headSha != null)) | 
-            .[0] | 
-            if .status == \"completed\" then 
-                if .conclusion == \"success\" then \"success\" 
-                else \"failed\" 
-                end 
-            else .status // \"unknown\" 
+        # Check workflow runs triggered by this specific tag (exclude old cancelled runs)
+        local workflow_status=$(gh run list --repo "$REPO_OWNER/$REPO_NAME" --limit 10 --json status,conclusion,headBranch --jq "
+            map(select(.headBranch == \"$tag\" and (.conclusion == \"cancelled\" | not))) |
+            if length == 0 then \"waiting\"
+            else
+                .[0] |
+                if .status == \"completed\" then
+                    if .conclusion == \"success\" then \"success\"
+                    else \"failed\"
+                    end
+                else .status // \"unknown\"
+                end
             end
         " 2>/dev/null || echo "unknown")
         
