@@ -21,7 +21,7 @@ NC='\033[0m' # No Color
 # Configuration - Auto-detect from git remote or use defaults
 REPO_OWNER="iceman1010"  # Will be auto-detected from git remote
 REPO_NAME="ai-opensubtitles-desktop-client"  # Will be auto-detected from git remote
-TEMP_DIR="/tmp/release_automation_$$"
+TEMP_DIR=""  # Set after PROJECT_ROOT is determined
 PROJECT_ROOT=""
 
 # Helper functions
@@ -979,6 +979,7 @@ main() {
     
     # Set project root for all operations
     PROJECT_ROOT=$(pwd)
+    TEMP_DIR="$PROJECT_ROOT/tmp/release_automation_$$"
     log_info "Working from project root: $PROJECT_ROOT"
     
     # Auto-detect repository information
@@ -1145,12 +1146,12 @@ main() {
     
     if [ $wait_result -eq 1 ]; then
         log_error "GitHub Actions workflow failed. Aborting release process."
-        cleanup_temp_files
+        cleanup
         exit 1
     elif [ $wait_result -eq 2 ]; then
         log_error "Release files are not available for download. Manual intervention required."
         log_info "Check your GitHub Actions workflow to ensure it creates releases with assets."
-        cleanup_temp_files
+        cleanup
         exit 2
     fi
     
