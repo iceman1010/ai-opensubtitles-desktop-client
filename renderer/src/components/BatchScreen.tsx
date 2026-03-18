@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import FileSelector from './FileSelector';
-import { LanguageInfo, TranscriptionInfo, TranslationInfo, DetectedLanguage } from '../services/api';
+import { LanguageInfo, TranscriptionInfo, TranslationInfo, DetectedLanguage, ServicesInfo, ServiceModel } from '../services/api';
 import { logger } from '../utils/errorLogger';
 import { isOnline, isFullyOnline } from '../utils/networkUtils';
 import { useAPI } from '../contexts/APIContext';
@@ -67,6 +67,8 @@ interface BatchFile {
   error?: string;
   outputPath?: string;
   creditsUsed?: number;
+  duration?: number;
+  characterCount?: number;
 }
 
 type WorkflowMode = 'transcribe-only' | 'transcribe-and-translate';
@@ -111,9 +113,10 @@ interface BatchScreenProps {
   onFilesPending?: () => void;
   isVisible?: boolean;
   onProcessingStateChange?: (isProcessing: boolean) => void;
+  onEstimatedCostChange?: (cost: number | null) => void;
 }
 
-const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, showNotification, pendingFiles, onFilesPending, isVisible = true, onProcessingStateChange }) => {
+const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, showNotification, pendingFiles, onFilesPending, isVisible = true, onProcessingStateChange, onEstimatedCostChange }) => {
   const [queue, setQueue] = useState<BatchFile[]>([]);
   const detectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const detectionInProgressRef = useRef<Set<string>>(new Set());
@@ -177,7 +180,8 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
     getTranscriptionLanguagesForApi,
     getTranslationLanguagesForApi,
     getTranslationLanguageNameSync,
-    getTranscriptionLanguageNameSync
+    getTranscriptionLanguageNameSync,
+    getServicesInfo
   } = useAPI();
 
   
@@ -189,6 +193,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
   const shouldStopRef = useRef<boolean>(false);
   const processedPendingFilesRef = useRef<string[]>([]);
   const queueRef = useRef<BatchFile[]>([]);
+  const [servicesInfo, setServicesInfo] = useState<ServicesInfo | null>(null);
 
   // API initialization now handled by APIContext
 
@@ -196,6 +201,67 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
   useEffect(() => {
     onProcessingStateChange?.(isProcessing);
   }, [isProcessing, onProcessingStateChange]);
+
+  // Fetch ServicesInfo for pricing data
+  useEffect(() => {
+    if (isAuthenticated) {
+      getServicesInfo().then(result => {
+        if (result.success && result.data) setServicesInfo(result.data);
+      });
+    }
+  }, [isAuthenticated, getServicesInfo]);
+
+  // Fuzzy model name matching (API names may differ from ServicesInfo names)
+  const normalizeModelName = useCallback((s: string) => s.replace(/[.\-_]/g, '').toLowerCase(), []);
+  const findModelPrice = useCallback((models: ServiceModel[] | undefined, selected: string) =>
+    models?.find(m => m.name === selected) ||
+    models?.find(m => normalizeModelName(m.name) === normalizeModelName(selected)),
+  [normalizeModelName]);
+
+  // Compute accumulated estimated cost for all pending files in queue
+  const estimatedCost = useMemo(() => {
+    if (!servicesInfo || queue.length === 0 || isProcessing) return null;
+
+    const enableTranslation = batchSettings.workflowMode === 'transcribe-and-translate';
+    let total = 0;
+    let hasAnyEstimate = false;
+
+    for (const file of queue) {
+      if (file.status !== 'pending') continue;
+
+      if (file.type === 'transcription' && file.duration && batchSettings.transcriptionModel) {
+        const model = findModelPrice(servicesInfo.Transcription, batchSettings.transcriptionModel);
+        if (model && typeof model.price === 'number') {
+          total += file.duration * model.price;
+          hasAnyEstimate = true;
+        }
+        if (enableTranslation && batchSettings.translationModel && file.duration) {
+          const translationModel = findModelPrice(servicesInfo.Translation, batchSettings.translationModel);
+          if (translationModel && typeof translationModel.price === 'number') {
+            const estimatedChars = file.duration * 15;
+            total += estimatedChars * translationModel.price;
+            hasAnyEstimate = true;
+          }
+        }
+      }
+
+      if (file.type === 'translation' && file.characterCount && batchSettings.translationModel) {
+        const model = findModelPrice(servicesInfo.Translation, batchSettings.translationModel);
+        if (model && typeof model.price === 'number') {
+          total += file.characterCount * model.price;
+          hasAnyEstimate = true;
+        }
+      }
+    }
+
+    return hasAnyEstimate ? total : null;
+  }, [servicesInfo, queue, batchSettings.transcriptionModel, batchSettings.translationModel, batchSettings.workflowMode, isProcessing, findModelPrice]);
+
+  // Propagate estimated cost to parent
+  useEffect(() => {
+    onEstimatedCostChange?.(estimatedCost);
+    return () => { onEstimatedCostChange?.(null); };
+  }, [estimatedCost, onEstimatedCostChange]);
 
   // Handle pending files from MainScreen redirect
   useEffect(() => {
@@ -937,6 +1003,27 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
 
 
 
+  // Analyze file for cost estimation
+  const analyzeFileForCost = async (filePath: string, fileId: string, fileType: 'transcription' | 'translation') => {
+    try {
+      if (fileType === 'transcription') {
+        const mediaInfo = await window.electronAPI.getMediaInfo(filePath);
+        if (mediaInfo.duration) {
+          setQueue(prev => prev.map(f => f.id === fileId ? { ...f, duration: mediaInfo.duration } : f));
+        }
+      } else {
+        const textFile = await window.electronAPI.readTextFile(filePath);
+        const { parseSubtitleFile } = await import('../utils/subtitleParser');
+        const subtitleInfo = parseSubtitleFile(textFile.content, textFile.fileName);
+        if (subtitleInfo.characterCount > 0) {
+          setQueue(prev => prev.map(f => f.id === fileId ? { ...f, characterCount: subtitleInfo.characterCount } : f));
+        }
+      }
+    } catch (error) {
+      logger.warn('BatchScreen', `Could not analyze ${filePath} for cost estimation`, error);
+    }
+  };
+
   const addFileToQueue = async (filePath: string) => {
     const fileName = await window.electronAPI.getBaseName(filePath);
 
@@ -1005,6 +1092,9 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
       }
       return updatedQueue;
     });
+
+    // Analyze file for cost estimation (async, updates queue when done)
+    analyzeFileForCost(filePath, newFile.id, fileType);
   };
 
 
@@ -2390,13 +2480,25 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
           </div>
           <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
             {isProcessing ? (
-              currentFileIndex >= 0 ? 
+              currentFileIndex >= 0 ?
                 `Processing: ${queue[currentFileIndex]?.name} (${currentFileIndex + 1}/${queue.length})` :
                 'Starting batch processing...'
             ) : (
               `Ready to process ${queue.length} files`
             )}
           </div>
+          {!isProcessing && estimatedCost !== null && (
+            <div style={{ fontSize: '14px', marginTop: '4px', fontWeight: '500' }}>
+              <span style={{ color: estimatedCost === 0 ? 'var(--success-color)' : 'var(--text-primary)' }}>
+                Est. total cost: {estimatedCost === 0 ? 'Free' : `~${estimatedCost.toFixed(1)} credits`}
+              </span>
+              {batchSettings.workflowMode === 'transcribe-and-translate' && (
+                <span style={{ color: 'var(--text-muted)', marginLeft: '8px', fontSize: '12px' }}>
+                  (includes estimated translation)
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: '10px' }}>

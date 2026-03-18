@@ -255,6 +255,7 @@ function AppContent({
   // Track processing states from child screens
   const [mainScreenProcessing, setMainScreenProcessing] = useState(false);
   const [batchScreenProcessing, setBatchScreenProcessing] = useState(false);
+  const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
   
   // Centralized status state
   const [isNetworkOnline, setIsNetworkOnline] = useState(true);
@@ -766,6 +767,7 @@ function AppContent({
             onExternalFileProcessed={() => setPendingMainFile(null)}
             onCreditsUpdate={handleCreditsUpdate}
             onProcessingStateChange={setMainScreenProcessing}
+            onEstimatedCostChange={setEstimatedCost}
           />
         )}
         {currentScreen === 'batch' && config && (
@@ -777,6 +779,7 @@ function AppContent({
             onFilesPending={() => setPendingBatchFiles([])}
             isVisible={true}
             onProcessingStateChange={setBatchScreenProcessing}
+            onEstimatedCostChange={setEstimatedCost}
           />
         )}
         {currentScreen === 'search' && config && (
@@ -860,6 +863,16 @@ function AppContent({
           }}
         >
           <i className="fas fa-coins" style={{color: 'var(--text-primary)', marginRight: '6px'}}></i>Credits: <strong>{credits.remaining}</strong>
+          {estimatedCost !== null && (
+            <div style={{
+              fontSize: '12px',
+              color: estimatedCost === 0 ? 'var(--success-color)' : estimatedCost > credits.remaining ? 'var(--danger-color)' : 'var(--text-muted)',
+              marginTop: '4px',
+              fontWeight: estimatedCost > credits.remaining ? '600' : '400'
+            }}>
+              Est. cost: {estimatedCost === 0 ? 'Free' : `~${estimatedCost.toFixed(1)}`}
+            </div>
+          )}
         </div>
       )}
 

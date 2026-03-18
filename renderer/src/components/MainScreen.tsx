@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import FileSelector from './FileSelector';
 import { getProcessingType } from '../config/fileFormats';
-import { OpenSubtitlesAPI, LanguageInfo, TranscriptionInfo, TranslationInfo, DetectedLanguage, LanguageDetectionResult, APIResponse } from '../services/api';
+import { OpenSubtitlesAPI, LanguageInfo, TranscriptionInfo, TranslationInfo, DetectedLanguage, LanguageDetectionResult, APIResponse, ServicesInfo, ServiceModel } from '../services/api';
 import { logger } from '../utils/errorLogger';
 import { parseSubtitleFile, formatDuration, formatCharacterCount, ParsedSubtitle } from '../utils/subtitleParser';
 import ImprovedTranscriptionOptions from './ImprovedTranscriptionOptions';
@@ -73,9 +73,10 @@ interface MainScreenProps {
   onExternalFileProcessed?: () => void;
   onCreditsUpdate?: (credits: { used: number; remaining: number }) => void;
   onProcessingStateChange?: (isProcessing: boolean) => void;
+  onEstimatedCostChange?: (cost: number | null) => void;
 }
 
-function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateToBatch, pendingExternalFile, onExternalFileProcessed, onCreditsUpdate, onProcessingStateChange }: MainScreenProps) {
+function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateToBatch, pendingExternalFile, onExternalFileProcessed, onCreditsUpdate, onProcessingStateChange, onEstimatedCostChange }: MainScreenProps) {
   const {
     isAuthenticated,
     credits,
@@ -94,7 +95,8 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
     initiateTranslation,
     checkTranscriptionStatus,
     checkTranslationStatus,
-    downloadFile
+    downloadFile,
+    getServicesInfo
   } = useAPI();
 
 
@@ -143,8 +145,52 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
   const [isNetworkOnline, setIsNetworkOnline] = useState(isOnline());
   const hasAttemptedLogin = useRef(false);
   const [showCreditModal, setShowCreditModal] = useState(false);
+  const [servicesInfo, setServicesInfo] = useState<ServicesInfo | null>(null);
   const languageDetectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pollingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Fetch ServicesInfo for pricing data
+  useEffect(() => {
+    if (isAuthenticated) {
+      getServicesInfo().then(result => {
+        if (result.success && result.data) setServicesInfo(result.data);
+      });
+    }
+  }, [isAuthenticated, getServicesInfo]);
+
+  // Fuzzy model name matching (API names may differ from ServicesInfo names)
+  const normalizeModelName = useCallback((s: string) => s.replace(/[.\-_]/g, '').toLowerCase(), []);
+  const findModelPrice = useCallback((models: ServiceModel[] | undefined, selected: string) =>
+    models?.find(m => m.name === selected) ||
+    models?.find(m => normalizeModelName(m.name) === normalizeModelName(selected)),
+  [normalizeModelName]);
+
+  // Compute estimated cost based on file info, model, and pricing
+  const { estimatedCost, matchedModelPrice } = useMemo(() => {
+    if (!servicesInfo || !fileInfo || isProcessing) return { estimatedCost: null, matchedModelPrice: null };
+
+    if (fileType === 'transcription' && fileInfo.duration && transcriptionOptions.model) {
+      const modelInfo = findModelPrice(servicesInfo.Transcription, transcriptionOptions.model);
+      if (modelInfo && typeof modelInfo.price === 'number') {
+        return { estimatedCost: fileInfo.duration * modelInfo.price, matchedModelPrice: modelInfo.price };
+      }
+    }
+
+    if (fileType === 'translation' && fileInfo.subtitleInfo?.characterCount && translationOptions.model) {
+      const modelInfo = findModelPrice(servicesInfo.Translation, translationOptions.model);
+      if (modelInfo && typeof modelInfo.price === 'number') {
+        return { estimatedCost: fileInfo.subtitleInfo.characterCount * modelInfo.price, matchedModelPrice: modelInfo.price };
+      }
+    }
+
+    return { estimatedCost: null, matchedModelPrice: null };
+  }, [servicesInfo, fileInfo, fileType, transcriptionOptions.model, translationOptions.model, isProcessing, findModelPrice]);
+
+  // Propagate estimated cost to parent
+  useEffect(() => {
+    onEstimatedCostChange?.(estimatedCost);
+    return () => { onEstimatedCostChange?.(null); };
+  }, [estimatedCost, onEstimatedCostChange]);
 
   // Helper function to clear language detection timeout
   const clearLanguageDetectionTimeout = () => {
@@ -1576,33 +1622,93 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           
           {/* Cost estimation for translation */}
           {fileType === 'translation' && fileInfo?.subtitleInfo && (
-            <div style={{ 
-              marginTop: '12px', 
-              padding: '8px 12px', 
-              backgroundColor: 'var(--info-color)', 
+            <div style={{
+              marginTop: '12px',
+              padding: '8px 12px',
+              backgroundColor: 'var(--info-color)',
               borderRadius: '4px',
               fontSize: '14px'
             }}>
-              <strong>Estimated Cost:</strong> ~{Math.ceil(fileInfo.subtitleInfo.characterCount / 500)} credits 
-              <span style={{ color: '#666', marginLeft: '8px' }}>
-                (based on {fileInfo.subtitleInfo.characterCount} characters ÷ 500 chars per credit)
-              </span>
+              {estimatedCost !== null ? (
+                estimatedCost === 0 ? (
+                  <>
+                    <strong style={{ color: 'var(--success-color)' }}>Est. cost:</strong>{' '}
+                    Free
+                    <span style={{ color: 'var(--text-muted)', marginLeft: '8px' }}>
+                      ({translationOptions.model})
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <strong style={{ color: credits && estimatedCost > credits.remaining ? 'var(--danger-color)' : undefined }}>
+                      Est. cost:
+                    </strong>{' '}
+                    ~{estimatedCost.toFixed(1)} credits
+                    <span style={{ color: 'var(--text-muted)', marginLeft: '8px' }}>
+                      ({formatCharacterCount(fileInfo.subtitleInfo.characterCount)} chars × {matchedModelPrice?.toFixed(6)} cr/char · {translationOptions.model})
+                    </span>
+                    {credits && estimatedCost > credits.remaining && (
+                      <div style={{ color: 'var(--danger-color)', marginTop: '4px', fontWeight: '500' }}>
+                        <i className="fas fa-exclamation-triangle" style={{ marginRight: '4px' }}></i>
+                        Insufficient credits (balance: {credits.remaining})
+                      </div>
+                    )}
+                  </>
+                )
+              ) : (
+                <>
+                  <strong>Estimated Cost:</strong> ~{Math.ceil(fileInfo.subtitleInfo.characterCount / 500)} credits
+                  <span style={{ color: '#666', marginLeft: '8px' }}>
+                    (based on {formatCharacterCount(fileInfo.subtitleInfo.characterCount)} characters)
+                  </span>
+                </>
+              )}
             </div>
           )}
-          
+
           {/* Duration estimate for transcription */}
           {fileType === 'transcription' && fileInfo?.duration && (
-            <div style={{ 
-              marginTop: '12px', 
-              padding: '8px 12px', 
-              backgroundColor: 'var(--bg-tertiary)', 
+            <div style={{
+              marginTop: '12px',
+              padding: '8px 12px',
+              backgroundColor: 'var(--bg-tertiary)',
               borderRadius: '4px',
               fontSize: '14px'
             }}>
-              <strong>Processing Time:</strong> ~{Math.ceil(fileInfo.duration / 60)} minutes of audio
-              <span style={{ color: '#666', marginLeft: '8px' }}>
-                (cost varies by selected AI model)
-              </span>
+              {estimatedCost !== null ? (
+                estimatedCost === 0 ? (
+                  <>
+                    <strong style={{ color: 'var(--success-color)' }}>Est. cost:</strong>{' '}
+                    Free
+                    <span style={{ color: 'var(--text-muted)', marginLeft: '8px' }}>
+                      ({transcriptionOptions.model})
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <strong style={{ color: credits && estimatedCost > credits.remaining ? 'var(--danger-color)' : undefined }}>
+                      Est. cost:
+                    </strong>{' '}
+                    ~{estimatedCost.toFixed(1)} credits
+                    <span style={{ color: 'var(--text-muted)', marginLeft: '8px' }}>
+                      ({formatDuration(fileInfo.duration)} × {matchedModelPrice?.toFixed(6)} cr/s · {transcriptionOptions.model})
+                    </span>
+                    {credits && estimatedCost > credits.remaining && (
+                      <div style={{ color: 'var(--danger-color)', marginTop: '4px', fontWeight: '500' }}>
+                        <i className="fas fa-exclamation-triangle" style={{ marginRight: '4px' }}></i>
+                        Insufficient credits (balance: {credits.remaining})
+                      </div>
+                    )}
+                  </>
+                )
+              ) : (
+                <>
+                  <strong>Processing Time:</strong> ~{Math.ceil(fileInfo.duration / 60)} minutes of audio
+                  <span style={{ color: '#666', marginLeft: '8px' }}>
+                    (cost varies by selected AI model)
+                  </span>
+                </>
+              )}
             </div>
           )}
         </div>
