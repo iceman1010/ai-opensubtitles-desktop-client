@@ -1625,7 +1625,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
             <div style={{
               marginTop: '12px',
               padding: '8px 12px',
-              backgroundColor: 'var(--info-color)',
+              backgroundColor: 'var(--bg-tertiary)',
               borderRadius: '4px',
               fontSize: '14px'
             }}>
@@ -1634,7 +1634,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
                   <>
                     <strong style={{ color: 'var(--success-color)' }}>Est. cost:</strong>{' '}
                     Free
-                    <span style={{ color: 'var(--text-muted)', marginLeft: '8px' }}>
+                    <span style={{ color: 'var(--text-secondary)', marginLeft: '8px' }}>
                       ({translationOptions.model})
                     </span>
                   </>
@@ -1644,7 +1644,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
                       Est. cost:
                     </strong>{' '}
                     ~{estimatedCost.toFixed(1)} credits
-                    <span style={{ color: 'var(--text-muted)', marginLeft: '8px' }}>
+                    <span style={{ color: 'var(--text-secondary)', marginLeft: '8px' }}>
                       ({formatCharacterCount(fileInfo.subtitleInfo.characterCount)} chars × {matchedModelPrice?.toFixed(6)} cr/char · {translationOptions.model})
                     </span>
                     {credits && estimatedCost > credits.remaining && (
@@ -1658,7 +1658,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
               ) : (
                 <>
                   <strong>Estimated Cost:</strong> ~{Math.ceil(fileInfo.subtitleInfo.characterCount / 500)} credits
-                  <span style={{ color: '#666', marginLeft: '8px' }}>
+                  <span style={{ color: 'var(--text-secondary)', marginLeft: '8px' }}>
                     (based on {formatCharacterCount(fileInfo.subtitleInfo.characterCount)} characters)
                   </span>
                 </>
@@ -1680,7 +1680,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
                   <>
                     <strong style={{ color: 'var(--success-color)' }}>Est. cost:</strong>{' '}
                     Free
-                    <span style={{ color: 'var(--text-muted)', marginLeft: '8px' }}>
+                    <span style={{ color: 'var(--text-secondary)', marginLeft: '8px' }}>
                       ({transcriptionOptions.model})
                     </span>
                   </>
@@ -1690,7 +1690,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
                       Est. cost:
                     </strong>{' '}
                     ~{estimatedCost.toFixed(1)} credits
-                    <span style={{ color: 'var(--text-muted)', marginLeft: '8px' }}>
+                    <span style={{ color: 'var(--text-secondary)', marginLeft: '8px' }}>
                       ({formatDuration(fileInfo.duration)} × {matchedModelPrice?.toFixed(6)} cr/s · {transcriptionOptions.model})
                     </span>
                     {credits && estimatedCost > credits.remaining && (
