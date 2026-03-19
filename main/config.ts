@@ -53,7 +53,7 @@ export class ConfigManager {
     return {
       username: '',
       password: '',
-      apiKey: 'YzhaGkIg6dMSJ47QoihkhikfRmvbJTn7',
+      apiKey: '5MGRBWO9lHA023KPmVMaa0PoRYHqQKpK',
       debugMode: false,
       checkUpdatesOnStart: true,
       autoRemoveCompletedFiles: false,

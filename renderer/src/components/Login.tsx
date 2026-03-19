@@ -13,7 +13,7 @@ interface LoginProps {
 function Login({ onLogin, setAppProcessing, isPreviewMode, onCancelPreview }: LoginProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [apiKey] = useState('YzhaGkIg6dMSJ47QoihkhikfRmvbJTn7');
+  const [apiKey] = useState('5MGRBWO9lHA023KPmVMaa0PoRYHqQKpK');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
