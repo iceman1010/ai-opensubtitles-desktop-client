@@ -52,7 +52,8 @@ interface APIContextType {
   checkTranslationStatus: (correlationId: string) => Promise<any>;
   downloadFile: (url: string) => Promise<{ success: boolean; content?: string; error?: string }>;
   downloadFileByMediaId: (mediaId: string, fileName: string) => Promise<{ success: boolean; content?: string; error?: string }>;
-  getRecentMedia: () => Promise<{ success: boolean; data?: any; error?: string }>;
+  getRecentMedia: (page?: number) => Promise<{ success: boolean; data?: any; error?: string }>;
+  getRecentActivities: (page?: number) => Promise<{ success: boolean; data?: any; error?: string }>;
   searchSubtitles: (params: SubtitleSearchParams) => Promise<{ success: boolean; data?: any; error?: string }>;
   downloadSubtitle: (params: SubtitleDownloadParams) => Promise<{ success: boolean; data?: any; error?: string }>;
   searchForFeatures: (params: FeatureSearchParams) => Promise<{ success: boolean; data?: any; error?: string }>;
@@ -682,10 +683,16 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     return await withAuthRetry(() => api.downloadFileByMediaId(mediaId, fileName), 'Download File By Media ID');
   }, [api, isAuthenticated, isAuthenticating, withAuthRetry]);
 
-  const getRecentMedia = useCallback(async () => {
+  const getRecentMedia = useCallback(async (page: number = 1) => {
     if (!api) return { success: false, error: 'API not available' };
     if (!isAuthenticating && !isAuthenticated) return { success: false, error: 'API not authenticated' };
-    return await withAuthRetry(() => api.getRecentMedia(), 'Get Recent Media');
+    return await withAuthRetry(() => api.getRecentMedia(page), 'Get Recent Media');
+  }, [api, isAuthenticated, isAuthenticating, withAuthRetry]);
+
+  const getRecentActivities = useCallback(async (page: number = 1) => {
+    if (!api) return { success: false, error: 'API not available' };
+    if (!isAuthenticating && !isAuthenticated) return { success: false, error: 'API not authenticated' };
+    return await withAuthRetry(() => api.getRecentActivities(page), 'Get Recent Activities');
   }, [api, isAuthenticated, isAuthenticating, withAuthRetry]);
 
   const searchSubtitles = useCallback(async (params: SubtitleSearchParams) => {
@@ -769,6 +776,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     downloadFile,
     downloadFileByMediaId,
     getRecentMedia,
+    getRecentActivities,
     searchSubtitles,
     downloadSubtitle,
     searchForFeatures,

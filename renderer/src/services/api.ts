@@ -225,6 +225,15 @@ export interface RecentMediaItem {
   files?: string[];
 }
 
+export interface RecentActivityItem {
+  id: number;
+  type: number;
+  type_name: string;
+  credits: number;
+  time: number;
+  time_str: string;
+}
+
 export class OpenSubtitlesAPI {
   private baseURL = 'https://api.opensubtitles.com/api/v1';
   private apiKey: string = '';
@@ -572,8 +581,9 @@ export class OpenSubtitlesAPI {
         language: options.language
       });
 
-      // Clear recent media cache since we're creating new media
-      CacheManager.remove('recent_media');
+      // Clear recent media and activities cache since we're creating new media
+      CacheManager.removeByPrefix('recent_media');
+      CacheManager.removeByPrefix('recent_activities');
 
       return await apiRequestWithRetry(async () => {
         const formData = new FormData();
@@ -689,8 +699,9 @@ export class OpenSubtitlesAPI {
         translateTo: options.translateTo
       });
 
-      // Clear recent media cache since we're creating new media
-      CacheManager.remove('recent_media');
+      // Clear recent media and activities cache since we're creating new media
+      CacheManager.removeByPrefix('recent_media');
+      CacheManager.removeByPrefix('recent_activities');
 
       return await apiRequestWithRetry(async () => {
         const formData = new FormData();
@@ -1472,12 +1483,12 @@ export class OpenSubtitlesAPI {
     }
   }
 
-  async getRecentMedia(): Promise<{ success: boolean; data?: RecentMediaItem[]; error?: string }> {
-    const cacheKey = 'recent_media';
+  async getRecentMedia(page: number = 1): Promise<{ success: boolean; data?: RecentMediaItem[]; error?: string }> {
+    const cacheKey = `recent_media_page_${page}`;
     const cached = CacheManager.get<RecentMediaItem[]>(cacheKey);
 
     if (cached) {
-      logger.info('API', 'Using cached recent media data');
+      logger.info('API', `Using cached recent media data (page ${page})`);
       return { success: true, data: cached };
     }
 
@@ -1489,7 +1500,7 @@ export class OpenSubtitlesAPI {
 
     try {
       const result = await apiRequestWithRetry(async () => {
-        logger.info('API', 'Fetching recent media from API...');
+        logger.info('API', `Fetching recent media from API (page ${page})...`);
 
         const headers = {
           'Accept': 'application/json',
@@ -1502,7 +1513,7 @@ export class OpenSubtitlesAPI {
           headers['Authorization'] = `Bearer ${this.token}`;
         }
 
-        const response = await fetch(this.getAIUrl('/recent_media'), {
+        const response = await fetch(this.getAIUrl(`/recent_media?page=${page}`), {
           method: 'POST',
           headers,
         });
@@ -1531,6 +1542,72 @@ export class OpenSubtitlesAPI {
       return result;
     } catch (error: any) {
       logger.error('API', 'Error fetching recent media after retries:', error);
+      return {
+        success: false,
+        error: getUserFriendlyErrorMessage(error),
+      };
+    }
+  }
+
+  async getRecentActivities(page: number = 1): Promise<{ success: boolean; data?: RecentActivityItem[]; error?: string }> {
+    const cacheKey = `recent_activities_page_${page}`;
+    const cached = CacheManager.get<RecentActivityItem[]>(cacheKey);
+
+    if (cached) {
+      logger.info('API', `Using cached recent activities data (page ${page})`);
+      return { success: true, data: cached };
+    }
+
+    if (!this.apiKey) {
+      const error = 'API Key is required to fetch recent activities';
+      logger.error('API', error);
+      return { success: false, error };
+    }
+
+    try {
+      const result = await apiRequestWithRetry(async () => {
+        logger.info('API', `Fetching recent activities from API (page ${page})...`);
+
+        const headers = {
+          'Accept': 'application/json',
+          'Api-Key': this.apiKey || '',
+          'Content-Type': 'application/json',
+          'User-Agent': getUserAgent(),
+        };
+
+        if (this.token) {
+          headers['Authorization'] = `Bearer ${this.token}`;
+        }
+
+        const response = await fetch(this.getAIUrl(`/recent_activities?page=${page}`), {
+          method: 'POST',
+          headers,
+        });
+
+        if (!response.ok) {
+          const error = new Error(`Request failed: ${response.status} ${response.statusText}`);
+          (error as any).status = response.status;
+          (error as any).responseText = await response.text().catch(() => '');
+          throw error;
+        }
+
+        const responseData = await response.json();
+        logger.info('API', 'Recent activities response:', responseData);
+
+        const data: RecentActivityItem[] = responseData.data || responseData;
+
+        CacheManager.set(cacheKey, data);
+        logger.info('API', 'Recent activities cached successfully');
+
+        return {
+          success: true,
+          data,
+        };
+      }, 'Get Recent Activities', 3);
+
+      return result;
+    } catch (error: any) {
+      logger.error('API', 'Error fetching recent activities after retries:', error);
       return {
         success: false,
         error: getUserFriendlyErrorMessage(error),

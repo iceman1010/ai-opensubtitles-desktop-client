@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { CreditPackage } from '../services/api';
+import { CreditPackage, RecentActivityItem } from '../services/api';
 import { useAPI } from '../contexts/APIContext';
 import { usePower } from '../contexts/PowerContext';
 
@@ -24,16 +24,27 @@ interface CreditsProps {
   isVisible?: boolean;
 }
 
+const ACTIVITIES_PAGE_SIZE = 20;
+
 function Credits({ config, setAppProcessing, isVisible = true }: CreditsProps) {
-  const { credits, refreshCredits, getCreditPackages, isAuthenticated } = useAPI();
+  const { credits, refreshCredits, getCreditPackages, getRecentActivities, isAuthenticated } = useAPI();
   const { lastResumeTime } = usePower();
-  
+
   const [creditPackages, setCreditPackages] = useState<CreditPackage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoadingCredits, setIsLoadingCredits] = useState(false);
   const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
   const loadingRef = useRef(false);
+
+  // Activity history state
+  const [activities, setActivities] = useState<RecentActivityItem[]>([]);
+  const [isLoadingActivities, setIsLoadingActivities] = useState(false);
+  const [isLoadingMoreActivities, setIsLoadingMoreActivities] = useState(false);
+  const [activitiesPage, setActivitiesPage] = useState(1);
+  const [hasMoreActivities, setHasMoreActivities] = useState(true);
+  const [hasLoadedActivities, setHasLoadedActivities] = useState(false);
+  const activitiesLoadingRef = useRef(false);
 
   const loadCreditPackages = useCallback(async () => {
     // Prevent multiple simultaneous calls using ref
@@ -95,6 +106,79 @@ function Credits({ config, setAppProcessing, isVisible = true }: CreditsProps) {
     }
   }, [lastResumeTime, isVisible, error, isLoading, hasAttemptedLoad, loadCreditPackages]);
 
+  // Activity history loading
+  const loadActivities = useCallback(async (page: number = 1, append: boolean = false) => {
+    if (activitiesLoadingRef.current) return;
+    if (!isAuthenticated) return;
+
+    activitiesLoadingRef.current = true;
+    if (append) {
+      setIsLoadingMoreActivities(true);
+    } else {
+      setIsLoadingActivities(true);
+    }
+
+    try {
+      const result = await getRecentActivities(page);
+      if (result.success && result.data) {
+        if (append) {
+          setActivities(prev => [...prev, ...result.data!]);
+        } else {
+          setActivities(result.data);
+        }
+        setActivitiesPage(page);
+        setHasMoreActivities(result.data.length >= ACTIVITIES_PAGE_SIZE);
+        setHasLoadedActivities(true);
+      }
+    } catch (error: any) {
+      console.error('Error loading activities:', error);
+    } finally {
+      activitiesLoadingRef.current = false;
+      setIsLoadingActivities(false);
+      setIsLoadingMoreActivities(false);
+    }
+  }, [getRecentActivities, isAuthenticated]);
+
+  // Auto-load activities when screen becomes visible
+  useEffect(() => {
+    if (isAuthenticated && isVisible && !hasLoadedActivities) {
+      loadActivities();
+    }
+  }, [isAuthenticated, isVisible, hasLoadedActivities, loadActivities]);
+
+  const handleLoadMoreActivities = () => {
+    loadActivities(activitiesPage + 1, true);
+  };
+
+  const formatActivityDate = (timeStr: string) => {
+    try {
+      const date = new Date(timeStr.replace(' GMT', 'Z'));
+      return date.toLocaleString();
+    } catch {
+      return timeStr;
+    }
+  };
+
+  const getActivityTypeIcon = (typeName: string) => {
+    switch (typeName?.toLowerCase()) {
+      case 'transcription': return 'fa-microphone';
+      case 'translation': return 'fa-language';
+      case 'voiceover': return 'fa-volume-up';
+      case 'download': return 'fa-download';
+      default: return 'fa-circle';
+    }
+  };
+
+  const getActivityTypeColor = (typeName: string) => {
+    switch (typeName?.toLowerCase()) {
+      case 'transcription': return '#007bff';
+      case 'translation': return '#28a745';
+      case 'voiceover': return '#6f42c1';
+      case 'download': return '#fd7e14';
+      default: return 'var(--text-secondary)';
+    }
+  };
+
   const loadCurrentCredits = async () => {
     if (refreshCredits) {
       setIsLoadingCredits(true);
@@ -125,31 +209,45 @@ function Credits({ config, setAppProcessing, isVisible = true }: CreditsProps) {
         marginBottom: '30px',
         border: '1px solid var(--border-color)'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h2 style={{ margin: '0 0 10px 0', color: 'var(--text-primary)' }}>Current Balance</h2>
+        <div>
+          <h2 style={{ margin: '0 0 10px 0', color: 'var(--text-primary)' }}>Current Balance</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             {isLoadingCredits ? (
-              <p>Loading current credits...</p>
+              <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Loading...</p>
             ) : (
               <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0', color: 'var(--text-primary)' }}>
                 {credits ? `${credits.remaining} Credits` : 'Credits unavailable'}
               </p>
             )}
+            <button
+              onClick={loadCurrentCredits}
+              disabled={isLoadingCredits}
+              title="Refresh credits"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-secondary)',
+                cursor: isLoadingCredits ? 'not-allowed' : 'pointer',
+                padding: '4px',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '4px',
+                transition: 'color 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                if (!isLoadingCredits) {
+                  e.currentTarget.style.color = 'var(--text-primary)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--text-secondary)';
+              }}
+            >
+              <i className={`fas fa-sync-alt${isLoadingCredits ? ' fa-spin' : ''}`}></i>
+            </button>
           </div>
-          <button
-            onClick={loadCurrentCredits}
-            disabled={isLoadingCredits}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#6c757d',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
-            {isLoadingCredits ? 'Refreshing...' : 'Refresh'}
-          </button>
         </div>
       </div>
 
@@ -273,6 +371,170 @@ function Credits({ config, setAppProcessing, isVisible = true }: CreditsProps) {
             >
               Retry
             </button>
+          </div>
+        )}
+      </div>
+
+      {/* Credit Activity Section */}
+      <div style={{ marginTop: '30px' }}>
+        <h2 style={{ color: 'var(--text-primary)', marginBottom: '15px' }}>
+          <i className="fas fa-history" style={{ marginRight: '8px', color: 'var(--text-secondary)' }}></i>
+          Credit Activity
+        </h2>
+
+        {isLoadingActivities && activities.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-secondary)' }}>
+            <i className="fas fa-spinner fa-spin" style={{ fontSize: '20px', marginBottom: '10px', display: 'block' }}></i>
+            <p style={{ margin: 0 }}>Loading activity history...</p>
+          </div>
+        ) : activities.length === 0 && hasLoadedActivities ? (
+          <div style={{
+            textAlign: 'center',
+            padding: '30px',
+            color: 'var(--text-secondary)',
+            background: 'var(--bg-secondary)',
+            borderRadius: '8px',
+            border: '1px solid var(--border-color)'
+          }}>
+            <i className="fas fa-receipt" style={{ fontSize: '32px', marginBottom: '10px', display: 'block' }}></i>
+            <p style={{ margin: 0 }}>No activity recorded yet</p>
+          </div>
+        ) : activities.length > 0 && (
+          <div style={{
+            background: 'var(--bg-secondary)',
+            borderRadius: '8px',
+            border: '1px solid var(--border-color)',
+            overflow: 'hidden'
+          }}>
+            {/* Table Header */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 100px',
+              padding: '12px 16px',
+              background: 'var(--bg-tertiary)',
+              borderBottom: '1px solid var(--border-color)',
+              fontSize: '12px',
+              fontWeight: '600',
+              color: 'var(--text-secondary)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              <div>Date</div>
+              <div>Type</div>
+              <div style={{ textAlign: 'right' }}>Credits</div>
+            </div>
+
+            {/* Table Rows */}
+            {activities.map((activity, index) => (
+              <div
+                key={activity.id || index}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr 100px',
+                  padding: '10px 16px',
+                  borderBottom: index < activities.length - 1 ? '1px solid var(--border-color)' : 'none',
+                  fontSize: '13px',
+                  alignItems: 'center',
+                  transition: 'background-color 0.15s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                <div style={{ color: 'var(--text-secondary)' }}>
+                  {formatActivityDate(activity.time_str)}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <i
+                    className={`fas ${getActivityTypeIcon(activity.type_name)}`}
+                    style={{
+                      color: getActivityTypeColor(activity.type_name),
+                      fontSize: '12px',
+                      width: '16px',
+                      textAlign: 'center'
+                    }}
+                  ></i>
+                  <span style={{
+                    color: 'var(--text-primary)',
+                    textTransform: 'capitalize'
+                  }}>
+                    {activity.type_name}
+                  </span>
+                </div>
+                <div style={{
+                  textAlign: 'right',
+                  fontWeight: '600',
+                  fontVariantNumeric: 'tabular-nums',
+                  color: '#dc3545'
+                }}>
+                  -{activity.credits}
+                </div>
+              </div>
+            ))}
+
+            {/* Load More Button */}
+            {hasMoreActivities && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                padding: '12px',
+                borderTop: '1px solid var(--border-color)'
+              }}>
+                <button
+                  onClick={handleLoadMoreActivities}
+                  disabled={isLoadingMoreActivities}
+                  style={{
+                    padding: '8px 20px',
+                    backgroundColor: isLoadingMoreActivities ? 'var(--bg-tertiary)' : 'var(--bg-primary)',
+                    color: isLoadingMoreActivities ? 'var(--text-secondary)' : 'var(--primary-color)',
+                    border: `1px solid ${isLoadingMoreActivities ? 'var(--border-color)' : 'var(--primary-color)'}`,
+                    borderRadius: '6px',
+                    cursor: isLoadingMoreActivities ? 'not-allowed' : 'pointer',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isLoadingMoreActivities) {
+                      e.currentTarget.style.backgroundColor = 'var(--primary-color)';
+                      e.currentTarget.style.color = 'white';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isLoadingMoreActivities) {
+                      e.currentTarget.style.backgroundColor = 'var(--bg-primary)';
+                      e.currentTarget.style.color = 'var(--primary-color)';
+                    }
+                  }}
+                >
+                  {isLoadingMoreActivities ? (
+                    <>
+                      <span style={{
+                        display: 'inline-block',
+                        width: '14px',
+                        height: '14px',
+                        border: '2px solid var(--text-secondary)',
+                        borderTop: '2px solid transparent',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite'
+                      }}></span>
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-chevron-down"></i>
+                      Load More
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

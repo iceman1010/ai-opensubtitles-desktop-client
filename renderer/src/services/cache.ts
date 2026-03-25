@@ -81,6 +81,19 @@ class CacheManager {
     }
   }
 
+  static removeByPrefix(prefix: string): void {
+    try {
+      const keys = Object.keys(localStorage);
+      keys.forEach(key => {
+        if (key.startsWith(`ai_opensubtitles_${prefix}`)) {
+          localStorage.removeItem(key);
+        }
+      });
+    } catch (error) {
+      console.warn('Failed to remove cached data by prefix:', error);
+    }
+  }
+
   static isExpired(key: string): boolean {
     try {
       const stored = localStorage.getItem(`ai_opensubtitles_${key}`);
