@@ -106,6 +106,10 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [previewContent, setPreviewContent] = useState<string>('');
+
+  const handlePreviewClose = useCallback(() => {
+    setShowPreview(false);
+  }, []);
   const [translationOptions, setTranslationOptions] = useState({
     sourceLanguage: 'auto',
     destinationLanguage: '',
@@ -1940,7 +1944,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       {showPreview && (
         <PreviewDialog 
           content={previewContent}
-          onClose={() => setShowPreview(false)}
+          onClose={handlePreviewClose}
           onSave={handleSaveFile}
           fileType={fileType}
           selectedFile={selectedFile}

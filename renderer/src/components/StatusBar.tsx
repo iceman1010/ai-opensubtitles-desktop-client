@@ -178,7 +178,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
       setDisplayedTask(currentTask);
       setLastUpdateTime(Date.now());
     }
-  }, [isProcessing, currentTask, shouldShowProcessing, displayedTask, lastUpdateTime]);
+  }, [isProcessing, currentTask]);
 
   useEffect(() => {
     // Set up activity tracking

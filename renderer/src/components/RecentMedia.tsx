@@ -3,6 +3,7 @@ import { useAPI } from '../contexts/APIContext';
 import { UncontrolledTreeEnvironment, StaticTreeDataProvider, Tree, TreeItem, TreeItemIndex } from 'react-complex-tree';
 import 'react-complex-tree/lib/style-modern.css';
 import { logger } from '../utils/errorLogger';
+import SubtitlePreviewModal from './SubtitlePreviewModal';
 
 interface RecentMediaItem {
   id: number;
@@ -54,6 +55,16 @@ function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdat
   const isMountedRef = useRef(true);
   const downloadingFilesRef = useRef<Set<string>>(new Set());
   const [downloadingFiles, setDownloadingFiles] = useState<Set<string>>(new Set());
+
+  // Preview state
+  const [previewContent, setPreviewContent] = useState<string | null>(null);
+  const [previewFileName, setPreviewFileName] = useState<string>('');
+  const [previewLoadingKey, setPreviewLoadingKey] = useState<string | null>(null);
+
+  const handlePreviewClose = useCallback(() => {
+    setPreviewContent(null);
+    setPreviewFileName('');
+  }, []);
 
   // Get info panel visibility from config (default to true if not set)
   const showInfoPanel = !config?.hideRecentMediaInfoPanel;
@@ -174,6 +185,39 @@ function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdat
       });
     }
   }, [downloadFileByMediaId, setAppProcessing]);
+
+  const handlePreview = useCallback(async (mediaId: number, fileName: string) => {
+    const fileKey = `${mediaId}-${fileName}`;
+    if (previewLoadingKey) return;
+
+    setPreviewLoadingKey(fileKey);
+    try {
+      setAppProcessing(true, `Loading preview for ${fileName}...`);
+      const result = await downloadFileByMediaId(mediaId.toString(), fileName);
+
+      if (result.success && result.content) {
+        setPreviewContent(result.content);
+        setPreviewFileName(fileName);
+      } else {
+        logger.error('RECENT_MEDIA', 'Preview failed:', result.error);
+        setAppProcessing(true, `Preview failed: ${result.error || 'Unknown error'}`);
+        setTimeout(() => setAppProcessing(false), 3000);
+      }
+    } catch (error: any) {
+      logger.error('RECENT_MEDIA', 'Preview error', error);
+      setAppProcessing(true, `Preview failed: ${error.message}`);
+      setTimeout(() => setAppProcessing(false), 3000);
+    } finally {
+      setPreviewLoadingKey(null);
+      setAppProcessing(false);
+    }
+  }, [downloadFileByMediaId, setAppProcessing, previewLoadingKey]);
+
+  const handlePreviewDownload = useCallback(async () => {
+    if (previewContent && previewFileName) {
+      await window.electronAPI?.saveFile(previewContent, previewFileName);
+    }
+  }, [previewContent, previewFileName]);
 
   const formatDateTime = (timeStr: string) => {
     try {
@@ -583,6 +627,53 @@ function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdat
                     }}>
                       {item.data.fileName}
                     </span>
+                    {/* Preview Button */}
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const isSubtitleFile = /\.(srt|vtt|ass|ssa)$/i.test(item.data.fileName);
+                        if (isSubtitleFile && previewLoadingKey !== fileKey) {
+                          handlePreview(item.data.mediaId, item.data.fileName);
+                        }
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: previewLoadingKey === fileKey ? 'var(--text-tertiary)' :
+                               /\.(srt|vtt|ass|ssa)$/i.test(item.data.fileName) ? 'var(--text-secondary)' : 'transparent',
+                        cursor: /\.(srt|vtt|ass|ssa)$/i.test(item.data.fileName) && previewLoadingKey !== fileKey ? 'pointer' : 'default',
+                        padding: '6px',
+                        borderRadius: '4px',
+                        fontSize: '13px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '28px',
+                        height: '28px',
+                        flexShrink: 0,
+                        marginLeft: 'auto',
+                        transition: 'all 0.2s ease',
+                        pointerEvents: /\.(srt|vtt|ass|ssa)$/i.test(item.data.fileName) ? 'auto' : 'none',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (/\.(srt|vtt|ass|ssa)$/i.test(item.data.fileName) && previewLoadingKey !== fileKey) {
+                          e.currentTarget.style.color = 'var(--primary-color)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (/\.(srt|vtt|ass|ssa)$/i.test(item.data.fileName)) {
+                          e.currentTarget.style.color = 'var(--text-secondary)';
+                        }
+                      }}
+                      title={/\.(srt|vtt|ass|ssa)$/i.test(item.data.fileName) ? 'Preview subtitle' : ''}
+                    >
+                      {previewLoadingKey === fileKey ? (
+                        <i className="fas fa-spinner fa-spin"></i>
+                      ) : (
+                        <i className="fas fa-eye"></i>
+                      )}
+                    </div>
+                    {/* Download Button */}
                     <div
                       onClick={(e) => {
                         e.stopPropagation();
@@ -604,7 +695,6 @@ function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdat
                         width: '28px',
                         height: '28px',
                         flexShrink: 0,
-                        marginLeft: 'auto',
                         transition: 'all 0.2s ease'
                       }}
                       onMouseEnter={(e) => {
@@ -613,7 +703,6 @@ function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdat
                           const icon = e.currentTarget.querySelector('i');
                           if (icon) {
                             icon.style.transform = 'scale(1.3)';
-                            // Check if dark mode is active
                             const isDarkMode = document.documentElement.classList.contains('dark-mode');
                             icon.style.textShadow = isDarkMode
                               ? '0 0 8px rgba(255, 255, 0, 0.6)'
@@ -742,6 +831,15 @@ function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdat
           )}
         </div>
       )}
+
+      {/* Subtitle Preview Modal */}
+      <SubtitlePreviewModal
+        isOpen={previewContent !== null}
+        onClose={handlePreviewClose}
+        content={previewContent || ''}
+        fileName={previewFileName}
+        onDownload={handlePreviewDownload}
+      />
 
       {/* Info Section - Collapsible */}
       {showInfoPanel && (

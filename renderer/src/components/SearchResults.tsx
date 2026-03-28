@@ -10,8 +10,10 @@ interface SearchResultsProps {
   currentPage: number;
   onPageChange: (page: number) => void;
   onDownload: (fileId: number, fileName: string) => void;
+  onPreview: (fileId: number, fileName: string) => void;
   isLoading: boolean;
   downloadingIds: Set<number>;
+  previewLoadingId: number | null;
   searchType?: 'subtitles' | 'file';
   hasSearched?: boolean;
 }
@@ -22,8 +24,10 @@ function SearchResults({
   currentPage,
   onPageChange,
   onDownload,
+  onPreview,
   isLoading,
   downloadingIds,
+  previewLoadingId,
   searchType = 'subtitles',
   hasSearched = false
 }: SearchResultsProps) {
@@ -121,8 +125,12 @@ function SearchResults({
             key={result.id}
             result={result}
             onDownload={onDownload}
+            onPreview={onPreview}
             isDownloading={result.attributes.files.some(file =>
               downloadingIds.has(file.file_id)
+            )}
+            isLoadingPreview={result.attributes.files.some(file =>
+              file.file_id === previewLoadingId
             )}
           />
         ))}

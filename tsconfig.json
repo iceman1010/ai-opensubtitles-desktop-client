@@ -15,6 +15,5 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["renderer/src"],
-  "references": [{ "path": "./renderer/tsconfig.json" }]
+  "include": ["renderer/src"]
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import AISubtitleModal from './AISubtitleModal';
 
 export interface SubtitleSearchResult {
@@ -48,12 +48,18 @@ export interface SubtitleSearchResult {
 interface SubtitleCardProps {
   result: SubtitleSearchResult;
   onDownload: (fileId: number, fileName: string) => void;
+  onPreview: (fileId: number, fileName: string) => void;
   isDownloading?: boolean;
+  isLoadingPreview?: boolean;
 }
 
-function SubtitleCard({ result, onDownload, isDownloading = false }: SubtitleCardProps) {
+function SubtitleCard({ result, onDownload, onPreview, isDownloading = false, isLoadingPreview = false }: SubtitleCardProps) {
   const { attributes } = result;
   const [showAIModal, setShowAIModal] = useState(false);
+
+  const handleAIModalClose = useCallback(() => {
+    setShowAIModal(false);
+  }, []);
 
   const formatFileSize = (fileName: string): string => {
     // Estimate file size based on filename and CD count
@@ -147,6 +153,13 @@ function SubtitleCard({ result, onDownload, isDownloading = false }: SubtitleCar
     if (attributes.files.length > 0) {
       const firstFile = attributes.files[0];
       onDownload(firstFile.file_id, firstFile.file_name);
+    }
+  };
+
+  const handlePreviewClick = () => {
+    if (attributes.files.length > 0) {
+      const firstFile = attributes.files[0];
+      onPreview(firstFile.file_id, firstFile.file_name);
     }
   };
 
@@ -375,45 +388,82 @@ function SubtitleCard({ result, onDownload, isDownloading = false }: SubtitleCar
           )}
         </div>
 
-        {/* Download Button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleDownloadClick();
-          }}
-          disabled={isDownloading || attributes.files.length === 0}
-          style={{
-            padding: '7px 16px',
-            fontSize: '12px',
-            fontWeight: '600',
-            background: isDownloading ? 'var(--bg-disabled)' : 'var(--primary-color)',
-            color: isDownloading ? 'var(--text-disabled)' : 'var(--button-text)',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: isDownloading ? 'not-allowed' : 'pointer',
-            transition: 'all 0.2s ease',
-            minWidth: '110px',
-            flex: '0 0 auto'
-          }}
-          onMouseEnter={(e) => {
-            if (!isDownloading) {
-              e.currentTarget.style.background = 'var(--primary-dark)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!isDownloading) {
-              e.currentTarget.style.background = 'var(--primary-color)';
-            }
-          }}
-        >
-          {isDownloading ? <><i className="fas fa-spinner fa-spin"></i> Downloading...</> : <><i className="fas fa-download"></i> Download SRT</>}
-        </button>
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', gap: '6px', flex: '0 0 auto' }}>
+          {/* Preview Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handlePreviewClick();
+            }}
+            disabled={isLoadingPreview || attributes.files.length === 0}
+            title="Preview subtitle content"
+            style={{
+              padding: '7px 12px',
+              fontSize: '12px',
+              fontWeight: '600',
+              background: isLoadingPreview ? 'var(--bg-disabled)' : 'var(--bg-tertiary)',
+              color: isLoadingPreview ? 'var(--text-disabled)' : 'var(--text-primary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '4px',
+              cursor: isLoadingPreview ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              if (!isLoadingPreview) {
+                e.currentTarget.style.borderColor = 'var(--primary-color)';
+                e.currentTarget.style.color = 'var(--primary-color)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isLoadingPreview) {
+                e.currentTarget.style.borderColor = 'var(--border-color)';
+                e.currentTarget.style.color = 'var(--text-primary)';
+              }
+            }}
+          >
+            {isLoadingPreview ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-eye"></i>}
+          </button>
+
+          {/* Download Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDownloadClick();
+            }}
+            disabled={isDownloading || attributes.files.length === 0}
+            style={{
+              padding: '7px 16px',
+              fontSize: '12px',
+              fontWeight: '600',
+              background: isDownloading ? 'var(--bg-disabled)' : 'var(--primary-color)',
+              color: isDownloading ? 'var(--text-disabled)' : 'var(--button-text)',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: isDownloading ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s ease',
+              minWidth: '110px',
+            }}
+            onMouseEnter={(e) => {
+              if (!isDownloading) {
+                e.currentTarget.style.background = 'var(--primary-dark)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isDownloading) {
+                e.currentTarget.style.background = 'var(--primary-color)';
+              }
+            }}
+          >
+            {isDownloading ? <><i className="fas fa-spinner fa-spin"></i> Downloading...</> : <><i className="fas fa-download"></i> Download SRT</>}
+          </button>
+        </div>
       </div>
 
       {/* AI Subtitle Info Modal */}
       <AISubtitleModal
         isOpen={showAIModal}
-        onClose={() => setShowAIModal(false)}
+        onClose={handleAIModalClose}
       />
     </div>
   );
