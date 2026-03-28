@@ -581,6 +581,7 @@ export async function apiRequestWithRetry<T>(
       (enhancedError as any).isRetryable = networkError.isRetryable;
       (enhancedError as any).originalError = error;
       (enhancedError as any).simulated = (error as any).simulated || false;
+      if (error.status) (enhancedError as any).status = error.status;
       throw enhancedError;
     }
 
@@ -590,6 +591,7 @@ export async function apiRequestWithRetry<T>(
     (enhancedError as any).isRetryable = networkError.isRetryable;
     (enhancedError as any).originalError = error;
     (enhancedError as any).simulated = (error as any).simulated || false;
+    if (error.status) (enhancedError as any).status = error.status;
 
     throw enhancedError;
   } finally {

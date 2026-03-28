@@ -26,10 +26,12 @@ interface APIContextType {
   isLoading: boolean;
   error: string | null;
   connectivityIssue: string | null;
-  
+  sessionExpired: boolean;
+
   // Actions
   login: (username: string, password: string, apiKey: string) => Promise<boolean>;
   logout: () => Promise<void>;
+  reconnect: () => Promise<boolean>;
   refreshCredits: () => Promise<void>;
   updateCredits: (credits: { used: number; remaining: number }) => void;
   refreshConnectivityAndAuth: () => Promise<void>;
@@ -96,6 +98,8 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [connectivityIssue, setConnectivityIssue] = useState<string | null>(null);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const sessionExpiredRef = useRef(false);
 
   // Derived states for backward compatibility
   const isAuthenticated = authState === AuthState.AUTHENTICATED;
@@ -423,6 +427,8 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
       }
       setApi(null);
       setAuthState(AuthState.UNAUTHENTICATED);
+      sessionExpiredRef.current = false;
+      setSessionExpired(false);
       setCredits(null);
       setTranscriptionInfo(null);
       setTranslationInfo(null);
@@ -433,6 +439,45 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
       logger.error('APIContext', 'Error during logout:', error);
     }
   }, [api]);
+
+  // ── Reconnect: user-initiated single login attempt with stored credentials ──
+  const reconnect = useCallback(async (): Promise<boolean> => {
+    if (!api || !initialConfig?.username || !initialConfig?.password) {
+      sessionExpiredRef.current = false;
+      setSessionExpired(false);
+      setAuthState(AuthState.UNAUTHENTICATED);
+      setError('No stored credentials. Please log in again.');
+      return false;
+    }
+
+    setAuthState(AuthState.AUTHENTICATING);
+    try {
+      const result = await api.login(initialConfig.username, initialConfig.password);
+      if (result.success) {
+        sessionExpiredRef.current = false;
+        setSessionExpired(false);
+        setAuthState(AuthState.AUTHENTICATED);
+        setError(null);
+        const creditsResult = await api.getCredits();
+        if (creditsResult.success) {
+          setCredits({ used: 0, remaining: creditsResult.credits || 0 });
+        }
+        logger.info('APIContext', 'Reconnected successfully');
+        return true;
+      }
+      sessionExpiredRef.current = false;
+      setSessionExpired(false);
+      setAuthState(AuthState.UNAUTHENTICATED);
+      setError(result.error || 'Reconnection failed. Please log in again.');
+      return false;
+    } catch (err: any) {
+      sessionExpiredRef.current = false;
+      setSessionExpired(false);
+      setAuthState(AuthState.UNAUTHENTICATED);
+      setError(err.message || 'Reconnection failed');
+      return false;
+    }
+  }, [api, initialConfig]);
 
   const refreshCredits = useCallback(async (): Promise<void> => {
     if (!api || !isAuthenticated) return;
@@ -555,53 +600,37 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     apiCall: () => Promise<T>,
     context: string = 'API Call'
   ): Promise<T> => {
+    // If session is already expired, don't attempt the call at all
+    if (sessionExpiredRef.current) {
+      const err = new Error('Session expired');
+      (err as any).status = 401;
+      throw err;
+    }
     try {
       return await apiCall();
     } catch (error: any) {
-      const status = error.status || 0;
+      const status = error.status || error.originalError?.status || 0;
 
-      // Handle authentication errors
-      if (status === 401 || status === 403) {
-        logger.warn('APIContext', `${context}: Authentication error detected, re-authenticating...`);
+      // Handle authentication errors — show reconnect prompt instead of auto-re-login
+      if ((status === 401 || status === 403) && !sessionExpiredRef.current) {
+        logger.warn('APIContext', `${context}: Auth error (${status}), session expired`);
+        if (api) await api.clearCachedToken();
 
-        // Only clear token and re-authenticate if not already in progress
-        if (!authenticationInProgress && api && initialConfig?.username && initialConfig?.password) {
-          await api.clearCachedToken();
-          setAuthState(AuthState.UNAUTHENTICATED);
-
-          // Attempt re-authentication
-          const success = await authenticateUser(api, initialConfig.username, initialConfig.password);
-          if (success) {
-            logger.info('APIContext', `${context}: Re-authentication successful, retrying original call`);
-            // Retry the original call once
-            return await apiCall();
-          } else {
-            logger.error('APIContext', `${context}: Re-authentication failed`);
-            throw new Error('Authentication failed after retry');
-          }
+        if (initialConfig?.username && initialConfig?.password) {
+          // Has stored credentials — show reconnect prompt, stay on current screen
+          sessionExpiredRef.current = true;
+          setSessionExpired(true);
+          setError('Session expired. Click Reconnect to continue.');
         } else {
-          logger.warn('APIContext', `${context}: Authentication already in progress or missing credentials`);
-          throw error;
+          // No stored credentials — go to login
+          setAuthState(AuthState.UNAUTHENTICATED);
+          setError('Session expired. Please log in again.');
         }
       }
 
-      // Handle rate limiting - coordinate globally
-      if (status === 429) {
-        logger.warn('APIContext', `${context}: Rate limit hit, error will be handled by network utils retry logic`);
-        // Let the existing networkUtils retry logic handle this with proper delays
-        throw error;
-      }
-
-      // Handle server errors and other errors
-      if (status >= 500) {
-        logger.warn('APIContext', `${context}: Server error ${status}, error will be handled by network utils retry logic`);
-        throw error;
-      }
-
-      // For all other errors, just pass through
       throw error;
     }
-  }, [api, authenticationInProgress, initialConfig, authenticateUser]);
+  }, [api, initialConfig]);
 
   // Centralized API methods - all use withAuthRetry middleware
   // RACE CONDITION FIX: Allow calls through if authenticated OR authenticating (middleware will handle waiting)
@@ -755,8 +784,10 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     isLoading,
     error,
     connectivityIssue,
+    sessionExpired,
     login,
     logout,
+    reconnect,
     refreshCredits,
     updateCredits,
     refreshConnectivityAndAuth,

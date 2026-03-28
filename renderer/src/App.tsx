@@ -232,11 +232,14 @@ function AppContent({
 }) {
   const {
     isAuthenticated,
+    isAuthenticating,
     credits,
     isLoading: apiLoading,
     error: apiError,
     login,
     logout,
+    reconnect,
+    sessionExpired,
     updateCredits,
     refreshConnectivityAndAuth,
     prepareForHibernationTest
@@ -890,6 +893,37 @@ function AppContent({
 
       {/* Global Error Log Controls */}
       <ErrorLogControls />
+
+      {/* Session Expired Modal */}
+      {sessionExpired && (
+        <div className="session-expired-overlay">
+          <div className="session-expired-modal">
+            <i className="fas fa-exclamation-triangle session-expired-icon"></i>
+            <h3>Session Expired</h3>
+            <p>Your authentication token has expired.</p>
+            <div className="session-expired-actions">
+              <button
+                className="btn-primary"
+                onClick={async () => {
+                  const success = await reconnect();
+                  if (!success) {
+                    setCurrentScreen('login');
+                  }
+                }}
+                disabled={isAuthenticating}
+              >
+                {isAuthenticating ? 'Reconnecting...' : 'Reconnect'}
+              </button>
+              <button
+                className="btn-secondary"
+                onClick={async () => { await logout(); setCurrentScreen('login'); }}
+              >
+                Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

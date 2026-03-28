@@ -58,7 +58,7 @@
       "maxDelay": 4000
     },
     "authErrors": {
-      "enabled": false,
+      "enabled": true,
       "statusCodes": [401, 403],
       "keywords": ["unauthorized", "forbidden", "authentication failed"],
       "maxRetries": 0,

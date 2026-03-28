@@ -283,42 +283,39 @@ function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdat
 
   return (
     <div className="recent-media-screen" style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '20px', position: 'relative' }}>
-      <h1>Recent Media</h1>
-
-      {/* Refresh icon next to title */}
-      {isAuthenticated && (
-        <button
-          onClick={handleRefresh}
-          disabled={isLoading}
-          title="Refresh"
-          style={{
-            position: 'absolute',
-            top: '0',
-            right: '0',
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--text-secondary)',
-            cursor: isLoading ? 'not-allowed' : 'pointer',
-            padding: '6px',
-            fontSize: '14px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: '4px',
-            transition: 'color 0.2s ease'
-          }}
-          onMouseEnter={(e) => {
-            if (!isLoading) {
-              e.currentTarget.style.color = 'var(--text-primary)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = 'var(--text-secondary)';
-          }}
-        >
-          <i className={`fas fa-sync-alt${isLoading ? ' fa-spin' : ''}`}></i>
-        </button>
-      )}
+      <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        Recent Media
+        {isAuthenticated && (
+          <button
+            onClick={handleRefresh}
+            disabled={isLoading}
+            title="Refresh"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-secondary)',
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+              padding: '4px',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '4px',
+              transition: 'color 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              if (!isLoading) {
+                e.currentTarget.style.color = 'var(--text-primary)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'var(--text-secondary)';
+            }}
+          >
+            <i className={`fas fa-sync-alt${isLoading ? ' fa-spin' : ''}`}></i>
+          </button>
+        )}
+      </h1>
 
       {isLoading && recentMedia.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>

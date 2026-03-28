@@ -3,6 +3,12 @@ import { logger } from '../utils/errorLogger';
 import { apiRequestWithRetry, getUserFriendlyErrorMessage } from '../utils/networkUtils';
 import appConfig from '../config/appConfig.json';
 
+/** Re-throw auth errors so they propagate to handleAPICall in APIContext */
+function rethrowIfAuthError(error: any): void {
+  const status = error?.status || error?.originalError?.status || 0;
+  if (status === 401 || status === 403) throw error;
+}
+
 // Cross-platform filename extraction for logging (supports both / and \ separators)
 const getFileNameFromPath = (filePath: string): string => {
   const lastSlash = Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\'));
@@ -477,6 +483,7 @@ export class OpenSubtitlesAPI {
 
       return result;
     } catch (error: any) {
+      rethrowIfAuthError(error);
       logger.error('API', 'Error fetching transcription info after retries:', error);
       return {
         success: false,
@@ -561,6 +568,7 @@ export class OpenSubtitlesAPI {
 
       return result;
     } catch (error: any) {
+      rethrowIfAuthError(error);
       logger.error('API', 'Error fetching translation info after retries:', error);
       return {
         success: false,
@@ -657,6 +665,7 @@ export class OpenSubtitlesAPI {
         return await response.json();
       }, 'Initiate Transcription', 3);
     } catch (error: any) {
+      rethrowIfAuthError(error);
       logger.error('API', 'Transcription initiation failed:', error);
 
       // Try to get more specific error details from response
@@ -750,6 +759,7 @@ export class OpenSubtitlesAPI {
         return await response.json();
       }, 'Initiate Translation', 3);
     } catch (error: any) {
+      rethrowIfAuthError(error);
       logger.error('API', 'Translation initiation failed:', error);
 
       // Try to get more specific error details from response
@@ -808,6 +818,7 @@ export class OpenSubtitlesAPI {
         return await response.json();
       }, `Check Transcription Status (${correlationId})`);
     } catch (error: any) {
+      rethrowIfAuthError(error);
       return {
         status: 'ERROR',
         errors: [error.message || 'Failed to check transcription status'],
@@ -844,6 +855,7 @@ export class OpenSubtitlesAPI {
         return await response.json();
       }, `Check Translation Status (${correlationId})`);
     } catch (error: any) {
+      rethrowIfAuthError(error);
       return {
         status: 'ERROR',
         errors: [error.message || 'Failed to check translation status'],
@@ -911,6 +923,7 @@ export class OpenSubtitlesAPI {
         return data;
       }, 'Detect Language', 3);
     } catch (error: any) {
+      rethrowIfAuthError(error);
       logger.error('API', 'Language detection error after retries:', error);
 
       // Try to get more specific error details from response
@@ -975,6 +988,7 @@ export class OpenSubtitlesAPI {
         return data;
       }, `Check Language Detection Status (${correlationId})`);
     } catch (error: any) {
+      rethrowIfAuthError(error);
       logger.error('API', 'Language detection status check error:', error);
 
       // Try to get more specific error details from response
@@ -1052,6 +1066,7 @@ export class OpenSubtitlesAPI {
 
       return result;
     } catch (error: any) {
+      rethrowIfAuthError(error);
       return {
         success: false,
         error: getUserFriendlyErrorMessage(error),
@@ -1132,6 +1147,7 @@ export class OpenSubtitlesAPI {
 
       return result;
     } catch (error: any) {
+      rethrowIfAuthError(error);
       logger.error('API', `Error fetching translation languages for ${apiId} after retries:`, error);
       return {
         success: false,
@@ -1192,6 +1208,7 @@ export class OpenSubtitlesAPI {
 
       return result;
     } catch (error: any) {
+      rethrowIfAuthError(error);
       return {
         success: false,
         error: getUserFriendlyErrorMessage(error),
@@ -1232,6 +1249,7 @@ export class OpenSubtitlesAPI {
         content: result,
       };
     } catch (error: any) {
+      rethrowIfAuthError(error);
       return {
         success: false,
         error: getUserFriendlyErrorMessage(error),
@@ -1293,6 +1311,7 @@ export class OpenSubtitlesAPI {
         content: result,
       };
     } catch (error: any) {
+      rethrowIfAuthError(error);
       logger.error('API', 'File download error after retries:', error);
       return {
         success: false,
@@ -1339,6 +1358,7 @@ export class OpenSubtitlesAPI {
       
       return result;
     } catch (error: any) {
+      rethrowIfAuthError(error);
       logger.error('API', 'Error fetching credits after retries:', error);
       return {
         success: false,
@@ -1406,6 +1426,7 @@ export class OpenSubtitlesAPI {
       
       return result;
     } catch (error: any) {
+      rethrowIfAuthError(error);
       logger.error('API', 'Error fetching services info after retries:', error);
       return {
         success: false,
@@ -1475,6 +1496,7 @@ export class OpenSubtitlesAPI {
       
       return result;
     } catch (error: any) {
+      rethrowIfAuthError(error);
       logger.error('API', 'Error fetching credit packages after retries:', error);
       return {
         success: false,
@@ -1541,6 +1563,7 @@ export class OpenSubtitlesAPI {
 
       return result;
     } catch (error: any) {
+      rethrowIfAuthError(error);
       logger.error('API', 'Error fetching recent media after retries:', error);
       return {
         success: false,
@@ -1607,6 +1630,7 @@ export class OpenSubtitlesAPI {
 
       return result;
     } catch (error: any) {
+      rethrowIfAuthError(error);
       logger.error('API', 'Error fetching recent activities after retries:', error);
       return {
         success: false,
@@ -1679,6 +1703,7 @@ export class OpenSubtitlesAPI {
         data: result,
       };
     } catch (error: any) {
+      rethrowIfAuthError(error);
       logger.error('API', 'Subtitle search error after retries:', error);
       return {
         success: false,
@@ -1751,6 +1776,7 @@ export class OpenSubtitlesAPI {
         data: result,
       };
     } catch (error: any) {
+      rethrowIfAuthError(error);
       logger.error('API', 'Feature search error after retries:', error);
       return {
         success: false,
@@ -1830,6 +1856,7 @@ export class OpenSubtitlesAPI {
         data: result,
       };
     } catch (error: any) {
+      rethrowIfAuthError(error);
       logger.error('API', 'Subtitle download error after retries:', error);
       return {
         success: false,
@@ -1903,6 +1930,7 @@ export class OpenSubtitlesAPI {
         data: languages,
       };
     } catch (error: any) {
+      rethrowIfAuthError(error);
       logger.error('API', 'Subtitle search languages fetch error after retries:', error);
       return {
         success: false,

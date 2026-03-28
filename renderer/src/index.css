@@ -671,3 +671,84 @@ input[type="file"][webkitdirectory]::-moz-file-upload-button {
 ::-webkit-scrollbar-corner {
   background: var(--bg-tertiary);
 }
+
+/* Session expired modal */
+.session-expired-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
+}
+
+.session-expired-modal {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 28px;
+  max-width: 380px;
+  width: 90%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  text-align: center;
+}
+
+.session-expired-icon {
+  font-size: 36px;
+  color: var(--warning-color);
+  margin-bottom: 12px;
+}
+
+.session-expired-modal h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+.session-expired-modal p {
+  margin: 0 0 20px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.session-expired-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.session-expired-actions button {
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  transition: all 0.2s;
+}
+
+.session-expired-actions button:first-child {
+  background: var(--button-bg);
+  color: var(--button-text);
+  border-color: var(--button-bg);
+  min-width: 120px;
+}
+
+.session-expired-actions button:first-child:hover {
+  opacity: 0.9;
+}
+
+.session-expired-actions button:first-child:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.session-expired-actions button:last-child {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.session-expired-actions button:last-child:hover {
+  background: var(--bg-tertiary);
+}
