@@ -13,8 +13,8 @@ export const useAutoDetectFailure = (): AutoDetectFailureHookResult => {
       timestamp: new Date().toISOString()
     });
 
-    if (window.electronAPI?.handleAutoDetectFailure) {
-      await window.electronAPI.handleAutoDetectFailure(type, reason);
+    if ((window.electronAPI as any)?.handleAutoDetectFailure) {
+      await (window.electronAPI as any).handleAutoDetectFailure(type, reason);
     }
   }, []);
 

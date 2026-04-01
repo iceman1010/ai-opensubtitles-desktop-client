@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import AISubtitleModal from './AISubtitleModal';
 
 export interface SubtitleSearchResult {
@@ -61,7 +61,7 @@ function SubtitleCard({ result, onDownload, onPreview, isDownloading = false, is
     setShowAIModal(false);
   }, []);
 
-  const formatFileSize = (fileName: string): string => {
+  const formatFileSize = (_fileName: string): string => {
     // Estimate file size based on filename and CD count
     const baseSize = attributes.nb_cd * 50; // Rough estimate: 50KB per CD
     return baseSize > 1000 ? `${(baseSize / 1000).toFixed(1)}MB` : `${baseSize}KB`;

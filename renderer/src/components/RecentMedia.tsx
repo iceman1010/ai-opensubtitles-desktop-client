@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAPI } from '../contexts/APIContext';
 import { UncontrolledTreeEnvironment, StaticTreeDataProvider, Tree, TreeItem, TreeItemIndex } from 'react-complex-tree';
 import 'react-complex-tree/lib/style-modern.css';
@@ -43,8 +43,8 @@ function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdat
   const [recentMedia, setRecentMedia] = useState<RecentMediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [focusedItem, setFocusedItem] = useState<TreeItemIndex>();
-  const [expandedItems, setExpandedItems] = useState<TreeItemIndex[]>([]);
+  const [_focusedItem, _setFocusedItem] = useState<TreeItemIndex>();
+  const [_expandedItems, _setExpandedItems] = useState<TreeItemIndex[]>([]);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMorePages, setHasMorePages] = useState(true);

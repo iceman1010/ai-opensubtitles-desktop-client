@@ -242,9 +242,12 @@ export interface RecentActivityItem {
 
 export class OpenSubtitlesAPI {
   private baseURL = 'https://api.opensubtitles.com/api/v1';
-  private apiKey: string = '';
+  public apiKey: string = '';
   private token: string = '';
   private apiUrlParameter: string = '';
+  private username: string = '';
+  private password: string = '';
+  private tokenRefreshPromise: Promise<boolean> | null = null;
 
   constructor(apiKey?: string, baseUrl?: string, apiUrlParameter?: string) {
     console.trace('[API] NEW OpenSubtitlesAPI instance created');
@@ -316,8 +319,66 @@ export class OpenSubtitlesAPI {
     }
   }
 
+  setCredentials(username: string, password: string): void {
+    this.username = username;
+    this.password = password;
+  }
 
-  async login(username: string, password: string): Promise<{ success: boolean; token?: string; error?: string }> {
+  /**
+   * Re-authenticate to get a fresh token. Deduplicates concurrent refresh attempts.
+   * Returns true if a new token was obtained.
+   */
+  async refreshToken(): Promise<boolean> {
+    if (this.tokenRefreshPromise) {
+      logger.info('API', 'Token refresh already in progress, waiting...');
+      return await this.tokenRefreshPromise;
+    }
+
+    if (!this.username || !this.password) {
+      logger.error('API', 'Cannot refresh token: no credentials stored');
+      return false;
+    }
+
+    this.tokenRefreshPromise = (async () => {
+      try {
+        logger.info('API', 'Refreshing token due to invalid token response');
+        await this.clearCachedToken();
+        const result = await this.login(this.username, this.password);
+        if (result.success) {
+          logger.info('API', 'Token refresh successful');
+          return true;
+        }
+        logger.error('API', 'Token refresh failed:', result.error);
+        return false;
+      } catch (error) {
+        logger.error('API', 'Token refresh error:', error);
+        return false;
+      } finally {
+        this.tokenRefreshPromise = null;
+      }
+    })();
+
+    return await this.tokenRefreshPromise;
+  }
+
+  /**
+   * Parse JSON response and check for invalid token.
+   * Throws a 401 error if the response contains "invalid token", triggering auto-retry with fresh token.
+   */
+  private async parseJsonResponse(response: Response): Promise<any> {
+    const data = await response.json();
+    if (data && typeof data.message === 'string' &&
+        data.message.toLowerCase().includes('invalid token')) {
+      logger.warn('API', 'Received invalid token response, will trigger re-authentication');
+      const error = new Error('Invalid token');
+      (error as any).status = 401;
+      (error as any).invalidToken = true;
+      throw error;
+    }
+    return data;
+  }
+
+  async login(username: string, password: string): Promise<{ success: boolean; token?: string; user_id?: number; error?: string }> {
     // Validate required parameters before attempting login
     if (!username || !password) {
       const error = 'Username and password are required';
@@ -345,7 +406,7 @@ export class OpenSubtitlesAPI {
         logger.info('API', `Using User-Agent: ${userAgent}`);
         logger.info('API', `Using API Key: ${this.apiKey ? 'SET' : 'NOT SET'}`);
         
-        const headers = {
+        const headers: Record<string, string> = {
           'Accept': 'application/json',
           'Api-Key': this.apiKey || '',
           'Content-Type': 'application/json',
@@ -387,8 +448,9 @@ export class OpenSubtitlesAPI {
         if (responseData.token) {
           this.token = responseData.token;
           await this.saveToken(this.token); // Cache the token
+          const userId = responseData.user?.user_id;
           logger.info('API', 'Login successful, token set and cached');
-          return { success: true, token: this.token };
+          return { success: true, token: this.token, user_id: userId };
         }
 
         logger.error('API', 'Login failed: No token received');
@@ -426,7 +488,7 @@ export class OpenSubtitlesAPI {
       const result = await apiRequestWithRetry(async () => {
         logger.info('API', 'Fetching transcription info from API...');
 
-        const headers = {
+        const headers: Record<string, string> = {
           'Accept': 'application/json',
           'Api-Key': this.apiKey || '',
           'Content-Type': 'application/json',
@@ -511,7 +573,7 @@ export class OpenSubtitlesAPI {
       const result = await apiRequestWithRetry(async () => {
         logger.info('API', 'Fetching translation info from API...');
 
-        const headers = {
+        const headers: Record<string, string> = {
           'Accept': 'application/json',
           'Api-Key': this.apiKey || '',
           'Content-Type': 'application/json',
@@ -662,7 +724,7 @@ export class OpenSubtitlesAPI {
           throw error;
         }
 
-        return await response.json();
+        return await this.parseJsonResponse(response);
       }, 'Initiate Transcription', 3);
     } catch (error: any) {
       rethrowIfAuthError(error);
@@ -731,7 +793,7 @@ export class OpenSubtitlesAPI {
           formData.append('return_content', 'true');
         }
 
-        const headers = {
+        const headers: Record<string, string> = {
           'Accept': 'application/json',
           'Api-Key': this.apiKey || '',
           'User-Agent': getUserAgent(),
@@ -756,7 +818,7 @@ export class OpenSubtitlesAPI {
           throw error;
         }
 
-        return await response.json();
+        return await this.parseJsonResponse(response);
       }, 'Initiate Translation', 3);
     } catch (error: any) {
       rethrowIfAuthError(error);
@@ -793,7 +855,7 @@ export class OpenSubtitlesAPI {
     try {
       logger.info('API', 'Checking transcription status', { correlationId });
       return await apiRequestWithRetry(async () => {
-        const headers = {
+        const headers: Record<string, string> = {
           'Accept': 'application/json',
           'Api-Key': this.apiKey || '',
           'Content-Type': 'application/json',
@@ -815,7 +877,7 @@ export class OpenSubtitlesAPI {
           throw error;
         }
         
-        return await response.json();
+        return await this.parseJsonResponse(response);
       }, `Check Transcription Status (${correlationId})`);
     } catch (error: any) {
       rethrowIfAuthError(error);
@@ -830,7 +892,7 @@ export class OpenSubtitlesAPI {
     try {
       logger.info('API', 'Checking translation status', { correlationId });
       return await apiRequestWithRetry(async () => {
-        const headers = {
+        const headers: Record<string, string> = {
           'Accept': 'application/json',
           'Api-Key': this.apiKey || '',
           'Content-Type': 'application/json',
@@ -852,7 +914,7 @@ export class OpenSubtitlesAPI {
           throw error;
         }
         
-        return await response.json();
+        return await this.parseJsonResponse(response);
       }, `Check Translation Status (${correlationId})`);
     } catch (error: any) {
       rethrowIfAuthError(error);
@@ -882,7 +944,7 @@ export class OpenSubtitlesAPI {
           formData.append('duration', duration.toString());
         }
 
-        const headers = {
+        const headers: Record<string, string> = {
           'Api-Key': this.apiKey || '',
           'User-Agent': getUserAgent(),
         };
@@ -918,7 +980,7 @@ export class OpenSubtitlesAPI {
           throw error;
         }
 
-        const data = await response.json();
+        const data = await this.parseJsonResponse(response);
         logger.info('API', 'Language detection response received', data);
         return data;
       }, 'Detect Language', 3);
@@ -956,7 +1018,7 @@ export class OpenSubtitlesAPI {
   async checkLanguageDetectionStatus(correlationId: string): Promise<APIResponse<LanguageDetectionResult>> {
     try {
       return await apiRequestWithRetry(async () => {
-        const headers = {
+        const headers: Record<string, string> = {
           'Accept': 'application/json',
           'Api-Key': this.apiKey || '',
           'Content-Type': 'application/json',
@@ -983,7 +1045,7 @@ export class OpenSubtitlesAPI {
           throw error;
         }
 
-        const data = await response.json();
+        const data = await this.parseJsonResponse(response);
         logger.info('API', 'Language detection status response', data);
         return data;
       }, `Check Language Detection Status (${correlationId})`);
@@ -1028,7 +1090,7 @@ export class OpenSubtitlesAPI {
 
     try {
       const result = await apiRequestWithRetry(async () => {
-        const headers = {
+        const headers: Record<string, string> = {
           'Accept': 'application/json',
           'Api-Key': this.apiKey || '',
           'Content-Type': 'application/json',
@@ -1054,7 +1116,7 @@ export class OpenSubtitlesAPI {
           throw error;
         }
 
-        const data: LanguageInfo[] = await response.json();
+        const data: LanguageInfo[] = await this.parseJsonResponse(response);
 
         CacheManager.set(cacheKey, data);
 
@@ -1084,7 +1146,7 @@ export class OpenSubtitlesAPI {
 
     try {
       const result = await apiRequestWithRetry(async () => {
-        const headers = {
+        const headers: Record<string, string> = {
           'Accept': 'application/json',
           'Api-Key': this.apiKey || '',
           'Content-Type': 'application/json',
@@ -1112,7 +1174,7 @@ export class OpenSubtitlesAPI {
           throw error;
         }
 
-        const responseData = await response.json();
+        const responseData = await this.parseJsonResponse(response);
         logger.info('API', `Translation languages response for ${apiId}:`, responseData);
 
         let data: LanguageInfo[] = [];
@@ -1168,7 +1230,7 @@ export class OpenSubtitlesAPI {
       const result = await apiRequestWithRetry(async () => {
         // For now, we'll get all APIs and filter client-side
         // In the future, the API might support filtering by language pair
-        const headers = {
+        const headers: Record<string, string> = {
           'Accept': 'application/json',
           'Api-Key': this.apiKey || '',
           'Content-Type': 'application/json',
@@ -1193,7 +1255,7 @@ export class OpenSubtitlesAPI {
           throw error;
         }
 
-        const responseData = await response.json();
+        const responseData = await this.parseJsonResponse(response);
         const allApis: string[] = responseData.data || responseData;
 
         // TODO: Implement proper filtering based on language support
@@ -1219,7 +1281,7 @@ export class OpenSubtitlesAPI {
   async downloadFile(url: string): Promise<{ success: boolean; content?: string; error?: string }> {
     try {
       const result = await apiRequestWithRetry(async () => {
-        const headers = {
+        const headers: Record<string, string> = {
           'Accept': 'application/json',
           'Api-Key': this.apiKey || '',
           'User-Agent': getUserAgent(),
@@ -1262,7 +1324,7 @@ export class OpenSubtitlesAPI {
       logger.info('API', 'Downloading file by media ID', { mediaId, fileName });
 
       const result = await apiRequestWithRetry(async () => {
-        const headers = {
+        const headers: Record<string, string> = {
           'Accept': 'application/json',
           'Api-Key': this.apiKey || '',
           'User-Agent': getUserAgent(),
@@ -1323,7 +1385,7 @@ export class OpenSubtitlesAPI {
   async getCredits(): Promise<{ success: boolean; credits?: number; error?: string }> {
     try {
       const result = await apiRequestWithRetry(async () => {
-        const headers = {
+        const headers: Record<string, string> = {
           'Accept': 'application/json',
           'Api-Key': this.apiKey || '',
           'User-Agent': getUserAgent(),
@@ -1347,7 +1409,7 @@ export class OpenSubtitlesAPI {
           throw error;
         }
         
-        const responseData = await response.json();
+        const responseData = await this.parseJsonResponse(response);
         logger.info('API', 'Credits response:', responseData);
         
         return {
@@ -1386,7 +1448,7 @@ export class OpenSubtitlesAPI {
       const result = await apiRequestWithRetry(async () => {
         logger.info('API', 'Fetching services info from API...');
         
-        const headers = {
+        const headers: Record<string, string> = {
           'Accept': 'application/json',
           'Api-Key': this.apiKey || '',
           'Content-Type': 'application/json',
@@ -1410,7 +1472,7 @@ export class OpenSubtitlesAPI {
           throw error;
         }
         
-        const responseData = await response.json();
+        const responseData = await this.parseJsonResponse(response);
         logger.info('API', 'Services info response:', responseData);
         
         const data: ServicesInfo = responseData.data || responseData;
@@ -1447,7 +1509,7 @@ export class OpenSubtitlesAPI {
     try {
       logger.info('API', 'Fetching credit packages');
       const result = await apiRequestWithRetry(async () => {
-        const headers = {
+        const headers: Record<string, string> = {
           'Accept': 'application/json',
           'Api-Key': this.apiKey || '',
           'User-Agent': getUserAgent(),
@@ -1476,7 +1538,7 @@ export class OpenSubtitlesAPI {
           throw error;
         }
         
-        const responseData = await response.json();
+        const responseData = await this.parseJsonResponse(response);
         logger.info('API', 'Credit packages response:', responseData);
         
         if (responseData.data && Array.isArray(responseData.data)) {
@@ -1524,7 +1586,7 @@ export class OpenSubtitlesAPI {
       const result = await apiRequestWithRetry(async () => {
         logger.info('API', `Fetching recent media from API (page ${page})...`);
 
-        const headers = {
+        const headers: Record<string, string> = {
           'Accept': 'application/json',
           'Api-Key': this.apiKey || '',
           'Content-Type': 'application/json',
@@ -1547,7 +1609,7 @@ export class OpenSubtitlesAPI {
           throw error;
         }
 
-        const responseData = await response.json();
+        const responseData = await this.parseJsonResponse(response);
         logger.info('API', 'Recent media response:', responseData);
 
         const data: RecentMediaItem[] = responseData.data || responseData;
@@ -1591,7 +1653,7 @@ export class OpenSubtitlesAPI {
       const result = await apiRequestWithRetry(async () => {
         logger.info('API', `Fetching recent activities from API (page ${page})...`);
 
-        const headers = {
+        const headers: Record<string, string> = {
           'Accept': 'application/json',
           'Api-Key': this.apiKey || '',
           'Content-Type': 'application/json',
@@ -1614,7 +1676,7 @@ export class OpenSubtitlesAPI {
           throw error;
         }
 
-        const responseData = await response.json();
+        const responseData = await this.parseJsonResponse(response);
         logger.info('API', 'Recent activities response:', responseData);
 
         const data: RecentActivityItem[] = responseData.data || responseData;
@@ -1650,7 +1712,7 @@ export class OpenSubtitlesAPI {
       const result = await apiRequestWithRetry(async () => {
         logger.info('API', 'Searching subtitles with params:', params);
 
-        const headers = {
+        const headers: Record<string, string> = {
           'Accept': 'application/json',
           'Api-Key': this.apiKey || '',
           'User-Agent': getUserAgent(),
@@ -1692,7 +1754,7 @@ export class OpenSubtitlesAPI {
           throw error;
         }
 
-        const responseData = await response.json();
+        const responseData = await this.parseJsonResponse(response);
         logger.info('API', 'Subtitle search response:', responseData);
 
         return responseData;
@@ -1723,7 +1785,7 @@ export class OpenSubtitlesAPI {
       const result = await apiRequestWithRetry(async () => {
         logger.info('API', 'Searching features with params:', params);
 
-        const headers = {
+        const headers: Record<string, string> = {
           'Accept': 'application/json',
           'Api-Key': this.apiKey || '',
           'User-Agent': getUserAgent(),
@@ -1765,7 +1827,7 @@ export class OpenSubtitlesAPI {
           throw error;
         }
 
-        const responseData = await response.json();
+        const responseData = await this.parseJsonResponse(response);
         logger.info('API', 'Feature search response:', responseData);
 
         return responseData;
@@ -1802,7 +1864,7 @@ export class OpenSubtitlesAPI {
       const result = await apiRequestWithRetry(async () => {
         logger.info('API', 'Downloading subtitle with params:', params);
 
-        const headers = {
+        const headers: Record<string, string> = {
           'Accept': 'application/json',
           'Api-Key': this.apiKey || '',
           'Content-Type': 'application/json',
@@ -1839,7 +1901,7 @@ export class OpenSubtitlesAPI {
 
         if (contentType.includes('application/json')) {
           // Normal subtitle download - returns JSON with link
-          const responseData = await response.json();
+          const responseData = await this.parseJsonResponse(response);
           logger.info('API', 'Subtitle download response (JSON):', responseData);
           return responseData;
         } else {
@@ -1876,7 +1938,7 @@ export class OpenSubtitlesAPI {
 
     try {
       // Check cache first
-      const cachedData = CacheManager.get(cacheKey);
+      const cachedData = CacheManager.get<{ data: SubtitleLanguage[]; timestamp: number }>(cacheKey);
       if (cachedData && (Date.now() - cachedData.timestamp) < cacheExpiry) {
         logger.info('API', 'Returning cached subtitle search languages');
         return { success: true, data: cachedData.data };
@@ -1886,7 +1948,7 @@ export class OpenSubtitlesAPI {
       logger.info('API', 'Fetching subtitle search languages from API');
 
       const result = await apiRequestWithRetry(async () => {
-        const headers = {
+        const headers: Record<string, string> = {
           'Accept': 'application/json',
           'Api-Key': this.apiKey || '',
           'User-Agent': getUserAgent(),
@@ -1915,7 +1977,7 @@ export class OpenSubtitlesAPI {
           throw error;
         }
 
-        const responseData: SubtitleLanguagesResponse = await response.json();
+        const responseData: SubtitleLanguagesResponse = await this.parseJsonResponse(response);
         logger.info('API', 'Subtitle search languages response:', responseData);
 
         return responseData;

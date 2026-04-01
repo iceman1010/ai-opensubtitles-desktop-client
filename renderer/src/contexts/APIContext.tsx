@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { OpenSubtitlesAPI, TranscriptionInfo, TranslationInfo, SubtitleSearchParams, SubtitleDownloadParams, SubtitleLanguage, FeatureSearchParams } from '../services/api';
 import { logger } from '../utils/errorLogger';
-import { isOnline, isFullyOnline, checkAPIConnectivity, invalidateConnectivityCache, forceConnectivityCheck } from '../utils/networkUtils';
+import { isOnline, isFullyOnline, invalidateConnectivityCache, forceConnectivityCheck } from '../utils/networkUtils';
 import { usePower } from './PowerContext';
 import CacheManager from '../services/cache';
 
@@ -97,7 +97,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
   const [userInfo, setUserInfo] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [connectivityIssue, setConnectivityIssue] = useState<string | null>(null);
+  const [connectivityIssue, _setConnectivityIssue] = useState<string | null>(null);
   const [sessionExpired, setSessionExpired] = useState(false);
   const sessionExpiredRef = useRef(false);
 
@@ -171,6 +171,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
 
       // Try to authenticate immediately if we have credentials
       if (initialConfig.username && initialConfig.password) {
+        apiInstance.setCredentials(initialConfig.username, initialConfig.password);
         logger.info('APIContext', 'Starting initial authentication on app startup');
         authenticateUser(apiInstance, initialConfig.username, initialConfig.password)
           .then(success => {
@@ -187,7 +188,8 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
                 apiCreatedRef.current ? 'already created' : 'unknown'
       });
     }
-  }, [initialConfig?.apiKey, initialConfig?.username, initialConfig?.password, initialConfig?.apiBaseUrl, initialConfig?.apiUrlParameter, api]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- api intentionally excluded: this effect creates api, apiCreatedRef prevents re-execution
+  }, [initialConfig?.apiKey, initialConfig?.username, initialConfig?.password, initialConfig?.apiBaseUrl, initialConfig?.apiUrlParameter]);
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -294,6 +296,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
         // Verify token is still valid with a credits check
         const creditsResult = await apiInstance.getCredits();
         if (creditsResult.success) {
+          CacheManager.setUser(username);
           setAuthState(AuthState.AUTHENTICATED);
           setCredits({ used: 0, remaining: creditsResult.credits || 0 });
           await loadAPIInfo(apiInstance);
@@ -314,6 +317,10 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
       // If no cached token or it's invalid, do fresh login
       const loginResult = await apiInstance.login(username, password);
       if (loginResult.success) {
+        CacheManager.setUser(username);
+        if (loginResult.user_id) {
+          window.electronAPI?.saveConfig?.({ userId: loginResult.user_id });
+        }
         setAuthState(AuthState.AUTHENTICATED);
 
         // Clear any pending hibernation retry on successful authentication
@@ -409,6 +416,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
         logger.info('APIContext', 'Setting API instance in state (login)');
         setApi(apiInstance);
       }
+      apiInstance.setCredentials(username, password);
 
       const result = await authenticateUser(apiInstance, username, password);
       logger.info('APIContext', `Login completed for user: ${username}, success: ${result}`);
@@ -425,6 +433,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
       if (api) {
         await api.clearCachedToken();
       }
+      CacheManager.clearUser();
       setApi(null);
       setAuthState(AuthState.UNAUTHENTICATED);
       sessionExpiredRef.current = false;
@@ -503,7 +512,6 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
   const prepareForHibernationTest = useCallback(() => {
     logger.info('APIContext', '🧪 TEST: Preparing for hibernation simulation');
     setAuthState(AuthState.UNAUTHENTICATED);
-    setIsAuthenticated(false);
     // Token stays in API instance for re-authentication
     logger.debug(1, 'APIContext', '🧪 TEST: Authentication state cleared, ready for hibernation simulation');
   }, []);
@@ -595,7 +603,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     return await handleAPICall(apiCall, context);
   }, [api, authState, lastResumeTime, initialConfig, authenticateUser]);
 
-  // Centralized error handling wrapper
+  // Centralized error handling wrapper with automatic token refresh on 401
   const handleAPICall = useCallback(async <T,>(
     apiCall: () => Promise<T>,
     context: string = 'API Call'
@@ -611,17 +619,35 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     } catch (error: any) {
       const status = error.status || error.originalError?.status || 0;
 
-      // Handle authentication errors — show reconnect prompt instead of auto-re-login
+      // Handle authentication errors — try to refresh token and retry once
       if ((status === 401 || status === 403) && !sessionExpiredRef.current) {
-        logger.warn('APIContext', `${context}: Auth error (${status}), session expired`);
-        if (api) await api.clearCachedToken();
+        logger.warn('APIContext', `${context}: Auth error (${status}), attempting token refresh`);
 
-        if (initialConfig?.username && initialConfig?.password) {
-          // Has stored credentials — show reconnect prompt, stay on current screen
-          sessionExpiredRef.current = true;
-          setSessionExpired(true);
-          setError('Session expired. Click Reconnect to continue.');
-        } else {
+        if (api && initialConfig?.username && initialConfig?.password) {
+          // Try to refresh the token automatically
+          const refreshed = await api.refreshToken();
+          if (refreshed) {
+            logger.info('APIContext', `${context}: Token refreshed, retrying request`);
+            try {
+              return await apiCall();
+            } catch (retryError: any) {
+              // If retry also fails with auth error, mark session expired
+              const retryStatus = retryError.status || retryError.originalError?.status || 0;
+              if (retryStatus === 401 || retryStatus === 403) {
+                logger.warn('APIContext', `${context}: Retry after token refresh also failed`);
+                sessionExpiredRef.current = true;
+                setSessionExpired(true);
+                setError('Session expired. Click Reconnect to continue.');
+              }
+              throw retryError;
+            }
+          } else {
+            // Refresh failed — mark session expired
+            sessionExpiredRef.current = true;
+            setSessionExpired(true);
+            setError('Session expired. Click Reconnect to continue.');
+          }
+        } else if (!initialConfig?.username || !initialConfig?.password) {
           // No stored credentials — go to login
           setAuthState(AuthState.UNAUTHENTICATED);
           setError('Session expired. Please log in again.');
@@ -748,11 +774,11 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
 
   // Sync helper functions for filename generation using cached data
   const getTranslationLanguageNameSync = useCallback((apiId: string, languageCode: string): string | null => {
-    if (!translationInfo?.apis?.[apiId]?.supported_languages) {
+    if (!(translationInfo?.apis as any)?.[apiId]?.supported_languages) {
       return null;
     }
 
-    const language = translationInfo.apis[apiId].supported_languages.find(
+    const language = (translationInfo!.apis as any)[apiId].supported_languages.find(
       (lang: any) => lang.language_code === languageCode
     );
 
@@ -760,11 +786,11 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
   }, [translationInfo]);
 
   const getTranscriptionLanguageNameSync = useCallback((apiId: string, languageCode: string): string | null => {
-    if (!transcriptionInfo?.apis?.[apiId]?.supported_languages) {
+    if (!(transcriptionInfo?.apis as any)?.[apiId]?.supported_languages) {
       return null;
     }
 
-    const language = transcriptionInfo.apis[apiId].supported_languages.find(
+    const language = (transcriptionInfo!.apis as any)[apiId].supported_languages.find(
       (lang: any) => lang.language_code === languageCode
     );
 

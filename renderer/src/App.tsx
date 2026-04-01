@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Login from './components/Login';
 import MainScreen from './components/MainScreen';
 import BatchScreen from './components/BatchScreen';
@@ -36,6 +36,8 @@ interface AppConfig {
   apiUrlParameter?: string;
   autoLanguageDetection?: boolean;
   darkMode?: boolean;
+  userId?: number;
+  apiConnectivityTestIntervalMinutes?: number;
   hideRecentMediaInfoPanel?: boolean;
   defaultFilenameFormat?: string;
   credits?: {
@@ -117,7 +119,7 @@ function App() {
         initialConfig={hasCredentials ? {
           username: config.username,
           password: config.password,
-          apiKey: config.apiKey,
+          apiKey: config.apiKey!,
           apiBaseUrl: config.apiBaseUrl,
           apiUrlParameter: config.apiUrlParameter
         } : undefined}
@@ -226,7 +228,7 @@ function AppContent({
   isLoading
 }: { 
   config: AppConfig | null; 
-  setConfig: (config: AppConfig) => void;
+  setConfig: (config: AppConfig | null | ((prev: AppConfig | null) => AppConfig | null)) => void;
   hasCredentials: boolean;
   isLoading: boolean;
 }) {
@@ -234,8 +236,8 @@ function AppContent({
     isAuthenticated,
     isAuthenticating,
     credits,
-    isLoading: apiLoading,
-    error: apiError,
+    isLoading: _apiLoading,
+    error: _apiError,
     login,
     logout,
     reconnect,
@@ -261,7 +263,7 @@ function AppContent({
   const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
   
   // Centralized status state
-  const [isNetworkOnline, setIsNetworkOnline] = useState(true);
+  const [_isNetworkOnline, setIsNetworkOnline] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentTask, setCurrentTask] = useState<string | undefined>(undefined);
   const [isApiActive, setIsApiActive] = useState(false);
@@ -288,7 +290,7 @@ function AppContent({
 
   useEffect(() => {
     // Set up keyboard shortcut listener
-    const handleKeyboardShortcut = (event: any, shortcut: string) => {
+    const handleKeyboardShortcut = (_event: any, shortcut: string) => {
       switch (shortcut) {
         case 'help':
           setCurrentScreen('help');
@@ -327,7 +329,7 @@ function AppContent({
   // Handle external file opening (from file associations or command line)
   useEffect(() => {
     // Handle single file opening - route to Single File screen
-    const handleExternalFile = (event: any, filePath: string) => {
+    const handleExternalFile = (_event: any, filePath: string) => {
       logger.debug(1, 'App', `Received single external file: ${filePath}`);
       setCurrentScreen('main');
       // Set the file for MainScreen to pick up
@@ -335,7 +337,7 @@ function AppContent({
     };
 
     // Handle multiple files opening - route to Batch screen
-    const handleExternalFiles = (event: any, filePaths: string[]) => {
+    const handleExternalFiles = (_event: any, filePaths: string[]) => {
       logger.debug(1, 'App', `Received ${filePaths.length} external files:`, filePaths);
       setCurrentScreen('batch');
       // Set files for batch screen to pick up

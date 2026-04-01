@@ -6,8 +6,7 @@ import {
   buildCompatibilityMatrix,
   getBestVariantForApi,
   getConsolidatedLanguageById,
-  getConsolidatedLanguageByCode,
-  ConsolidatedLanguage
+  getConsolidatedLanguageByCode
 } from '../utils/languageMapper';
 import * as fileFormatsConfig from '../../../shared/fileFormats.json';
 import { logger } from '../utils/errorLogger';
@@ -107,7 +106,7 @@ const ImprovedTranslationOptions: React.FC<ImprovedTranslationOptionsProps> = ({
     const found = getConsolidatedLanguageByCode(consolidatedLanguages, options.sourceLanguage);
     logger.debug(2, 'ImprovedTranslationOptions', 'getConsolidatedLanguageByCode result', {
       searchCode: options.sourceLanguage,
-      found: found ? { id: found.id, name: found.name, primaryCode: found.primaryCode } : null
+      found: found ? { id: found.id, displayName: found.displayName, variants: found.variants.length } : null
     });
 
     return found;
@@ -139,8 +138,8 @@ const ImprovedTranslationOptions: React.FC<ImprovedTranslationOptionsProps> = ({
     }
 
     logger.debug(2, 'ImprovedTranslationOptions', 'Found consolidated language', {
-      name: consolidatedLang.name,
-      primaryCode: consolidatedLang.primaryCode,
+      displayName: consolidatedLang.displayName,
+      id: consolidatedLang.id,
       variants: consolidatedLang.variants
     });
 

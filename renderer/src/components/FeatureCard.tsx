@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Feature } from '../services/api';
 
 interface FeatureCardProps {

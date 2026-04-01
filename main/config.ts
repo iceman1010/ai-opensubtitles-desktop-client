@@ -15,6 +15,7 @@ export interface AppConfig {
   betaTest?: boolean;
   ffmpegPath?: string;
   apiBaseUrl?: string;
+  userId?: number;
   autoLanguageDetection?: boolean;
   credits?: {
     used: number;

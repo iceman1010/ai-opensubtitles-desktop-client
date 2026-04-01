@@ -28,7 +28,7 @@ async function getSessionId(): Promise<string> {
       sessionIdCache = sessionId;
       return sessionId;
     } catch (error) {
-      logger.error('Failed to get session ID from main process', error);
+      logger.error('Network', 'Failed to get session ID from main process', error);
       // Fallback to random UUID
       const fallbackId = crypto.randomUUID();
       sessionIdCache = fallbackId;
@@ -173,7 +173,7 @@ function createNetworkError(errorTypeName: string, originalError: any, isRetryab
 /**
  * Checks if the error is a CloudFlare error
  */
-function isCloudFlareError(error: any): boolean {
+export function isCloudFlareError(error: any): boolean {
   const status = error.status || 0;
   const errorMessage = error.message?.toLowerCase() || '';
   const responseText = error.responseText?.toLowerCase() || '';
@@ -213,7 +213,7 @@ function isCloudFlareError(error: any): boolean {
 /**
  * Checks if the error is from a proxy server (Varnish, Kong, etc.)
  */
-function isProxyError(error: any): boolean {
+export function isProxyError(error: any): boolean {
   const status = error.status || 0;
   const errorMessage = error.message?.toLowerCase() || '';
   const responseText = error.responseText?.toLowerCase() || '';
@@ -559,7 +559,7 @@ export async function apiRequestWithRetry<T>(
     return await retryWithBackoff(async () => {
       return await executeRequest(requestFn, context);
     }, effectiveMaxRetries);
-  } catch (error) {
+  } catch (error: any) {
     const networkError = categorizeNetworkError(error);
     
     if (networkConfigManager.getConfig().logging.logErrors) {

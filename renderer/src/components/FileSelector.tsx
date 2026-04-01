@@ -79,7 +79,7 @@ function FileSelector({ onFileSelect, onMultipleFileSelect, disabled = false }: 
         // Use multiple file selection when multiple file handler is provided
         const filePaths = await window.electronAPI.selectMultipleFiles();
         if (filePaths && filePaths.length > 0) {
-          const validFilePaths = filePaths.filter(path => {
+          const validFilePaths = filePaths.filter((path: string) => {
             const validation = validateFileExtension(path);
             return validation.isValid;
           });

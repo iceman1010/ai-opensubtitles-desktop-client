@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import FileSelector from './FileSelector';
 import { getProcessingType } from '../config/fileFormats';
-import { OpenSubtitlesAPI, LanguageInfo, TranscriptionInfo, TranslationInfo, DetectedLanguage, LanguageDetectionResult, APIResponse, ServicesInfo, ServiceModel } from '../services/api';
+import { LanguageInfo, TranslationInfo, DetectedLanguage, ServicesInfo, ServiceModel } from '../services/api';
 import { logger } from '../utils/errorLogger';
 import { parseSubtitleFile, formatDuration, formatCharacterCount, ParsedSubtitle } from '../utils/subtitleParser';
 import ImprovedTranscriptionOptions from './ImprovedTranscriptionOptions';
@@ -82,8 +82,8 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
     credits,
     transcriptionInfo: contextTranscriptionInfo,
     translationInfo,
-    refreshCredits,
-    updateCredits,
+    refreshCredits: _refreshCredits,
+    updateCredits: _updateCredits,
     getTranslationLanguagesForApi,
     getTranscriptionLanguagesForApi,
     getTranslationLanguageNameSync,
@@ -121,22 +121,22 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
     model: '',
     format: fileFormatsConfig.subtitle[0] || 'srt'
   });
-  const [availableTranslationLanguages, setAvailableTranslationLanguages] = useState<LanguageInfo[]>([]);
-  const [availableTranslationApis, setAvailableTranslationApis] = useState<string[]>([]);
-  const [availableTranscriptionLanguages, setAvailableTranscriptionLanguages] = useState<LanguageInfo[]>([]);
-  const [availableTranscriptionApis, setAvailableTranscriptionApis] = useState<string[]>([]);
-  const [isLoadingDynamicOptions, setIsLoadingDynamicOptions] = useState(false);
-  const [isLoadingOptions, setIsLoadingOptions] = useState(false);
-  const [isLoadingCredits, setIsLoadingCredits] = useState(false);
+  const [_availableTranslationLanguages, setAvailableTranslationLanguages] = useState<LanguageInfo[]>([]);
+  const [_availableTranslationApis, setAvailableTranslationApis] = useState<string[]>([]);
+  const [_availableTranscriptionLanguages, setAvailableTranscriptionLanguages] = useState<LanguageInfo[]>([]);
+  const [_availableTranscriptionApis, setAvailableTranscriptionApis] = useState<string[]>([]);
+  const [_isLoadingDynamicOptions, setIsLoadingDynamicOptions] = useState(false);
+  const [isLoadingOptions, _setIsLoadingOptions] = useState(false);
+  const [_isLoadingCredits, _setIsLoadingCredits] = useState(false);
   const [detectedLanguage, setDetectedLanguage] = useState<DetectedLanguage | null>(null);
   const [isDetectingLanguage, setIsDetectingLanguage] = useState(false);
-  const [languageDetectionCorrelationId, setLanguageDetectionCorrelationId] = useState<string | null>(null);
+  const [_languageDetectionCorrelationId, setLanguageDetectionCorrelationId] = useState<string | null>(null);
   const [showLanguageDetectionResult, setShowLanguageDetectionResult] = useState(false);
   const [compatibleModels, setCompatibleModels] = useState<{
     translation: string[];
     transcription: string[];
   }>({ translation: [], transcription: [] });
-  const [creditsAnimating, setCreditsAnimating] = useState(false);
+  const [_creditsAnimating, setCreditsAnimating] = useState(false);
   const [fileInfo, setFileInfo] = useState<{
     duration?: number;
     hasAudio?: boolean;
@@ -146,8 +146,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
   } | null>(null);
   const [isDragOverWindow, setIsDragOverWindow] = useState(false);
   const [isLoadingFileInfo, setIsLoadingFileInfo] = useState(false);
-  const [isNetworkOnline, setIsNetworkOnline] = useState(isOnline());
-  const hasAttemptedLogin = useRef(false);
+  const [_isNetworkOnline, _setIsNetworkOnline] = useState(isOnline());
   const [showCreditModal, setShowCreditModal] = useState(false);
   const [servicesInfo, setServicesInfo] = useState<ServicesInfo | null>(null);
   const languageDetectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -480,7 +479,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       let fileToProcess = selectedFile;
       
       // Check if it's a video/audio file that needs audio extraction
-      const fileName = typeof selectedFile === 'string' ? selectedFile : selectedFile.name;
+      const fileName = selectedFile || '';
       const isVideoOrAudio = isAudioVideoFile(fileName);
       
       if (isVideoOrAudio) {
@@ -493,7 +492,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         // Extract audio for language detection using configured duration
         const durationSeconds = config.audio_language_detection_time ?? 240;
         const extractedPath = await window.electronAPI.extractAudio(
-          typeof selectedFile === 'string' ? selectedFile : selectedFile.path,
+          selectedFile,
           undefined, // Let system choose temp path
           undefined, // No progress callback for now
           durationSeconds
@@ -665,10 +664,10 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
   };
 
   const findCompatibleModels = async (languageCode: string) => {
-    const compatible = { translation: [], transcription: [] };
+    const compatible: { translation: string[]; transcription: string[] } = { translation: [], transcription: [] };
     
     // Determine what type of file we're working with
-    const fileName = typeof selectedFile === 'string' ? selectedFile : selectedFile?.name || '';
+    const fileName = selectedFile || '';
     const isSubtitle = isSubtitleFile(fileName);
     const isAudioVideo = isAudioVideoFile(fileName);
     
@@ -739,7 +738,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
             // The data structure is { data: { data: { apiName: [languages] } } }
             const apiLanguages = result.data.data?.[apiName] || result.data[apiName] || result.data;
             logger.info('MainScreen', `${apiName} apiLanguages:`, apiLanguages);
-            logger.info('MainScreen', `${apiName} apiLanguages type:`, typeof apiLanguages, Array.isArray(apiLanguages));
+            logger.info('MainScreen', `${apiName} apiLanguages type:`, { type: typeof apiLanguages, isArray: Array.isArray(apiLanguages) });
             
             if (Array.isArray(apiLanguages)) {
               const supportedCodes = apiLanguages.map(l => l.language_code);
@@ -773,7 +772,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
                 logger.info('MainScreen', `✗ ${apiName} does not support language "${languageCode}"`);
               }
             } else {
-              logger.warn('MainScreen', `${apiName} data is not an array:`, typeof apiLanguages, apiLanguages);
+              logger.warn('MainScreen', `${apiName} data is not an array:`, { type: typeof apiLanguages, value: apiLanguages });
             }
           } else {
             logger.warn('MainScreen', `${apiName} API call failed or returned no data`);
@@ -815,10 +814,6 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         logger.info('MainScreen', `Using cached languages for model ${modelId}: ${modelLanguages.length} languages`);
         setAvailableTranslationLanguages(modelLanguages);
         
-        // Update destination language if current selection is not available
-        const currentDestLang = translationOptions.destinationLanguage;
-        const isCurrentLangAvailable = modelLanguages.some(lang => lang.language_code === currentDestLang);
-        
         // Don't auto-select destination language - let user choose explicitly
         setIsLoadingDynamicOptions(false);
         return;
@@ -836,10 +831,6 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         // Only update if we actually got languages, otherwise keep the current ones
         if (languagesArray.length > 0) {
           setAvailableTranslationLanguages(languagesArray);
-          
-          // Update destination language if current selection is not available
-          const currentDestLang = translationOptions.destinationLanguage;
-          const isCurrentLangAvailable = languagesArray.some(lang => lang.language_code === currentDestLang);
           
           // Don't auto-select destination language - let user choose explicitly
         } else {
@@ -1041,7 +1032,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
     if (!selectedFile || !fileType) return;
 
     // Check if credits are available
-    if (credits === 0) {
+    if (credits && credits.remaining === 0) {
       setShowCreditModal(true);
       return;
     }
@@ -1079,9 +1070,10 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           // Extract audio from video
           try {
             tempAudioFile = await window.electronAPI.extractAudio(selectedFile);
+            if (!tempAudioFile) throw new Error('Audio extraction returned no output file');
             fileToProcess = tempAudioFile;
             setStatusMessage({ type: 'info', message: 'Audio extraction completed. Starting transcription...' });
-          } catch (error) {
+          } catch (error: any) {
             throw new Error(`Audio extraction failed: ${error.message}`);
           }
         } else if (mediaInfo.hasAudio && !mediaInfo.hasVideo) {
@@ -1091,9 +1083,10 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
             
             try {
               tempAudioFile = await window.electronAPI.convertAudio(selectedFile);
+              if (!tempAudioFile) throw new Error('Audio conversion returned no output file');
               fileToProcess = tempAudioFile;
               setStatusMessage({ type: 'info', message: 'Audio conversion completed. Starting transcription...' });
-            } catch (error) {
+            } catch (error: any) {
               throw new Error(`Audio conversion failed: ${error.message}`);
             }
           } else {
@@ -1135,7 +1128,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       
       if (result.status === 'ERROR') {
         // Extract error messages properly, handling both string and object errors
-        const errorMessages = result.errors?.map(error =>
+        const errorMessages = result.errors?.map((error: any) =>
           typeof error === 'string' ? error : error.message || error.toString()
         ).join(', ') || `${fileType} failed`;
 
@@ -1405,8 +1398,8 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         format = translationOptions.format;
 
         // Find language name from translation info using sync function
-        if (translationOptions.api) {
-          const syncLanguageName = getTranslationLanguageNameSync(translationOptions.api, languageCode);
+        if (translationOptions.model) {
+          const syncLanguageName = getTranslationLanguageNameSync(translationOptions.model, languageCode);
           languageName = syncLanguageName || languageCode;
         } else {
           languageName = languageCode;
@@ -1416,8 +1409,8 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         format = transcriptionOptions.format;
 
         // Find language name from transcription info using sync function
-        if (transcriptionOptions.api) {
-          const syncLanguageName = getTranscriptionLanguageNameSync(transcriptionOptions.api, languageCode);
+        if (transcriptionOptions.model) {
+          const syncLanguageName = getTranscriptionLanguageNameSync(transcriptionOptions.model, languageCode);
           languageName = syncLanguageName || languageCode;
         } else {
           languageName = languageCode;
@@ -1799,7 +1792,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
               
               {/* Only show relevant model compatibility based on file type */}
               {(() => {
-                const fileName = typeof selectedFile === 'string' ? selectedFile : selectedFile?.name || '';
+                const fileName = selectedFile || '';
                 const isSubtitle = isSubtitleFile(fileName);
                 const isAudioVideo = isAudioVideoFile(fileName);
                 
@@ -2004,7 +1997,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
                 textAlign: 'center'
               }}>
                 <strong style={{ color: 'var(--danger-text)', fontSize: '18px' }}>
-                  Current Balance: {credits || 0} credits
+                  Current Balance: {credits?.remaining ?? 0} credits
                 </strong>
               </div>
               

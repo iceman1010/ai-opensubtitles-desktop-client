@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAPI, AuthState } from '../contexts/APIContext';
 import { SubtitleSearchParams, FeatureSearchParams, Feature, SubtitleLanguage } from '../services/api';
 import SearchForm from './SearchForm';

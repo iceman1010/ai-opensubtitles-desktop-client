@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { parseSubtitleEntries, detectSubtitleFormat, SubtitleEntry } from '../utils/subtitleParser';
 

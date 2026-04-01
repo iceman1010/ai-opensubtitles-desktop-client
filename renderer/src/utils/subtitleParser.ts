@@ -48,7 +48,7 @@ export function parseSubtitleEntries(content: string, fileName: string): Subtitl
   }
 }
 
-export function detectSubtitleFormat(content: string, fileName: string): string {
+export function detectSubtitleFormat(_content: string, fileName: string): string {
   const ext = getFormatOption(fileName);
   return ext.toUpperCase();
 }

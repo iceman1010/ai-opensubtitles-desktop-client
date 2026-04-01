@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import appConfig from '../config/appConfig.json';
+import { useState } from 'react';
+import _appConfig from '../config/appConfig.json';
 import logoImage from '../assets/logo.png';
 
 // CRITICAL: Authentication validates credentials via OpenSubtitles API before allowing app access

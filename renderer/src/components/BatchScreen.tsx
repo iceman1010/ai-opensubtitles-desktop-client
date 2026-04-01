@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import FileSelector from './FileSelector';
 import { LanguageInfo, TranscriptionInfo, TranslationInfo, DetectedLanguage, ServicesInfo, ServiceModel } from '../services/api';
 import { logger } from '../utils/errorLogger';
-import { isOnline, isFullyOnline } from '../utils/networkUtils';
+import { isFullyOnline } from '../utils/networkUtils';
 import { useAPI } from '../contexts/APIContext';
 import { generateFilename } from '../utils/filenameGenerator';
 import * as fileFormatsConfig from '../../../shared/fileFormats.json';
@@ -30,14 +30,6 @@ const getFileType = (fileName: string) => {
 
   fileTypeCache.set(cacheKey, result);
   return result;
-};
-
-const isVideoFile = (fileName: string): boolean => {
-  return getFileType(fileName).isVideo;
-};
-
-const isAudioFile = (fileName: string): boolean => {
-  return getFileType(fileName).isAudio;
 };
 
 const isSubtitleFile = (fileName: string): boolean => {
@@ -390,15 +382,16 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
       const dataToUse = transcriptionData || contextTranscriptionInfo;
       
       // Check if we already have the languages data from the initial load
-      if (dataToUse && dataToUse.languages && dataToUse.languages[modelId]) {
-        const modelLanguages = dataToUse.languages[modelId];
+      const transcriptionLanguages = dataToUse?.languages;
+      if (transcriptionLanguages && !Array.isArray(transcriptionLanguages) && transcriptionLanguages[modelId]) {
+        const modelLanguages = transcriptionLanguages[modelId];
         logger.info('BatchScreen', `Using cached languages for transcription model ${modelId}: ${modelLanguages.length} languages`);
       } else {
         // Fetch languages for this specific model
         logger.info('BatchScreen', `Fetching languages for transcription model: ${modelId}`);
         const result = await getTranscriptionLanguagesForApi(modelId);
         if (result?.success && result.data) {
-          const languagesArray = Array.isArray(result.data) ? result.data : [];
+          // Languages data fetched successfully
         }
       }
     } catch (error) {
@@ -537,9 +530,10 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
 
   // Update source language selections when transcription model changes
   const updateSourceLanguageSelectionsForTranscriptionModel = (newModel: string) => {
-    if (!contextTranscriptionInfo?.languages[newModel]) return;
-    
-    const apiLanguages = contextTranscriptionInfo?.languages[newModel];
+    const transcriptionLangs = contextTranscriptionInfo?.languages;
+    if (!transcriptionLangs || Array.isArray(transcriptionLangs) || !transcriptionLangs[newModel]) return;
+
+    const apiLanguages = transcriptionLangs[newModel];
     
     setQueue(prev => prev.map(file => {
       if (file.type === 'transcription') {
@@ -602,7 +596,8 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
             logger.debug(1, 'BatchScreen', `No API languages found for translation model: ${translationModelToUse}`);
           }
         } else if (file.type === 'transcription' && contextTranscriptionInfo && transcriptionModelToUse) {
-          const apiLanguages = contextTranscriptionInfo?.languages[transcriptionModelToUse];
+          const transcriptionLangsMap = contextTranscriptionInfo?.languages;
+          const apiLanguages = !Array.isArray(transcriptionLangsMap) ? transcriptionLangsMap?.[transcriptionModelToUse] : undefined;
           if (apiLanguages) {
             const languageCode = detectedLanguage.ISO_639_1;
             const matching = getMatchingSourceLanguages(languageCode, apiLanguages);
@@ -884,9 +879,9 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
             logger.info('BatchScreen', `Language detection needs polling for ${file.name}, correlation ID: ${result.correlation_id}`);
             setAppProcessing(true, `Processing audio for ${file.name}, please wait...`);
             
-            logger.debug(3, 'BatchScreen', '🔍 BatchScreen: Calling pollLanguageDetection for file:', file.name, 'correlation_id:', result.correlation_id);
+            logger.debug(3, 'BatchScreen', `🔍 BatchScreen: Calling pollLanguageDetection for file: ${file.name} correlation_id: ${result.correlation_id}`);
             const detectedLanguage = await pollLanguageDetection(result.correlation_id, file.id, tempAudioFile);
-            logger.debug(3, 'BatchScreen', '🔍 BatchScreen: pollLanguageDetection returned for file:', file.name, 'result:', detectedLanguage ? detectedLanguage.name : 'null');
+            logger.debug(3, 'BatchScreen', `🔍 BatchScreen: pollLanguageDetection returned for file: ${file.name} result: ${detectedLanguage ? detectedLanguage.name : 'null'}`);
 
             if (detectedLanguage) {
               logger.debug(3, 'BatchScreen', '🔍 BatchScreen: Setting detected language for file:', file.name);
@@ -922,7 +917,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
             f.id === file.id ? { 
               ...f, 
               status: 'pending' as const,
-              error: `Language detection error: ${error.message}`
+              error: `Language detection error: ${error instanceof Error ? error.message : String(error)}`
             } : f
           ));
         }
@@ -1083,7 +1078,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
           clearTimeout(detectionTimeoutRef.current);
         }
         detectionTimeoutRef.current = setTimeout(() => {
-          logger.debug(3, 'BatchScreen', 'BatchScreen: Triggering language detection queue processing for', isAudioVideoFile(newFile.name) ? 'audio/video' : 'subtitle', 'file');
+          logger.debug(3, 'BatchScreen', `BatchScreen: Triggering language detection queue processing for ${isAudioVideoFile(newFile.name) ? 'audio/video' : 'subtitle'} file`);
           // Use setTimeout to avoid setState during render and pass the updated queue
           setTimeout(() => processLanguageDetectionQueue(updatedQueue), 0);
         }, 200);
@@ -1104,7 +1099,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
     setQueue(prev => {
       const beforeLength = prev.length;
       const filtered = prev.filter(file => file.id !== fileId);
-      logger.debug(3, 'BatchScreen', '🔍 BatchScreen: Queue length before removal:', beforeLength, 'after removal:', filtered.length);
+      logger.debug(3, 'BatchScreen', `🔍 BatchScreen: Queue length before removal: ${beforeLength} after removal: ${filtered.length}`);
       return filtered;
     });
   };
@@ -1171,7 +1166,6 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
     // Update batch-level credit tracking
     setBatchCreditStats(prev => {
       const newCreditsPerFile = new Map(prev.creditsPerFile);
-      const previousCredits = newCreditsPerFile.get(fileId) || 0;
       newCreditsPerFile.set(fileId, creditsUsed);
       
       const totalCreditsUsed = Array.from(newCreditsPerFile.values()).reduce((sum, credits) => sum + credits, 0);
@@ -1387,7 +1381,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
     }
   };
 
-  const processTranscriptionFile = async (file: BatchFile, index: number) => {
+  const processTranscriptionFile = async (file: BatchFile, _index: number) => {
     if (!isAuthenticated) throw new Error('API not authenticated');
 
     let fileToProcess = file.path;
@@ -1408,10 +1402,10 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
         // Extract audio from video
         try {
           tempAudioFile = await window.electronAPI.extractAudio(file.path);
-          fileToProcess = tempAudioFile;
+          fileToProcess = tempAudioFile!;
           setAppProcessing(true, `Audio extraction completed for ${file.name}. Starting transcription...`);
         } catch (error) {
-          throw new Error(`Audio extraction failed: ${error.message}`);
+          throw new Error(`Audio extraction failed: ${error instanceof Error ? error.message : String(error)}`);
         }
       } else if (mediaInfo.hasAudio && !mediaInfo.hasVideo) {
         // It's already an audio file, but may need conversion
@@ -1426,10 +1420,10 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
 
           try {
             tempAudioFile = await window.electronAPI.convertAudio(file.path);
-            fileToProcess = tempAudioFile;
+            fileToProcess = tempAudioFile!;
             setAppProcessing(true, `Audio conversion completed for ${file.name}. Starting transcription...`);
           } catch (error) {
-            throw new Error(`Audio conversion failed: ${error.message}`);
+            throw new Error(`Audio conversion failed: ${error instanceof Error ? error.message : String(error)}`);
           }
         } else {
           setAppProcessing(true, `Starting transcription for ${file.name}...`);
@@ -1572,7 +1566,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
     }
   };
 
-  const processTranslationFile = async (file: BatchFile, index: number) => {
+  const processTranslationFile = async (file: BatchFile, _index: number) => {
     if (!isAuthenticated) throw new Error('API not authenticated');
 
     // Step 1: Initiate translation
@@ -1934,7 +1928,8 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
                       >
                         {!file.selectedSourceLanguage && <option value="">{file.detectedLanguage ? 'Select variant...' : 'Select language...'}</option>}
                         {(() => {
-                          const apiLanguages = contextTranscriptionInfo?.languages[batchSettings.transcriptionModel] || [];
+                          const langs = contextTranscriptionInfo?.languages;
+                          const apiLanguages = (langs && !Array.isArray(langs) ? langs[batchSettings.transcriptionModel] : undefined) || [];
                           const matching = getMatchingSourceLanguages(file.detectedLanguage?.ISO_639_1 || null, apiLanguages);
                           return matching.map(lang => (
                             <option key={lang.language_code} value={lang.language_code}>

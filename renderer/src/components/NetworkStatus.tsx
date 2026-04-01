@@ -51,7 +51,8 @@ const NetworkStatus: React.FC<NetworkStatusProps> = ({ onNetworkChange }) => {
         </>
       )}
       
-      <style jsx>{`
+      {/* @ts-ignore - styled-jsx */}
+      <style>{`
         .network-status {
           position: fixed;
           top: 10px;

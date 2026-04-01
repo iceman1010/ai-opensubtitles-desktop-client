@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { setupNetworkListeners, isOnline, isFullyOnline, checkAPIConnectivity, updateAPIConnectivityCache, getAPIConnectivityStatus } from '../utils/networkUtils';
+import { setupNetworkListeners, isOnline, checkAPIConnectivity, updateAPIConnectivityCache } from '../utils/networkUtils';
 import { activityTracker } from '../utils/activityTracker';
 
 interface StatusBarProps {

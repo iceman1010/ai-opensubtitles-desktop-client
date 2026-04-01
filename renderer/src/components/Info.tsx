@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LanguageInfo, ServicesInfo, ServiceModel } from '../services/api';
+import { LanguageInfo, ServicesInfo } from '../services/api';
 import { useAPI } from '../contexts/APIContext';
 import { logger } from '../utils/errorLogger';
 
@@ -23,8 +23,8 @@ interface InfoProps {
   setAppProcessing: (processing: boolean, task?: string) => void;
 }
 
-function Info({ config, setAppProcessing }: InfoProps) {
-  const { transcriptionInfo: contextTranscriptionInfo, translationInfo, getServicesInfo, isAuthenticated, modelInfoVersion } = useAPI();
+function Info({ config: _config, setAppProcessing }: InfoProps) {
+  const { transcriptionInfo: _contextTranscriptionInfo, translationInfo: _translationInfo, getServicesInfo, isAuthenticated, modelInfoVersion } = useAPI();
 
   const [servicesInfo, setServicesInfo] = useState<ServicesInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);

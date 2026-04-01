@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { parse } from '@plussub/srt-vtt-parser';
 import { SubtitleSearchResult } from './SubtitleCard';
 import { useAPI } from '../contexts/APIContext';
@@ -21,7 +21,7 @@ function SubtitlePreview({ result, isOpen, onClose, onDownload }: SubtitlePrevie
   const [subtitleEntries, setSubtitleEntries] = useState<SubtitleEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [downloadedContent, setDownloadedContent] = useState<string | null>(null);
+  const [_downloadedContent, setDownloadedContent] = useState<string | null>(null);
   const { downloadSubtitle } = useAPI();
 
   const formatTime = (milliseconds: number): string => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { CreditPackage, RecentActivityItem } from '../services/api';
 import { useAPI } from '../contexts/APIContext';
 import { usePower } from '../contexts/PowerContext';
@@ -12,6 +12,7 @@ interface AppConfig {
   debugLevel?: number;
   autoLanguageDetection?: boolean;
   darkMode?: boolean;
+  userId?: number;
   credits?: {
     used: number;
     remaining: number;
@@ -210,7 +211,18 @@ function Credits({ config, setAppProcessing, isVisible = true }: CreditsProps) {
         border: '1px solid var(--border-color)'
       }}>
         <div>
-          <h2 style={{ margin: '0 0 10px 0', color: 'var(--text-primary)' }}>Current Balance</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
+            <h2 style={{ margin: 0, color: 'var(--text-primary)' }}>Current Balance</h2>
+            {config.username && (
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                <i className="fas fa-user" style={{ marginRight: '6px' }}></i>
+                <span style={{ fontWeight: 500 }}>{config.username}</span>
+                {config.userId && (
+                  <span style={{ marginLeft: '10px', opacity: 0.7 }}>ID: {config.userId}</span>
+                )}
+              </div>
+            )}
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             {isLoadingCredits ? (
               <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Loading...</p>

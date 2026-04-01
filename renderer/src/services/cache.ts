@@ -6,6 +6,22 @@ interface CacheItem<T> {
 
 class CacheManager {
   private static readonly DEFAULT_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+  private static currentUser: string | null = null;
+
+  static setUser(username: string): void {
+    this.currentUser = username;
+  }
+
+  static clearUser(): void {
+    this.currentUser = null;
+  }
+
+  private static getPrefix(): string {
+    if (this.currentUser) {
+      return `ai_opensubtitles_${this.currentUser}_`;
+    }
+    return 'ai_opensubtitles_';
+  }
 
   private static getCacheDuration(): number {
     try {
@@ -31,7 +47,7 @@ class CacheManager {
     };
 
     try {
-      localStorage.setItem(`ai_opensubtitles_${key}`, JSON.stringify(item));
+      localStorage.setItem(`${this.getPrefix()}${key}`, JSON.stringify(item));
     } catch (error) {
       console.warn('Failed to cache data:', error);
     }
@@ -39,7 +55,7 @@ class CacheManager {
 
   static get<T>(key: string): T | null {
     try {
-      const stored = localStorage.getItem(`ai_opensubtitles_${key}`);
+      const stored = localStorage.getItem(`${this.getPrefix()}${key}`);
       if (!stored) {
         return null;
       }
@@ -62,7 +78,7 @@ class CacheManager {
 
   static remove(key: string): void {
     try {
-      localStorage.removeItem(`ai_opensubtitles_${key}`);
+      localStorage.removeItem(`${this.getPrefix()}${key}`);
     } catch (error) {
       console.warn('Failed to remove cached data:', error);
     }
@@ -70,9 +86,10 @@ class CacheManager {
 
   static clear(): void {
     try {
+      const prefix = this.getPrefix();
       const keys = Object.keys(localStorage);
       keys.forEach(key => {
-        if (key.startsWith('ai_opensubtitles_')) {
+        if (key.startsWith(prefix)) {
           localStorage.removeItem(key);
         }
       });
@@ -85,7 +102,7 @@ class CacheManager {
     try {
       const keys = Object.keys(localStorage);
       keys.forEach(key => {
-        if (key.startsWith(`ai_opensubtitles_${prefix}`)) {
+        if (key.startsWith(`${this.getPrefix()}${prefix}`)) {
           localStorage.removeItem(key);
         }
       });
@@ -96,7 +113,7 @@ class CacheManager {
 
   static isExpired(key: string): boolean {
     try {
-      const stored = localStorage.getItem(`ai_opensubtitles_${key}`);
+      const stored = localStorage.getItem(`${this.getPrefix()}${key}`);
       if (!stored) {
         return true;
       }

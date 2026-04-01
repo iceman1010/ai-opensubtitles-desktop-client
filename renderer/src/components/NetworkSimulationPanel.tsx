@@ -44,7 +44,8 @@ const NetworkSimulationPanel: React.FC<NetworkSimulationPanelProps> = ({
         title="Open Network Simulation Panel"
       >
         <i className="fas fa-wrench"></i>
-        <style jsx>{`
+        {/* @ts-ignore - styled-jsx */}
+        <style>{`
           .dev-panel-toggle {
             position: fixed;
             bottom: 35px;
@@ -121,7 +122,8 @@ const NetworkSimulationPanel: React.FC<NetworkSimulationPanelProps> = ({
         )}
       </div>
       
-      <style jsx>{`
+      {/* @ts-ignore - styled-jsx */}
+      <style>{`
         .dev-panel {
           position: fixed;
           bottom: 35px;

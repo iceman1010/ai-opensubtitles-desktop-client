@@ -19,7 +19,7 @@ class ErrorLogger {
     return this.debugLevel;
   }
 
-  private shouldLog(level: 'info' | 'warn' | 'error', category: string): boolean {
+  private shouldLog(level: 'info' | 'warn' | 'error', category: string, message?: string): boolean {
     // Always log errors and warnings regardless of debug level
     if (level === 'error' || level === 'warn') {
       return true;
@@ -34,7 +34,7 @@ class ErrorLogger {
       return !category.includes('polling') && !category.includes('🔍');
     } else if (this.debugLevel === 2) {
       // Verbose - show most info but filter out some repetitive messages
-      return !category.includes('🔍') || !message.includes('Polling attempt');
+      return !category.includes('🔍') || !message?.includes('Polling attempt');
     } else {
       // Full (level 3+) - show everything
       return true;
@@ -58,7 +58,7 @@ class ErrorLogger {
     }
 
     // Only log to console if debug level allows it
-    if (this.shouldLog(level, category)) {
+    if (this.shouldLog(level, category, message)) {
       const logMessage = `[${category}] ${message}`;
       const dataStr = data !== undefined ? ` ${JSON.stringify(data)}` : '';
       const fullMessage = logMessage + dataStr;
