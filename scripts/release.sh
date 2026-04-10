@@ -227,16 +227,16 @@ commit_and_push() {
     log_info "Committing version bump..."
     
     # Check if there are any changes besides package.json
-    if git diff --quiet && git diff --cached --quiet; then
-        # Only package.json changed, just add it
-        if ! git add package.json; then
-            log_error "Failed to add package.json to git"
-            exit 1
-        fi
-    else
+    if ! git diff --quiet || ! git diff --cached --quiet; then
         # There are other changes, add everything
         if ! git add .; then
             log_error "Failed to add files to git"
+            exit 1
+        fi
+    else
+        # Only package.json changed, just add it
+        if ! git add package.json; then
+            log_error "Failed to add package.json to git"
             exit 1
         fi
     fi
