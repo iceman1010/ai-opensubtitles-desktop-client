@@ -34,7 +34,7 @@ const isAudioVideoFile = (fileName: string): boolean => {
 
 const needsAudioConversion = (fileName: string): boolean => {
   const ext = fileName.toLowerCase().split('.').pop();
-  const supportedAudioFormats = ['mp3', 'wav', 'flac', 'm4a'];
+  const supportedAudioFormats = fileFormatsConfig.audio;
   return ext ? !supportedAudioFormats.includes(ext) : false;
 };
 
