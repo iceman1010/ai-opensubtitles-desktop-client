@@ -1,48 +1,48 @@
-# AI.Opensubtitles.com Desktop Client
+# AI Opensubtitles Desktop Client: Auto Subtitle Generator & Translator
 
-A cross-platform desktop application for AI-powered transcription and translation services using the OpenSubtitles AI API.
+The AI Opensubtitles Desktop Client is a powerful, cross-platform auto subtitle generator and translator. It provides AI-powered audio-to-text transcription and subtitle translation services, allowing you to easily translate SRT files, transcribe audio to VTT, and batch process media using the OpenSubtitles AI API.
 
-## Features
+## Core Features of the Subtitle Generator
 
-- **Audio/Video Transcription**: Convert speech in media files to text subtitles using multiple AI models
-- **Subtitle Translation**: Translate existing subtitle files between 100+ languages
-- **Batch Processing**: Process multiple files simultaneously with queue management
-- **Language Detection**: Automatic detection of spoken language in audio files
-- **Multi-format Support**: Handle various audio, video, and subtitle formats
+- **Audio & Video Transcription**: Automatically transcribe speech in media files to text subtitles using advanced AI models. Perfect for generating SRT or VTT files from any video or audio.
+- **AI Subtitle Translation**: Accurately translate existing subtitle files (SRT, VTT) between 100+ languages with high-quality AI models.
+- **Batch Subtitle Processing**: Save time by processing multiple video, audio, or subtitle files simultaneously with efficient queue management.
+- **Automatic Language Detection**: Let the AI automatically detect the spoken language in your audio and video files.
+- **Extensive Multi-format Support**: Seamlessly handle a wide variety of audio, video, and subtitle formats.
 
-## Supported File Formats
+## Supported Media and Subtitle Formats
 
-### Video
-MP4, MKV, AVI, MOV, WMV, WebM, FLV, 3GP, and 20+ more formats
+### Video Formats
+Generate subtitles from MP4, MKV, AVI, MOV, WMV, WebM, FLV, 3GP, and over 20 additional video formats.
 
-### Audio
-MP3, WAV, FLAC, AAC, OGG, M4A, WMA, AIFF, and 15+ more formats
+### Audio Formats
+Transcribe audio to subtitles from MP3, WAV, FLAC, AAC, OGG, M4A, WMA, AIFF, and over 15 other audio formats.
 
-### Subtitles
-SRT, VTT with full Unicode support
+### Subtitle Formats
+Import and export SRT (SubRip Text) and VTT (WebVTT) files with complete Unicode support for international characters.
 
-## Quick Links
+## Quick Documentation Links
 
-- [Installation](Installation)
-- [Setup Guide](Setup)
-- [Transcription](Transcription)
-- [Translation](Translation)
-- [Batch Processing](Batch-Processing)
-- [FAQ](FAQ)
+- [How to Install AI Opensubtitles Client](How-to-Install-AI-Opensubtitles-Client)
+- [Setup and API Configuration](Setup-and-API-Configuration)
+- [AI Audio to Subtitle Transcription](AI-Audio-to-Subtitle-Transcription)
+- [AI Subtitle Translation Guide](AI-Subtitle-Translation-Guide)
+- [Batch Subtitle Processing](Batch-Subtitle-Processing)
+- [AI Opensubtitles FAQ](AI-Opensubtitles-FAQ)
 
 ## System Requirements
 
-- **Linux**: Ubuntu 18.04+ or equivalent
-- **Windows**: Windows 10/11
-- **macOS**: macOS 10.14+
-- **FFmpeg**: Automatically included with the application
+- **Linux**: Ubuntu 18.04+ or equivalent distributions
+- **Windows**: Windows 10 and Windows 11
+- **macOS**: macOS 10.14+ (Supports both Intel and Apple Silicon)
+- **FFmpeg**: Automatically included with the application installer
 
-## Credits & Pricing
+## API Credits & AI Model Pricing
 
-The application uses a credit-based system. Pricing varies by AI model and content length. Check the "Info" section in the app for current pricing details.
+The application operates on a credit-based system. Pricing scales based on the specific AI model chosen and the total content length. You can find detailed, current pricing information within the "Info" section of the desktop app.
 
-> **Note**: Please use an Opensubtitles.com (not .org) account when buying credits with https://ai.opensubtitles.com to be able to use with this app.
+> **Important Note**: Please ensure you use an Opensubtitles.com (not .org) account when purchasing credits at [ai.opensubtitles.com](https://ai.opensubtitles.com) to successfully authenticate and use this subtitle generation app.
 
-## Support
+## Support & Issue Tracking
 
-For issues and feature requests, please visit the [GitHub Issues page](https://github.com/iceman1010/ai-opensubtitles-desktop-client/issues).
+If you encounter issues, have feature requests, or want to contribute to this auto subtitle generator, please visit our [GitHub Issues page](https://github.com/iceman1010/ai-opensubtitles-desktop-client/issues).
