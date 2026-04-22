@@ -622,21 +622,22 @@ class MainApp {
       this.debug(2, 'AutoUpdater', 'Update available:', info);
       this.sendUpdateStatus('update-available', `Update available: v${info.version}`);
 
-      // Show confirmation dialog before downloading
-      const response = await dialog.showMessageBox(this.mainWindow!, {
-        type: 'info',
-        buttons: ['Download Now', 'Later'],
-        defaultId: 0,
-        cancelId: 1,
-        title: 'Update Available',
-        message: `A new version (v${info.version}) is available.`,
-        detail: 'Would you like to download and install the update now? The application will restart after installation.'
-      });
+       // Show confirmation dialog before downloading
+       const currentVersion = app.getVersion();
+       const response = await dialog.showMessageBox(this.mainWindow!, {
+         type: 'info',
+         buttons: ['Download Now', 'Later'],
+         defaultId: 0,
+         cancelId: 1,
+         title: 'Update Available',
+         message: `A new version (v${info.version}) is available.`,
+         detail: 'Would you like to download and install the update now? The application will restart after installation.'
+       });
 
-      if (response.response === 0) {
-        this.debug(2, 'AutoUpdater', 'User confirmed update download');
-        this.sendUpdateStatus('update-downloading', 'Starting download...');
-        try {
+       if (response.response === 0) {
+         this.debug(2, 'AutoUpdater', 'User confirmed update download');
+         this.sendUpdateStatus('update-downloading', 'Starting download...');
+         try {
           await autoUpdater.downloadUpdate();
         } catch (error) {
           console.error('Failed to download update:', error);
@@ -687,15 +688,15 @@ class MainApp {
     }
   }
 
-  private async checkForUpdates() {
-    const isDev = process.env.NODE_ENV === 'development';
-    this.debug(3, 'UpdateCheck', '=== UPDATE CHECK DEBUG ===');
-    this.debug(3, 'UpdateCheck', 'Environment:', process.env.NODE_ENV);
-    this.debug(3, 'UpdateCheck', 'Is Development:', isDev);
-    this.debug(3, 'UpdateCheck', 'Platform:', process.platform);
-    this.debug(3, 'UpdateCheck', 'App Version:', require('../../package.json').version);
-    
-    if (isDev) {
+   private async checkForUpdates() {
+     const isDev = process.env.NODE_ENV === 'development';
+     this.debug(3, 'UpdateCheck', '=== UPDATE CHECK DEBUG ===');
+     this.debug(3, 'UpdateCheck', 'Environment:', process.env.NODE_ENV);
+     this.debug(3, 'UpdateCheck', 'Is Development:', isDev);
+     this.debug(3, 'UpdateCheck', 'Platform:', process.platform);
+     this.debug(3, 'UpdateCheck', 'App Version:', app.getVersion());
+     
+     if (isDev) {
       this.debug(2, 'UpdateCheck', 'Update check skipped in development mode');
       this.sendUpdateStatus('update-not-available', 'Updates not available in development mode');
       return;
