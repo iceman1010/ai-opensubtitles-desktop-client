@@ -706,16 +706,15 @@ const Help: React.FC<HelpProps> = ({}) => {
       flexDirection: 'column',
       height: '100%',
       background: 'var(--bg-secondary)'
-    }}>
+    }}><h1>Help & Documentation</h1>
       {/* Compact Header */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        padding: '12px 20px',
-        borderBottom: '1px solid var(--border-color)',
-        background: 'var(--bg-tertiary)'
+        padding: '1em 0',
+        borderBottom: '1px solid var(--border-color)'
       }}>
-        <h1 style={{ margin: 0, fontSize: '18px', color: 'var(--text-primary)' }}>Help & Documentation</h1>
+        
       </div>
 
       {/* Navigation */}

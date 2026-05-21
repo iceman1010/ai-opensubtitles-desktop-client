@@ -380,10 +380,6 @@ input[type="file"][webkitdirectory]::-moz-file-upload-button {
   margin: 5px 0;
 }
 
-.main-screen {
-  width: 100%;
-}
-
 .file-selector {
   margin: 20px 0;
 }
@@ -486,10 +482,6 @@ input[type="file"][webkitdirectory]::-moz-file-upload-button {
     padding: 40px;
   }
   
-  .main-screen {
-    margin: 0 auto;
-  }
-  
   .file-info > div[style*="display: flex"] {
     flex-wrap: wrap;
     gap: 30px !important;
@@ -542,6 +534,8 @@ input[type="file"][webkitdirectory]::-moz-file-upload-button {
 }
 
 .sidebar nav button:hover i {
+  transition: color 0.9s ease, transform 0.3s ease;
+  color: var(--input-focus-border);
   transform: scale(1.3);
   text-shadow: 0 0 8px rgba(0, 150, 255, 0.8);
 }

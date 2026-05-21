@@ -358,7 +358,6 @@ function Search({ setAppProcessing, showNotification }: SearchProps) {
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
-      padding: '20px',
       overflow: 'auto',
     }}>
       {/* Header */}
@@ -374,7 +373,7 @@ function Search({ setAppProcessing, showNotification }: SearchProps) {
           alignItems: 'center',
           gap: '12px',
         }}>
-          <i className="fas fa-search"></i> Search {
+          Search {
             activeTab === 'subtitles' ? 'Subtitles' :
             activeTab === 'features' ? 'Movies & TV Shows' :
             'by Video File'
