@@ -17,6 +17,7 @@ export interface AppConfig {
   apiBaseUrl?: string;
   userId?: number;
   autoLanguageDetection?: boolean;
+  supportEmail?: string;
   credits?: {
     used: number;
     remaining: number;

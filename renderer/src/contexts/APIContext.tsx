@@ -60,6 +60,7 @@ interface APIContextType {
   downloadSubtitle: (params: SubtitleDownloadParams) => Promise<{ success: boolean; data?: any; error?: string }>;
   searchForFeatures: (params: FeatureSearchParams) => Promise<{ success: boolean; data?: any; error?: string }>;
   getSubtitleSearchLanguages: () => Promise<{ success: boolean; data?: SubtitleLanguage[]; error?: string }>;
+  createSupportTicket: (problem_description: string, email: string, name: string) => Promise<{ success: boolean; ticket_id?: number; error?: string }>;
 
   // Sync helper functions for filename generation
   getTranslationLanguageNameSync: (apiId: string, languageCode: string) => string | null;
@@ -772,6 +773,11 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     return await withAuthRetry(() => api.getSubtitleSearchLanguages(), 'Get Subtitle Search Languages');
   }, [api, withAuthRetry]);
 
+  const createSupportTicket = useCallback(async (problem_description: string, email: string, name: string) => {
+    if (!api) return { success: false, error: 'API not available' };
+    return await withAuthRetry(() => api.createSupportTicket(problem_description, email, name), 'Create Support Ticket');
+  }, [api, withAuthRetry]);
+
   // Sync helper functions for filename generation using cached data
   const getTranslationLanguageNameSync = useCallback((apiId: string, languageCode: string): string | null => {
     if (!(translationInfo?.apis as any)?.[apiId]?.supported_languages) {
@@ -838,6 +844,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     downloadSubtitle,
     searchForFeatures,
     getSubtitleSearchLanguages,
+    createSupportTicket,
     getTranslationLanguageNameSync,
     getTranscriptionLanguageNameSync
   };

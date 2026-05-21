@@ -9,6 +9,7 @@ import Update from './components/Update';
 import Info from './components/Info';
 import Credits from './components/Credits';
 import Help from './components/Help';
+import Support from './components/Support';
 import StatusBar from './components/StatusBar';
 import ErrorLogControls from './components/ErrorLogControls';
 import { APIProvider, useAPI } from './contexts/APIContext';
@@ -252,7 +253,7 @@ function AppContent({
   const { preserveState, restoreState, clearPreservedState, isTokenExpired } = useHibernationRecovery();
   const { simulateSystemResume } = usePower();
 
-  const [currentScreen, setCurrentScreen] = useState<'login' | 'main' | 'batch' | 'search' | 'recent-media' | 'preferences' | 'update' | 'info' | 'credits' | 'help'>('main');
+  const [currentScreen, setCurrentScreen] = useState<'login' | 'main' | 'batch' | 'search' | 'recent-media' | 'preferences' | 'update' | 'info' | 'credits' | 'help' | 'support'>('main');
   const [forceShowSetup, setForceShowSetup] = useState(false);
   const [pendingBatchFiles, setPendingBatchFiles] = useState<string[]>([]);
   const [pendingMainFile, setPendingMainFile] = useState<string | null>(null);
@@ -294,6 +295,9 @@ function AppContent({
       switch (shortcut) {
         case 'help':
           setCurrentScreen('help');
+          break;
+        case 'support':
+          setCurrentScreen('support');
           break;
         case 'navigate-main':
           setCurrentScreen('main');
@@ -656,6 +660,14 @@ function AppContent({
                   <i className="fas fa-question-circle"></i>Help
                 </button>
               </li>
+              <li>
+                <button
+                  className={currentScreen === 'support' ? 'active' : ''}
+                  onClick={() => handleScreenChange('support')}
+                >
+                  <i className="fas fa-headset"></i>Support
+                </button>
+              </li>
             </ul>
           </nav>
 
@@ -835,6 +847,9 @@ function AppContent({
         )}
         {currentScreen === 'help' && (
           <Help />
+        )}
+        {currentScreen === 'support' && (
+          <Support />
         )}
       </div>
 
