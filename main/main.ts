@@ -188,7 +188,7 @@ class MainApp {
       },
       show: true,
     });
-    
+
     // Open DevTools if debug mode is enabled
     if (isDebugMode) {
       this.mainWindow.webContents.openDevTools();

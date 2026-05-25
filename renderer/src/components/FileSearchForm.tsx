@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { useAPI as _useAPI } from '../contexts/APIContext';
+import { logger } from '../utils/errorLogger';
 
 interface FileSearchFormProps {
   onSearch: (moviehash: string, language: string, fileName: string) => void;
@@ -71,7 +72,7 @@ function FileSearchForm({ onSearch, isLoading, languageOptions, languagesLoading
         hash: hash,
       });
     } catch (error: any) {
-      console.error('Error processing file:', error);
+      logger.error('FileSearchForm', 'Error processing file', error);
       setError(error?.message || 'Failed to process file');
       setSelectedFile(null);
     } finally {

@@ -102,14 +102,14 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
         }
         logger.debug(2, 'Preferences', '=== END FRONTEND RESET DEBUG ===');
       } catch (error) {
-        console.error('=== FRONTEND RESET ERROR ===');
-        console.error('Reset settings error:', error);
-        console.error('Error details:', {
+        logger.debug(2, 'Preferences', '=== FRONTEND RESET ERROR ===');
+        logger.debug(2, 'Preferences', 'Reset settings error', error);
+        logger.debug(2, 'Preferences', 'Error details', {
           name: error instanceof Error ? error.name : 'Unknown',
           message: error instanceof Error ? error.message : 'Unknown error',
           stack: error instanceof Error ? error.stack : 'No stack trace'
         });
-        console.error('=== END FRONTEND RESET ERROR ===');
+        logger.debug(2, 'Preferences', '=== END FRONTEND RESET ERROR ===');
         setError('Failed to reset settings. Please try again.');
       }
     }
@@ -125,7 +125,7 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
       const status = await window.electronAPI.checkFileAssociations();
       setFileAssociationStatus(status);
     } catch (error) {
-      console.error('Failed to check file associations:', error);
+      logger.error('Preferences', 'Failed to check file associations', error);
     } finally {
       setIsCheckingAssociations(false);
     }
@@ -143,7 +143,7 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
         alert(`Error: ${result.message}`);
       }
     } catch (error) {
-      console.error('Failed to register file associations:', error);
+      logger.error('Preferences', 'Failed to register file associations', error);
       alert('Error: Failed to register file types. Please try running the application as administrator/root.');
     } finally {
       setIsRegisteringAssociations(false);
@@ -268,7 +268,7 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
       setFfmpegTestResult(result);
       logger.debug(1, 'Preferences', 'FFmpeg test result:', result);
     } catch (error) {
-      console.error('Failed to test FFmpeg path:', error);
+      logger.error('Preferences', 'Failed to test FFmpeg path', error);
       setFfmpegTestResult({ success: false, message: 'Failed to test FFmpeg path' });
     } finally {
       setIsTestingFfmpeg(false);
@@ -283,7 +283,7 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
         setFfmpegTestResult(null);
       }
     } catch (error) {
-      console.error('Failed to open FFmpeg dialog:', error);
+      logger.error('Preferences', 'Failed to open FFmpeg dialog', error);
     }
   };
 
@@ -790,7 +790,7 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
 
                         alert('Offline simulation activated. Click the button again to restore online state.');
                       } catch (error) {
-                        console.error('Error simulating offline:', error);
+                        logger.error('Preferences', 'Error simulating offline', error);
                         alert('Failed to simulate offline state');
                       }
                     }

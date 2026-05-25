@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { validateFileExtension, getFileTypeDescription } from '../config/fileFormats';
+import { logger } from '../utils/errorLogger';
 
 interface FileSelectorProps {
   onFileSelect: (filePath: string) => void;
@@ -98,7 +99,7 @@ function FileSelector({ onFileSelect, onMultipleFileSelect, disabled = false }: 
         }
       }
     } catch (error) {
-      console.error('Failed to select file:', error);
+      logger.error('FileSelector', 'Failed to select file:', error);
       setFileError('Failed to select file');
     }
   };

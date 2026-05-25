@@ -1,4 +1,5 @@
 name: Build and Release
+# Tags are created by running scripts/release.sh. See scripts/RELEASE_README.md for details.
 
 on:
   push:

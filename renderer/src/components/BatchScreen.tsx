@@ -263,7 +263,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
       const lastProcessedKey = processedPendingFilesRef.current.join('|');
       
       if (filesKey !== lastProcessedKey) {
-        logger.info('BatchScreen', `Processing ${pendingFiles.length} pending files from MainScreen redirect`);
+        logger.debug(2, 'BatchScreen', `Processing ${pendingFiles.length} pending files from MainScreen redirect`);
         processedPendingFilesRef.current = [...pendingFiles];
         
         // Add all pending files to queue
@@ -376,7 +376,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
   const loadLanguagesForTranscriptionModel = async (modelId: string, transcriptionData?: TranscriptionInfo) => {
     setIsLoadingLanguages(true);
     try {
-      logger.info('BatchScreen', `Loading languages for transcription model: ${modelId}`);
+      logger.debug(2, 'BatchScreen', `Loading languages for transcription model: ${modelId}`);
       
       // Use provided data or fall back to context
       const dataToUse = transcriptionData || contextTranscriptionInfo;
@@ -385,10 +385,10 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
       const transcriptionLanguages = dataToUse?.languages;
       if (transcriptionLanguages && !Array.isArray(transcriptionLanguages) && transcriptionLanguages[modelId]) {
         const modelLanguages = transcriptionLanguages[modelId];
-        logger.info('BatchScreen', `Using cached languages for transcription model ${modelId}: ${modelLanguages.length} languages`);
+        logger.debug(2, 'BatchScreen', `Using cached languages for transcription model ${modelId}: ${modelLanguages.length} languages`);
       } else {
         // Fetch languages for this specific model
-        logger.info('BatchScreen', `Fetching languages for transcription model: ${modelId}`);
+        logger.debug(2, 'BatchScreen', `Fetching languages for transcription model: ${modelId}`);
         const result = await getTranscriptionLanguagesForApi(modelId);
         if (result?.success && result.data) {
           // Languages data fetched successfully
@@ -405,7 +405,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
   const loadLanguagesForTranslationModel = async (modelId: string, translationData?: TranslationInfo) => {
     setIsLoadingLanguages(true);
     try {
-      logger.info('BatchScreen', `Loading languages for translation model: ${modelId}`);
+      logger.debug(2, 'BatchScreen', `Loading languages for translation model: ${modelId}`);
       
       // Use provided data or fall back to context
       const dataToUse = translationData || contextTranslationInfo;
@@ -413,7 +413,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
       // Check if we already have the languages data from the initial load
       if (dataToUse && dataToUse.languages && dataToUse.languages[modelId]) {
         const modelLanguages = dataToUse.languages[modelId];
-        logger.info('BatchScreen', `Using cached languages for translation model ${modelId}: ${modelLanguages.length} languages`);
+        logger.debug(2, 'BatchScreen', `Using cached languages for translation model ${modelId}: ${modelLanguages.length} languages`);
         setAvailableTranslationLanguages(Array.isArray(modelLanguages) ? modelLanguages : []);
         
         // Set default target language if current selection is not available
@@ -427,7 +427,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
         }
       } else {
         // Fetch languages for this specific model
-        logger.info('BatchScreen', `Fetching languages for translation model: ${modelId}`);
+        logger.debug(2, 'BatchScreen', `Fetching languages for translation model: ${modelId}`);
         const result = await getTranslationLanguagesForApi(modelId);
         if (result?.success && result.data) {
           const languagesArray = Array.isArray(result.data) ? result.data : [];
@@ -648,10 +648,10 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
           setAppProcessing(true, `Language detection in progress... (${elapsedSeconds}s elapsed)`);
 
           const result = await checkLanguageDetectionStatus(correlationId);
-          logger.info('BatchScreen', `Polling for correlation ${correlationId} (${elapsedSeconds}s elapsed):`, result);
+          logger.debug(2, 'BatchScreen', `Polling for correlation ${correlationId} (${elapsedSeconds}s elapsed):`, result);
 
           if (result.status === 'COMPLETED' && result.data?.language) {
-            logger.info('BatchScreen', `Language detection completed:`, result.data.language);
+            logger.debug(2, 'BatchScreen', `Language detection completed:`, result.data.language);
             setAppProcessing(true, `Language detected: ${result.data.language.name}`);
 
             // Clean up temp audio file if it exists
@@ -774,7 +774,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
         return;
       }
 
-      logger.info('BatchScreen', `Starting dynamic language detection for ${filesToDetect.length} initial files`);
+      logger.debug(2, 'BatchScreen', `Starting dynamic language detection for ${filesToDetect.length} initial files`);
       setAppProcessing(true, `Detecting languages dynamically...`);
 
       // Process files one by one to avoid server overload
@@ -806,7 +806,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
           break;
         }
 
-        logger.info('BatchScreen', `Detecting language for: ${file.name}`);
+        logger.debug(2, 'BatchScreen', `Detecting language for: ${file.name}`);
         setAppProcessing(true, `Detecting language for ${file.name}...`);
 
         logger.debug(3, 'BatchScreen', '🔍 BatchScreen: Setting file status to "detecting" for:', file.name);
@@ -825,7 +825,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
           }
 
           // Implement full MainScreen logic: audio extraction + polling
-          logger.info('BatchScreen', `Starting language detection for ${file.name} at path: ${file.path}`);
+          logger.debug(2, 'BatchScreen', `Starting language detection for ${file.name} at path: ${file.path}`);
           
           let fileToProcess = file.path;
           let tempAudioFile: string | null = null;
@@ -834,7 +834,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
           const isVideoOrAudio = isAudioVideoFile(file.name);
           
           if (isVideoOrAudio) {
-            logger.info('BatchScreen', `Extracting audio for ${file.name}`);
+            logger.debug(2, 'BatchScreen', `Extracting audio for ${file.name}`);
             setAppProcessing(true, `Extracting audio from ${file.name} for language detection...`);
             
             // Extract audio for language detection using configured duration
@@ -849,7 +849,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
             if (extractedPath) {
               fileToProcess = extractedPath;
               tempAudioFile = extractedPath;
-              logger.info('BatchScreen', `Audio extracted for ${file.name}: ${extractedPath}`);
+              logger.debug(2, 'BatchScreen', `Audio extracted for ${file.name}: ${extractedPath}`);
               setAppProcessing(true, `Audio extracted, detecting language for ${file.name}...`);
             } else {
               throw new Error('Failed to extract audio from video file');
@@ -858,11 +858,11 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
           
           const durationSeconds = config.audio_language_detection_time ?? 240;
           const result = await detectLanguage(fileToProcess, durationSeconds);
-          logger.info('BatchScreen', `Detection result for ${file.name}:`, result);
+          logger.debug(2, 'BatchScreen', `Detection result for ${file.name}:`, result);
           
           if (result.data?.language) {
             // Text file - immediate result
-            logger.info('BatchScreen', `Language detected immediately for ${file.name}:`, result.data.language);
+            logger.debug(2, 'BatchScreen', `Language detected immediately for ${file.name}:`, result.data.language);
             
             setDetectedLanguageForFile(file.id, result.data.language);
             
@@ -876,7 +876,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
             }
           } else if (result.correlation_id) {
             // Audio file - poll for completion
-            logger.info('BatchScreen', `Language detection needs polling for ${file.name}, correlation ID: ${result.correlation_id}`);
+            logger.debug(2, 'BatchScreen', `Language detection needs polling for ${file.name}, correlation ID: ${result.correlation_id}`);
             setAppProcessing(true, `Processing audio for ${file.name}, please wait...`);
             
             logger.debug(3, 'BatchScreen', `🔍 BatchScreen: Calling pollLanguageDetection for file: ${file.name} correlation_id: ${result.correlation_id}`);
@@ -927,7 +927,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
       }
 
       logger.debug(3, 'BatchScreen', '🔍 BatchScreen: Completed processing all files in detection loop');
-      logger.info('BatchScreen', 'Sequential language detection completed');
+      logger.debug(2, 'BatchScreen', 'Sequential language detection completed');
       setAppProcessing(true, 'Language detection completed for all files');
 
       // Clear status after a brief moment
@@ -1343,7 +1343,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
 
   const processFile = async (file: BatchFile, index: number) => {
     try {
-      logger.info('BatchScreen', `Processing file ${index + 1}/${queue.length}: ${file.name}`);
+      logger.debug(2, 'BatchScreen', `Processing file ${index + 1}/${queue.length}: ${file.name}`);
       setAppProcessing(true, `Processing file ${index + 1}/${queue.length}: ${file.name}`);
 
       if (file.type === 'transcription') {
@@ -1455,7 +1455,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
       // Immediate completion - extract credits
       if (transcriptionInitResult.data && typeof transcriptionInitResult.data.total_price === 'number' && transcriptionInitResult.data.total_price > 0) {
         updateFileCredits(file.id, transcriptionInitResult.data.total_price);
-        logger.info('BatchScreen', `Credits used for immediate transcription of ${file.name}: ${transcriptionInitResult.data.total_price}`);
+        logger.debug(2, 'BatchScreen', `Credits used for immediate transcription of ${file.name}: ${transcriptionInitResult.data.total_price}`);
       }
       
       setAppProcessing(true, `Transcription completed instantly for ${file.name}`);
@@ -1506,7 +1506,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
           // For chained operations, add to existing credits rather than replace
           const existingCredits = batchCreditStats.creditsPerFile.get(file.id) || 0;
           updateFileCredits(file.id, existingCredits + translationInitResult.data.total_price);
-          logger.info('BatchScreen', `Credits used for immediate translation of ${file.name}: ${translationInitResult.data.total_price}`);
+          logger.debug(2, 'BatchScreen', `Credits used for immediate translation of ${file.name}: ${translationInitResult.data.total_price}`);
         }
         
         setAppProcessing(true, `Translation completed instantly for ${file.name}`);
@@ -1528,7 +1528,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
       if (!batchSettings.keepIntermediateFiles) {
         try {
           await window.electronAPI.deleteFile(tempFileName);
-          logger.info('BatchScreen', `Cleaned up temporary file: ${tempFileName}`);
+          logger.debug(2, 'BatchScreen', `Cleaned up temporary file: ${tempFileName}`);
         } catch (cleanupError) {
           logger.warn('BatchScreen', 'Failed to cleanup intermediate file', cleanupError);
         }
@@ -1558,7 +1558,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
       if (tempAudioFile && tempAudioFile !== file.path) {
         try {
           await window.electronAPI.deleteFile(tempAudioFile);
-          logger.info('BatchScreen', `Cleaned up temporary audio file: ${tempAudioFile}`);
+          logger.debug(2, 'BatchScreen', `Cleaned up temporary audio file: ${tempAudioFile}`);
         } catch (cleanupError) {
           logger.warn('BatchScreen', 'Failed to cleanup temporary audio file', cleanupError);
         }
@@ -1593,7 +1593,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
       // Immediate completion - extract credits
       if (translationInitResult.data && typeof translationInitResult.data.total_price === 'number' && translationInitResult.data.total_price > 0) {
         updateFileCredits(file.id, translationInitResult.data.total_price);
-        logger.info('BatchScreen', `Credits used for immediate standalone translation of ${file.name}: ${translationInitResult.data.total_price}`);
+        logger.debug(2, 'BatchScreen', `Credits used for immediate standalone translation of ${file.name}: ${translationInitResult.data.total_price}`);
       }
       
       setAppProcessing(true, `Translation completed instantly for ${file.name}`);
@@ -1646,7 +1646,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
             ? await checkTranscriptionStatus(correlationId)
             : await checkTranslationStatus(correlationId);
 
-          logger.info('BatchScreen', `${type} status check (${elapsedSeconds}s elapsed):`, result);
+          logger.debug(2, 'BatchScreen', `${type} status check (${elapsedSeconds}s elapsed):`, result);
           setAppProcessing(true, `${type.charAt(0).toUpperCase() + type.slice(1)} in progress... (${elapsedSeconds}s elapsed)`);
 
           if (result.status === 'COMPLETED') {
@@ -1659,7 +1659,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
               } else {
                 updateFileCredits(file.id, result.data.total_price);
               }
-              logger.info('BatchScreen', `Credits used for ${type} of ${file.name}: ${result.data.total_price}`);
+              logger.debug(2, 'BatchScreen', `Credits used for ${type} of ${file.name}: ${result.data.total_price}`);
             }
 
             setAppProcessing(true, `${type.charAt(0).toUpperCase() + type.slice(1)} completed successfully!`);
@@ -2376,7 +2376,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
                         setBatchSettings(prev => ({ ...prev, outputDirectory: directory }));
                       }
                     } catch (error) {
-                      console.error('Directory selection failed:', error);
+                      logger.error('BatchScreen', 'Directory selection failed:', error);
                     }
                   }}
                   disabled={isProcessing}

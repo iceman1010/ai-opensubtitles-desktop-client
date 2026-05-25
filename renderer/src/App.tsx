@@ -93,7 +93,7 @@ function App() {
       const loadedConfig = await window.electronAPI.getConfig();
       setConfig(loadedConfig);
     } catch (error) {
-      console.error('Failed to load config:', error);
+      logger.error('App', 'Failed to load config:', error);
       setConfig({} as AppConfig); // Empty config will show login
     } finally {
       setIsLoading(false);
@@ -412,7 +412,7 @@ function AppContent({
         // Restore preserved state if available
         const savedState = restoreState();
         if (savedState) {
-          logger.info('App', 'Restoring app state after hibernation:', savedState);
+          logger.debug(2, 'App', 'Restoring app state after hibernation:', savedState);
 
           // Restore current screen if it was preserved
           if (savedState.currentScreen !== currentScreen) {
@@ -456,7 +456,7 @@ function AppContent({
       
       return false;
     } catch (error) {
-      console.error('Login failed:', error);
+      logger.error('App', 'Login failed:', error);
       return false;
     } finally {
       setAppProcessing(false);
@@ -486,7 +486,7 @@ function AppContent({
         setConfig(updatedConfig);
       }
     } catch (error) {
-      console.error('Failed to update config:', error);
+      logger.error('App', 'Failed to update config:', error);
     }
   };
 
@@ -504,7 +504,7 @@ function AppContent({
         // Use centralized login for validation
         const success = await login(username, password, apiKey);
         if (!success) {
-          console.error('Credential validation failed');
+          logger.error('App', 'Credential validation failed');
           return false;
         }
       }
@@ -518,7 +518,7 @@ function AppContent({
       }
       return false;
     } catch (error) {
-      console.error('Failed to save preferences:', error);
+      logger.error('App', 'Failed to save preferences:', error);
       return false;
     } finally {
       setAppProcessing(false);

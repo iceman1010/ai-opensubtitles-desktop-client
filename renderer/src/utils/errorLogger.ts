@@ -20,25 +20,15 @@ class ErrorLogger {
   }
 
   private shouldLog(level: 'info' | 'warn' | 'error', category: string, message?: string): boolean {
-    // Always log errors and warnings regardless of debug level
     if (level === 'error' || level === 'warn') {
       return true;
     }
 
-    // For info level, check debug level
     if (this.debugLevel === 0) {
-      // Silent - only show errors and warnings
       return false;
-    } else if (this.debugLevel === 1) {
-      // Basic - show essential info only (non-polling/verbose operations)
-      return !category.includes('polling') && !category.includes('🔍');
-    } else if (this.debugLevel === 2) {
-      // Verbose - show most info but filter out some repetitive messages
-      return !category.includes('🔍') || !message?.includes('Polling attempt');
-    } else {
-      // Full (level 3+) - show everything
-      return true;
     }
+
+    return true;
   }
 
   log(level: 'info' | 'warn' | 'error', category: string, message: string, data?: any) {

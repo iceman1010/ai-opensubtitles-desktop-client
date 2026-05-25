@@ -67,7 +67,7 @@ function Search({ setAppProcessing, showNotification }: SearchProps) {
           setLanguageOptions(response.data);
         }
       } catch (error) {
-        console.error('Failed to load languages:', error);
+        logger.error('Search', 'Failed to load languages', error);
       } finally {
         setLanguagesLoading(false);
       }
@@ -121,12 +121,12 @@ function Search({ setAppProcessing, showNotification }: SearchProps) {
 
         setLastSearchParams(params);
       } else {
-        console.error('Search failed:', response.error);
+        logger.error('Search', 'Search failed', response.error);
         setSearchResults([]);
         setTotalPages(0);
       }
     } catch (error) {
-      console.error('Search error:', error);
+      logger.error('Search', 'Search error', error);
       setSearchResults([]);
       setTotalPages(0);
     } finally {
@@ -166,12 +166,12 @@ function Search({ setAppProcessing, showNotification }: SearchProps) {
 
         setLastFeatureSearchParams(params);
       } else {
-        console.error('Feature search failed:', response.error);
+        logger.error('Search', 'Feature search failed', response.error);
         setFeatureResults([]);
         setFeatureTotalPages(0);
       }
     } catch (error) {
-      console.error('Feature search error:', error);
+      logger.error('Search', 'Feature search error', error);
       setFeatureResults([]);
       setFeatureTotalPages(0);
     } finally {
@@ -236,12 +236,12 @@ function Search({ setAppProcessing, showNotification }: SearchProps) {
           setTotalPages(Math.ceil(totalResults / RESULTS_PER_PAGE));
         }
       } else {
-        console.error('File search failed:', response.error);
+        logger.error('Search', 'File search failed', response.error);
         setSearchResults([]);
         setTotalPages(0);
       }
     } catch (error) {
-      console.error('File search error:', error);
+      logger.error('Search', 'File search error', error);
       setSearchResults([]);
       setTotalPages(0);
     } finally {
@@ -274,7 +274,7 @@ function Search({ setAppProcessing, showNotification }: SearchProps) {
 
         // Log quota information from API response
         const { remaining, requests, reset_time, message } = response.data;
-        logger.info('Search', 'Subtitle download quota info:', {
+        logger.debug(2, 'Search', 'Subtitle download quota info:', {
           remaining,
           requests,
           reset_time,
@@ -301,7 +301,7 @@ function Search({ setAppProcessing, showNotification }: SearchProps) {
         logger.error('Search', 'Download failed:', response.error);
       }
     } catch (error) {
-      console.error('Download error:', error);
+      logger.error('Search', 'Download error', error);
     } finally {
       setDownloadingIds(prev => {
         const newSet = new Set(prev);
@@ -339,7 +339,7 @@ function Search({ setAppProcessing, showNotification }: SearchProps) {
         logger.error('Search', 'Preview failed:', response.error);
       }
     } catch (error) {
-      console.error('Preview error:', error);
+      logger.error('Search', 'Preview error', error);
     } finally {
       setPreviewLoadingId(null);
       setAppProcessing(false);

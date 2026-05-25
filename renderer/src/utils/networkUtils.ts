@@ -485,7 +485,7 @@ export async function retryWithBackoff<T>(
       
       // Don't retry if error is not retryable
       if (!networkError.isRetryable) {
-        logger.info('NetworkUtils', `Error not retryable: ${networkError.type} - ${networkError.message}`);
+        logger.debug(2, 'NetworkUtils', `Error not retryable: ${networkError.type} - ${networkError.message}`);
         throw error;
       }
       
@@ -497,7 +497,7 @@ export async function retryWithBackoff<T>(
       // Calculate delay based on error type
       const delay = calculateRetryDelay(networkError.type, attempt, baseDelay);
       
-      logger.info('NetworkUtils', `Retry attempt ${attempt + 1}/${maxRetries + 1} for ${networkError.type} after ${delay}ms`);
+      logger.debug(2, 'NetworkUtils', `Retry attempt ${attempt + 1}/${maxRetries + 1} for ${networkError.type} after ${delay}ms`);
       
       await new Promise(resolve => setTimeout(resolve, delay));
     }
@@ -552,7 +552,7 @@ export async function apiRequestWithRetry<T>(
   try {
     // Check if retry is enabled
     if (!networkConfigManager.isRetryEnabled()) {
-      logger.info('NetworkUtils', `${context}: Retry disabled, making single request`);
+      logger.debug(2, 'NetworkUtils', `${context}: Retry disabled, making single request`);
       return await executeRequest(requestFn, context);
     }
     
@@ -636,7 +636,7 @@ async function executeRequest<T>(requestFn: () => Promise<T>, context: string): 
     networkConfigManager.onRequestSuccess();
     
     if (networkConfigManager.getConfig().logging.logSuccess) {
-      logger.info('NetworkUtils', `${context}: Request successful`);
+      logger.debug(2, 'NetworkUtils', `${context}: Request successful`);
     }
     
     return result;

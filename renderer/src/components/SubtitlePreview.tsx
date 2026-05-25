@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { parse } from '@plussub/srt-vtt-parser';
 import { SubtitleSearchResult } from './SubtitleCard';
 import { useAPI } from '../contexts/APIContext';
+import { logger } from '../utils/errorLogger';
 
 interface SubtitleEntry {
   id: string;
@@ -48,7 +49,7 @@ function SubtitlePreview({ result, isOpen, onClose, onDownload }: SubtitlePrevie
         text: entry.text || '',
       }));
     } catch (parseError) {
-      console.error('Failed to parse subtitle content:', parseError);
+      logger.error('SubtitlePreview', 'Failed to parse subtitle content', parseError);
 
       // Fallback: Try basic SRT parsing
       try {
@@ -81,7 +82,7 @@ function SubtitlePreview({ result, isOpen, onClose, onDownload }: SubtitlePrevie
 
         return entries;
       } catch (fallbackError) {
-        console.error('Fallback SRT parsing also failed:', fallbackError);
+        logger.error('SubtitlePreview', 'Fallback SRT parsing also failed', fallbackError);
         throw new Error('Unable to parse subtitle content');
       }
     }
@@ -126,7 +127,7 @@ function SubtitlePreview({ result, isOpen, onClose, onDownload }: SubtitlePrevie
       setSubtitleEntries(entries.slice(0, 10)); // Show first 10 entries
 
     } catch (err) {
-      console.error('Error loading subtitle preview:', err);
+      logger.error('SubtitlePreview', 'Error loading subtitle preview', err);
       setError(err instanceof Error ? err.message : 'Failed to load subtitle preview');
     } finally {
       setIsLoading(false);

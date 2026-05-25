@@ -1,3 +1,5 @@
+import { logger } from './errorLogger';
+
 /**
  * Activity Tracker - Tracks API request activity for status bar animation
  */
@@ -40,7 +42,7 @@ class ActivityTracker {
         try {
           listener.onActivityStart(context);
         } catch (error) {
-          console.error('Error in activity listener:', error);
+          logger.error('ActivityTracker', 'Error in activity listener', error);
         }
       });
     }
@@ -68,7 +70,7 @@ class ActivityTracker {
             try {
               listener.onActivityEnd();
             } catch (error) {
-              console.error('Error in activity listener:', error);
+              logger.error('ActivityTracker', 'Error in activity listener', error);
             }
           });
         }
@@ -124,7 +126,7 @@ class ActivityTracker {
         try {
           listener.onContextUpdate(contexts);
         } catch (error) {
-          console.error('Error in context update listener:', error);
+          logger.error('ActivityTracker', 'Error in context update listener', error);
         }
       }
     });

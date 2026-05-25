@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import packageJson from '../../../package.json';
+import { logger } from '../utils/errorLogger';
 
 interface UpdateProps {}
 
@@ -64,7 +65,7 @@ function Update({}: UpdateProps) {
         setCurrentReleaseUrl(currentRelease.html_url);
       }
     } catch (error) {
-      console.error('Failed to load release history:', error);
+      logger.error('Update', 'Failed to load release history:', error);
     }
   };
 

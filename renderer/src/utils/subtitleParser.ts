@@ -1,3 +1,5 @@
+import { logger } from './errorLogger';
+
 // Subtitle parser utility powered by subsrt-ts
 import subsrt from 'subsrt-ts';
 import type { ContentCaption } from 'subsrt-ts/dist/types/handler';
@@ -43,7 +45,7 @@ export function parseSubtitleEntries(content: string, fileName: string): Subtitl
       text: c.text || c.content || '',
     }));
   } catch (error) {
-    console.error('Error parsing subtitle entries:', error);
+    logger.error('SubtitleParser', 'Error parsing subtitle entries', error);
     return [];
   }
 }
@@ -83,7 +85,7 @@ export function parseSubtitleFile(content: string, fileName: string): ParsedSubt
 
     return { text: allText, characterCount: allText.length, wordCount: words.length, lineCount: captions.length };
   } catch (error) {
-    console.error('Error parsing subtitle file:', error);
+    logger.error('SubtitleParser', 'Error parsing subtitle file', error);
     return {
       text: content.trim(),
       characterCount: content.trim().length,

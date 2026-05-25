@@ -213,14 +213,10 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
 
   // Function to stop current processing
   const handleStopProcess = () => {
-    console.log('handleStopProcess called');
     logger.info('MainScreen', 'User requested to stop process');
 
-    // Clear any active polling
     clearPollingTimeout();
 
-    // Reset processing states
-    console.log('Setting isProcessing to false');
     setIsProcessing(false);
     setAppProcessing(false);
 
@@ -244,7 +240,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       // Set default transcription model and language
       if (contextTranscriptionInfo.apis.length > 0) {
         const defaultModel = contextTranscriptionInfo.apis[0];
-        logger.info('MainScreen', `Setting default transcription model: ${defaultModel}`);
+        logger.debug(2, 'MainScreen', `Setting default transcription model: ${defaultModel}`);
         setTranscriptionOptions(prev => ({ ...prev, model: defaultModel }));
 
         // Load languages for default model
@@ -260,7 +256,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       // Set default translation model and load languages
       if (translationInfo.apis.length > 0) {
         const defaultModel = translationInfo.apis[0];
-        logger.info('MainScreen', `Setting default translation model: ${defaultModel}`);
+        logger.debug(2, 'MainScreen', `Setting default translation model: ${defaultModel}`);
         setTranslationOptions(prev => ({ ...prev, model: defaultModel }));
         
         // Load languages for default model  
@@ -289,7 +285,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       // Set default language - prioritize English or take first available
       if (languages.length > 0) {
         const defaultLang = languages.find(lang => lang.language_code === 'en') || languages[0];
-        logger.info('MainScreen', `Setting default transcription language: ${defaultLang.language_code}`);
+        logger.debug(2, 'MainScreen', `Setting default transcription language: ${defaultLang.language_code}`);
         setTranscriptionOptions(prev => ({ ...prev, language: defaultLang.language_code }));
       }
     } catch (error) {
@@ -308,7 +304,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       }
       
       setAvailableTranslationLanguages(languages);
-      logger.info('MainScreen', `Loaded ${languages.length} languages for translation model ${model}`);
+      logger.debug(2, 'MainScreen', `Loaded ${languages.length} languages for translation model ${model}`);
     } catch (error) {
       logger.error('MainScreen', 'Failed to load translation languages:', error);
     }
@@ -671,7 +667,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
     const isSubtitle = isSubtitleFile(fileName);
     const isAudioVideo = isAudioVideoFile(fileName);
     
-    logger.info('MainScreen', 'findCompatibleModels debug:', {
+    logger.debug(3, 'MainScreen', 'findCompatibleModels debug:', {
       languageCode,
       fileName,
       selectedFile,
@@ -723,26 +719,26 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
     
     // Only check transcription models for audio/video files
     if (isAudioVideo && contextTranscriptionInfo?.apis) {
-      logger.info('MainScreen', `Checking ${contextTranscriptionInfo.apis.length} transcription APIs for language: ${languageCode}`);
+      logger.debug(3, 'MainScreen', `Checking ${contextTranscriptionInfo.apis.length} transcription APIs for language: ${languageCode}`);
       
       for (const apiName of contextTranscriptionInfo.apis) {
         try {
           const result = await getTranscriptionLanguagesForApi(apiName);
-          logger.info('MainScreen', `API ${apiName} result:`, { success: result.success, dataLength: result.data?.length });
+          logger.debug(3, 'MainScreen', `API ${apiName} result:`, { success: result.success, dataLength: result.data?.length });
           
           if (result.success && result.data) {
             // Debug: Let's see the exact structure
-            logger.info('MainScreen', `${apiName} raw result.data:`, result.data);
-            logger.info('MainScreen', `${apiName} result.data keys:`, Object.keys(result.data));
+            logger.debug(3, 'MainScreen', `${apiName} raw result.data:`, result.data);
+            logger.debug(3, 'MainScreen', `${apiName} result.data keys:`, Object.keys(result.data));
             
             // The data structure is { data: { data: { apiName: [languages] } } }
             const apiLanguages = result.data.data?.[apiName] || result.data[apiName] || result.data;
-            logger.info('MainScreen', `${apiName} apiLanguages:`, apiLanguages);
-            logger.info('MainScreen', `${apiName} apiLanguages type:`, { type: typeof apiLanguages, isArray: Array.isArray(apiLanguages) });
+            logger.debug(3, 'MainScreen', `${apiName} apiLanguages:`, apiLanguages);
+            logger.debug(3, 'MainScreen', `${apiName} apiLanguages type:`, { type: typeof apiLanguages, isArray: Array.isArray(apiLanguages) });
             
             if (Array.isArray(apiLanguages)) {
               const supportedCodes = apiLanguages.map(l => l.language_code);
-              logger.info('MainScreen', `${apiName} supported codes (first 10):`, supportedCodes.slice(0, 10));
+              logger.debug(3, 'MainScreen', `${apiName} supported codes (first 10):`, supportedCodes.slice(0, 10));
               
               // Smart language matching - check multiple possible formats
               const matchingLangs = apiLanguages.filter(lang => {
@@ -763,13 +759,13 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
                 return false;
               });
               
-              logger.info('MainScreen', `${apiName} matching languages for "${languageCode}":`, matchingLangs.map(l => l.language_code));
+              logger.debug(3, 'MainScreen', `${apiName} matching languages for "${languageCode}":`, matchingLangs.map(l => l.language_code));
               
               if (matchingLangs.length > 0) {
                 compatible.transcription.push(apiName);
-                logger.info('MainScreen', `✓ ${apiName} added to compatible transcription models`);
+                logger.debug(3, 'MainScreen', `✓ ${apiName} added to compatible transcription models`);
               } else {
-                logger.info('MainScreen', `✗ ${apiName} does not support language "${languageCode}"`);
+                logger.debug(3, 'MainScreen', `✗ ${apiName} does not support language "${languageCode}"`);
               }
             } else {
               logger.warn('MainScreen', `${apiName} data is not an array:`, { type: typeof apiLanguages, value: apiLanguages });
@@ -782,7 +778,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         }
       }
     } else {
-      logger.info('MainScreen', 'Skipping transcription check:', { 
+      logger.debug(3, 'MainScreen', 'Skipping transcription check:', { 
         isAudioVideo, 
         hasTranscriptionInfo: !!contextTranscriptionInfo,
         hasApis: !!contextTranscriptionInfo?.apis 
@@ -790,7 +786,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
     }
     
     setCompatibleModels(compatible);
-    logger.info('MainScreen', 'Compatible models found:', compatible);
+    logger.debug(3, 'MainScreen', 'Compatible models found:', compatible);
   };
 
   const triggerCreditsAnimation = () => {
@@ -803,7 +799,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
   const loadLanguagesForTranslationModel = async (modelId: string, translationData?: TranslationInfo) => {
     setIsLoadingDynamicOptions(true);
     try {
-      logger.info('MainScreen', `Loading languages for translation model: ${modelId}`);
+      logger.debug(2, 'MainScreen', `Loading languages for translation model: ${modelId}`);
       
       // Use provided data or fall back to state
       const dataToUse = translationData || translationInfo;
@@ -811,7 +807,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       // Check if we already have the languages data from the initial load
       if (dataToUse && dataToUse.languages && dataToUse.languages[modelId]) {
         const modelLanguages = dataToUse.languages[modelId];
-        logger.info('MainScreen', `Using cached languages for model ${modelId}: ${modelLanguages.length} languages`);
+        logger.debug(2, 'MainScreen', `Using cached languages for model ${modelId}: ${modelLanguages.length} languages`);
         setAvailableTranslationLanguages(modelLanguages);
         
         // Don't auto-select destination language - let user choose explicitly
@@ -821,12 +817,12 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       
       // Fallback to API call if not in cached data
       const result = await getTranslationLanguagesForApi(modelId);
-      logger.info('MainScreen', 'Translation languages result:', result);
+      logger.debug(2, 'MainScreen', 'Translation languages result:', result);
       
       if (result.success && result.data) {
         // Ensure data is an array
         const languagesArray = Array.isArray(result.data) ? result.data : [];
-        logger.info('MainScreen', `Received ${languagesArray.length} languages for model ${modelId}`);
+        logger.debug(2, 'MainScreen', `Received ${languagesArray.length} languages for model ${modelId}`);
         
         // Only update if we actually got languages, otherwise keep the current ones
         if (languagesArray.length > 0) {
@@ -865,7 +861,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         }
       }
     } catch (error) {
-      console.error('Failed to load models for language pair:', error);
+      logger.error('MainScreen', 'Failed to load models for language pair:', error);
     } finally {
       setIsLoadingDynamicOptions(false);
     }
@@ -1037,7 +1033,6 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       return;
     }
 
-    console.log('Setting isProcessing to true');
     setIsProcessing(true);
     setAppProcessing(true, fileType === 'transcription' ? 'Transcribing...' : 'Translating...');
     setStatusMessage({ type: 'info', message: 'Processing file...' });
@@ -1185,7 +1180,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         if (tempAudioFile && tempAudioFile !== selectedFile) {
           try {
             await window.electronAPI.deleteFile(tempAudioFile);
-            logger.info('MainScreen', 'Cleaned up temporary audio file:', tempAudioFile);
+            logger.debug(2, 'MainScreen', 'Cleaned up temporary audio file:', tempAudioFile);
           } catch (cleanupError) {
             logger.warn('MainScreen', 'Failed to clean up temporary file:', cleanupError);
           }
@@ -1193,7 +1188,6 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
 
         // Set flag to indicate we're entering polling mode
         isPollingMode = true;
-        console.log('Entering polling mode - finally block will NOT reset isProcessing');
 
         // Start polling - this will handle resetting isProcessing when done
         await pollForCompletion(result.correlation_id, fileType);
@@ -1220,7 +1214,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       if (!isPollingMode && tempAudioFile && tempAudioFile !== selectedFile) {
         try {
           await window.electronAPI.deleteFile(tempAudioFile);
-          logger.info('MainScreen', 'Cleaned up temporary audio file:', tempAudioFile);
+          logger.debug(2, 'MainScreen', 'Cleaned up temporary audio file:', tempAudioFile);
         } catch (cleanupError) {
           logger.warn('MainScreen', 'Failed to clean up temporary file:', cleanupError);
         }
@@ -1228,7 +1222,6 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
 
       // Only reset processing if we're NOT in polling mode
       if (!isPollingMode) {
-        console.log('Finally block - resetting isProcessing to false (not polling mode)');
         setIsProcessing(false);
         setAppProcessing(false);
 
@@ -1244,7 +1237,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           logger.warn('MainScreen', 'Error allowing system sleep:', error);
         }
       } else {
-        console.log('Finally block - skipping isProcessing reset (polling mode active)');
+        // Polling mode active, don't reset isProcessing
       }
     }
   };
@@ -1269,7 +1262,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           ? await checkTranscriptionStatus(correlationId)
           : await checkTranslationStatus(correlationId);
 
-        logger.info('MainScreen', `${type} status check:`, result);
+        logger.debug(2, 'MainScreen', `${type} status check:`, result);
 
         if (result.status === 'COMPLETED' && result.data) {
           // Calculate credits used and create message
@@ -1317,7 +1310,6 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           clearPollingTimeout();
 
           // Reset processing state on successful completion
-          console.log('Polling completed successfully - resetting isProcessing to false');
           setIsProcessing(false);
           setAppProcessing(false);
 
@@ -1360,7 +1352,6 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           type: 'error',
           message: `${type === 'transcription' ? 'Transcription' : 'Translation'} failed: ${errorMessage}`
         });
-        console.log('Polling failed - resetting isProcessing to false');
         setIsProcessing(false);
 
         // Allow system sleep when processing fails
@@ -1917,11 +1908,6 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
             disabled={isDetectingLanguage}
           >
             {(() => {
-              // Debug logging
-              console.log('Button render - isDetectingLanguage:', isDetectingLanguage);
-              console.log('Button render - isProcessing:', isProcessing);
-              console.log('Button render - fileType:', fileType);
-
               if (isDetectingLanguage) {
                 return 'Detecting Language...';
               } else if (isProcessing) {

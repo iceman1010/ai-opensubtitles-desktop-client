@@ -24,6 +24,12 @@ REPO_NAME="ai-opensubtitles-desktop-client"  # Will be auto-detected from git re
 TEMP_DIR=""  # Set after PROJECT_ROOT is determined
 PROJECT_ROOT=""
 
+# Non-interactive mode flags
+COMMIT_TYPE=""
+COMMIT_DESC=""
+COMMIT_MESSAGE=""
+SKIP_CONFIRM=false
+
 # Helper functions
 log_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
@@ -220,39 +226,6 @@ update_build_configuration() {
     log_success "Build configuration ready"
 }
 
-# Commit and push changes
-commit_and_push() {
-    local version="$1"
-    
-    log_info "Committing version bump..."
-    
-    # Check if there are any changes besides package.json
-    if ! git diff --quiet || ! git diff --cached --quiet; then
-        # There are other changes, add everything
-        if ! git add .; then
-            log_error "Failed to add files to git"
-            exit 1
-        fi
-    else
-        # Only package.json changed, just add it
-        if ! git add package.json; then
-            log_error "Failed to add package.json to git"
-            exit 1
-        fi
-    fi
-    
-    if ! git commit -m "🚀 Release v$version"; then
-        log_error "Failed to commit version bump"
-        exit 1
-    fi
-    
-    if ! git push origin main; then
-        log_error "Failed to push changes to remote"
-        exit 1
-    fi
-    
-    log_success "Changes committed and pushed"
-}
 
 # Read release notes template
 read_release_template() {
@@ -346,40 +319,6 @@ EOF
     fi
 }
 
-# Create and push git tag
-create_and_push_tag() {
-    local version="$1"
-    local tag="v$version"
-
-    log_info "Creating and pushing tag $tag" >&2
-
-    # Check if tag already exists locally or remotely
-    if git tag -l | grep -q "^${tag}$"; then
-        log_warning "Local tag $tag already exists, deleting..." >&2
-        git tag -d "$tag" 2>/dev/null || true
-    fi
-
-    if git ls-remote --tags origin | grep -q "refs/tags/${tag}$"; then
-        log_warning "Remote tag $tag already exists, deleting..." >&2
-        git push --delete origin "$tag" 2>/dev/null || true
-    fi
-
-    if ! git tag "$tag"; then
-        log_error "Failed to create git tag $tag" >&2
-        exit 1
-    fi
-
-    # Store created tag for potential cleanup on error
-    CREATED_TAG="$tag"
-
-    if ! git push origin "$tag"; then
-        log_error "Failed to push tag $tag to remote" >&2
-        exit 1
-    fi
-
-    log_success "Tag $tag created and pushed" >&2
-    echo "$tag"
-}
 
 # Test if release files can be downloaded (for cases where release API doesn't show them yet)
 test_release_downloads() {
@@ -1015,23 +954,27 @@ main() {
     fi
     log_info "New version: $new_version"
     
-    # Confirm with user
-    echo
-    echo -e "${YELLOW}About to create release $new_version${NC}"
-    echo "This will:"
-    echo "  1. Update package.json version to $new_version"
-    echo "  2. Commit and push changes"
-    echo "  3. Create and push tag v$new_version"
-    echo "  4. Wait for GitHub Actions builds"
-    echo "  5. Download and validate release files"
-    echo "  6. Generate and upload metadata files"
-    echo
-    read -p "Continue? (y/N): " -n 1 -r
-    echo
-    
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        log_info "Release cancelled by user"
-        exit 0
+    if [ "$SKIP_CONFIRM" = false ]; then
+        # Confirm with user
+        echo
+        echo -e "${YELLOW}About to create release $new_version${NC}"
+        echo "This will:"
+        echo "  1. Update package.json version to $new_version"
+        echo "  2. Commit and push changes"
+        echo "  3. Create and push tag v$new_version"
+        echo "  4. Wait for GitHub Actions builds"
+        echo "  5. Download and validate release files"
+        echo "  6. Generate and upload metadata files"
+        echo
+        read -p "Continue? (y/N): " -n 1 -r
+        echo
+
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            log_info "Release cancelled by user"
+            exit 0
+        fi
+    else
+        log_info "Non-interactive mode — skipping confirmation"
     fi
     
     # Execute release process
@@ -1059,8 +1002,53 @@ main() {
         git push --delete origin "$tag" 2>/dev/null || true
     fi
 
-    # Commit version bump, create and push tag together
-    log_info "Committing version bump..."
+    # Determine commit message
+    if [ -n "$COMMIT_MESSAGE" ]; then
+        local commit_message="$COMMIT_MESSAGE"
+    elif [ -n "$COMMIT_TYPE" ]; then
+        local desc="${COMMIT_DESC:-Release v$new_version}"
+        local commit_message="$COMMIT_TYPE: $desc"
+    else
+        # Interactive prompts
+        log_info "Crafting commit message..."
+        echo
+        echo "=== Recent Changes Since Last Release ==="
+        echo "$GENERATED_CHANGELOG"
+        echo "========================================="
+        echo
+
+        echo "Select commit type:"
+        echo "  1) feat     - New feature"
+        echo "  2) fix      - Bug fix"
+        echo "  3) refactor - Code refactoring"
+        echo "  4) chore    - Maintenance"
+        echo "  5) docs     - Documentation"
+        echo "  6) style    - Code style"
+        echo "  7) perf     - Performance"
+        echo "  8) test     - Tests"
+        echo "  9) ci       - CI config"
+        read -p "Enter number (default: 1): " type_num
+        type_num=${type_num:-1}
+
+        local commit_types=("feat" "fix" "refactor" "chore" "docs" "style" "perf" "test" "ci")
+        if [ "$type_num" -lt 1 ] || [ "$type_num" -gt 9 ]; then
+            log_error "Invalid commit type selection"
+            exit 1
+        fi
+        local commit_type="${commit_types[$((type_num - 1))]}"
+
+        echo
+        read -p "Enter short description: " commit_desc
+        if [ -z "$commit_desc" ]; then
+            commit_desc="Release v$new_version"
+        fi
+
+        local commit_message="$commit_type: $commit_desc"
+    fi
+
+    echo
+    log_info "Commit message: $commit_message"
+    echo
 
     # Check if there are any changes besides package.json
     if git diff --quiet && git diff --cached --quiet; then
@@ -1077,7 +1065,9 @@ main() {
         fi
     fi
 
-    if ! git commit -m "🚀 Release v$new_version"; then
+    if ! git commit -m "$commit_message
+
+🚀 Release v$new_version"; then
         log_error "Failed to commit version bump"
         exit 1
     fi
@@ -1196,6 +1186,47 @@ main() {
     echo "💡 The release includes a detailed changelog created by analyzing your commits!"
 }
 
+# Parse optional flags for non-interactive use
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --commit-type)
+            [ -n "$2" ] || { log_error "Option --commit-type requires a value"; exit 1; }
+            COMMIT_TYPE="$2"
+            shift 2
+            ;;
+        --commit-desc)
+            [ -n "$2" ] || { log_error "Option --commit-desc requires a value"; exit 1; }
+            COMMIT_DESC="$2"
+            shift 2
+            ;;
+        --message)
+            [ -n "$2" ] || { log_error "Option --message requires a value"; exit 1; }
+            COMMIT_MESSAGE="$2"
+            shift 2
+            ;;
+        --yes)
+            SKIP_CONFIRM=true
+            shift
+            ;;
+        -h|--help)
+            # Let the existing case handler below process it
+            break
+            ;;
+        --)
+            shift
+            break
+            ;;
+        -*)
+            log_error "Unknown option: $1"
+            echo "Use '$0 --help' for usage information"
+            exit 1
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
 # Handle script arguments
 case "${1:-patch}" in
     "major"|"minor"|"patch")
@@ -1219,10 +1250,17 @@ case "${1:-patch}" in
         wait_for_builds "${2:-v1.1.0}"
         exit $?
         ;;
-    "-h"|"--help")
-        echo "Usage: $0 [version_type]"
+        "-h"|"--help")
+        echo "Usage: $0 [options] [version_type]"
         echo
-        echo "Version types:"
+        echo "Options:"
+        echo "  --commit-type <type>   Conventional commit type (feat|fix|refactor|chore|docs|style|perf|test|ci)"
+        echo "  --commit-desc <desc>   Short description for commit message"
+        echo "  --message <msg>        Full commit message (overrides --commit-type/--commit-desc)"
+        echo "  --yes                  Skip confirmation prompt (non-interactive mode)"
+        echo "  -h, --help             Show this help message"
+        echo
+        echo "Version types (positional):"
         echo "  patch     - Increment patch version (1.0.0 -> 1.0.1) [default]"
         echo "  minor     - Increment minor version (1.0.0 -> 1.1.0)"
         echo "  major     - Increment major version (1.0.0 -> 2.0.0)"
@@ -1231,11 +1269,13 @@ case "${1:-patch}" in
         echo "Build targets: All platforms (Windows, macOS, Linux)"
         echo
         echo "Examples:"
-        echo "  $0                    # Creates patch release for all platforms"
-        echo "  $0 minor              # Creates minor release for all platforms" 
-        echo "  $0 major              # Creates major release for all platforms"
-        echo "  $0 test-wait          # Test wait function with v1.1.0"
-        echo "  $0 test-wait v1.0.9   # Test wait function with specific tag"
+        echo "  $0                                         # Interactive patch release"
+        echo "  $0 minor                                   # Interactive minor release"
+        echo "  $0 --yes                                   # Non-interactive patch release"
+        echo "  $0 --commit-type feat --commit-desc 'add sync' minor  # Minor with custom message"
+        echo "  $0 --message 'fix: resolve crash' --yes                 # Non-interactive with full message"
+        echo "  $0 test-wait                               # Test wait function with v1.1.0"
+        echo "  $0 test-wait v1.0.9                        # Test wait function with specific tag"
         exit 0
         ;;
     *)

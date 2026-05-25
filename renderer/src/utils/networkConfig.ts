@@ -85,7 +85,7 @@ class NetworkConfigManager {
 
   private logConfig(): void {
     if (this.config.logging.enabled) {
-      logger.info('NetworkConfig', 'Network configuration loaded', {
+      logger.debug(2, 'NetworkConfig', 'Network configuration loaded', {
         retryEnabled: this.config.retry.enabled,
         maxAttempts: this.config.retry.maxAttempts,
         simulationEnabled: this.isDevelopment && this.config.development.simulateErrors,
@@ -128,7 +128,7 @@ class NetworkConfigManager {
     // Check consecutive error limit
     if (this.simulationState.consecutiveErrors >= this.config.development.simulationSettings.consecutiveErrorLimit) {
       if (this.config.logging.logSimulation) {
-        logger.info('NetworkConfig', 'Skipping error simulation due to consecutive error limit');
+        logger.debug(2, 'NetworkConfig', 'Skipping error simulation due to consecutive error limit');
       }
       return { simulate: false };
     }
@@ -151,7 +151,7 @@ class NetworkConfigManager {
     this.simulationState.lastErrorType = errorType;
 
     if (this.config.logging.logSimulation) {
-      logger.info('NetworkConfig', `Simulating ${errorType} error`, {
+      logger.debug(2, 'NetworkConfig', `Simulating ${errorType} error`, {
         consecutiveErrors: this.simulationState.consecutiveErrors,
         error: simulatedError.message,
         status: (simulatedError as any).status
@@ -220,7 +220,7 @@ class NetworkConfigManager {
       this.simulationState.lastErrorType = null;
       
       if (this.config.logging.logSimulation && this.simulationState.consecutiveErrors > 0) {
-        logger.info('NetworkConfig', 'Reset simulation state after successful request');
+        logger.debug(2, 'NetworkConfig', 'Reset simulation state after successful request');
       }
     }
   }
@@ -252,7 +252,7 @@ class NetworkConfigManager {
   enableSimulation(): void {
     if (this.isDevelopment) {
       this.config.development.simulateErrors = true;
-      logger.info('NetworkConfig', 'Error simulation enabled');
+      logger.debug(2, 'NetworkConfig', 'Error simulation enabled');
     }
   }
 
@@ -260,7 +260,7 @@ class NetworkConfigManager {
     this.config.development.simulateErrors = false;
     this.simulationState.consecutiveErrors = 0;
     this.simulationState.lastErrorType = null;
-    logger.info('NetworkConfig', 'Error simulation disabled');
+    logger.debug(2, 'NetworkConfig', 'Error simulation disabled');
   }
 
   getSimulationStats() {

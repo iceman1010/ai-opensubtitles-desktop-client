@@ -126,21 +126,21 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
 
     // Check if we recently resumed from hibernation
     if (lastResumeTime && (currentTime - lastResumeTime) < GRACE_PERIOD_MS) {
-      logger.debug(1, 'APIContext', `Within hibernation recovery grace period (${Math.round((currentTime - lastResumeTime) / 1000)}s ago), waiting for network stabilization`);
+      logger.debug(2, 'APIContext', `Within hibernation recovery grace period (${Math.round((currentTime - lastResumeTime) / 1000)}s ago), waiting for network stabilization`);
 
       // More aggressive retry approach for hibernation recovery
       for (let attempt = 1; attempt <= 5; attempt++) {
-        logger.debug(1, 'APIContext', `Hibernation recovery network check attempt ${attempt}/5`);
+        logger.debug(2, 'APIContext', `Hibernation recovery network check attempt ${attempt}/5`);
 
         const isCurrentlyOnline = isOnline();
         if (isCurrentlyOnline) {
-          logger.debug(1, 'APIContext', `Network available on attempt ${attempt}, proceeding with authentication`);
+          logger.debug(2, 'APIContext', `Network available on attempt ${attempt}, proceeding with authentication`);
           return true;
         }
 
         // Wait progressively longer between attempts
         const waitTime = attempt * 1000; // 1s, 2s, 3s, 4s, 5s
-        logger.debug(1, 'APIContext', `Network not available, waiting ${waitTime}ms before retry`);
+        logger.debug(2, 'APIContext', `Network not available, waiting ${waitTime}ms before retry`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
       }
 
@@ -155,7 +155,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
 
   // Initialize API instance when config is provided
   useEffect(() => {
-    logger.debug(1, 'APIContext', 'Initialization effect triggered', {
+    logger.debug(2, 'APIContext', 'Initialization effect triggered', {
       hasApiKey: !!initialConfig?.apiKey,
       hasApi: !!api,
       apiCreated: apiCreatedRef.current,
@@ -164,10 +164,10 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     });
 
     if (initialConfig?.apiKey && !api && !apiCreatedRef.current) {
-      logger.info('APIContext', 'Creating initial API instance');
+      logger.debug(2, 'APIContext', 'Creating initial API instance');
       apiCreatedRef.current = true;
       const apiInstance = new OpenSubtitlesAPI(initialConfig.apiKey, initialConfig.apiBaseUrl, initialConfig.apiUrlParameter);
-      logger.info('APIContext', 'Setting API instance in state (initial)');
+      logger.debug(2, 'APIContext', 'Setting API instance in state (initial)');
       setApi(apiInstance);
 
       // Try to authenticate immediately if we have credentials
@@ -183,7 +183,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
           });
       }
     } else {
-      logger.debug(1, 'APIContext', 'Skipping API instance creation', {
+      logger.debug(2, 'APIContext', 'Skipping API instance creation', {
         reason: !initialConfig?.apiKey ? 'no apiKey' :
                 api ? 'api exists' :
                 apiCreatedRef.current ? 'already created' : 'unknown'
@@ -228,13 +228,13 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     setError(null);
 
     try {
-      logger.info('APIContext', 'Attempting authentication...');
+      logger.debug(2, 'APIContext', 'Attempting authentication...');
 
       // Try to load cached token first
       const hasCachedToken = await apiInstance.loadCachedToken();
       if (hasCachedToken) {
-        logger.info('APIContext', 'Using cached token, verifying with credits check');
-        logger.info('APIContext', `Cached token loaded on instance: ${(apiInstance as any).token ? 'YES' : 'NO'}`);
+        logger.debug(2, 'APIContext', 'Using cached token, verifying with credits check');
+        logger.debug(2, 'APIContext', `Cached token loaded on instance: ${(apiInstance as any).token ? 'YES' : 'NO'}`);
 
         // Check if device is online with hibernation recovery grace period
         const isDeviceOnline = await checkDeviceOnlineWithGracePeriod();
@@ -243,7 +243,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
 
           // Schedule a single retry if this is post-hibernation
           if (lastResumeTime && (Date.now() - lastResumeTime) < 30000 && !hibernationRetryTimerRef.current) {
-            logger.debug(1, 'APIContext', 'Scheduling hibernation recovery retry in 10 seconds');
+            logger.debug(2, 'APIContext', 'Scheduling hibernation recovery retry in 10 seconds');
             setAuthState(AuthState.RETRYING);
             hibernationRetryTimerRef.current = setTimeout(() => {
               hibernationRetryTimerRef.current = null;
@@ -271,7 +271,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
 
           // Schedule a single retry if this is post-hibernation
           if (lastResumeTime && (Date.now() - lastResumeTime) < 30000 && !hibernationRetryTimerRef.current) {
-            logger.debug(1, 'APIContext', 'Scheduling hibernation recovery retry in 10 seconds');
+            logger.debug(2, 'APIContext', 'Scheduling hibernation recovery retry in 10 seconds');
             setAuthState(AuthState.RETRYING);
             hibernationRetryTimerRef.current = setTimeout(() => {
               hibernationRetryTimerRef.current = null;
@@ -292,7 +292,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
           setIsLoading(false);
           return false;
         }
-        logger.debug(1, 'APIContext', 'API connectivity appears good based on cached status, proceeding with authentication');
+        logger.debug(2, 'APIContext', 'API connectivity appears good based on cached status, proceeding with authentication');
 
         // Verify token is still valid with a credits check
         const creditsResult = await apiInstance.getCredits();
@@ -308,7 +308,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
             hibernationRetryTimerRef.current = null;
           }
 
-          logger.info('APIContext', 'Cached token verified successfully');
+          logger.debug(2, 'APIContext', 'Cached token verified successfully');
           return true;
         } else {
           logger.warn('APIContext', 'Cached token invalid, attempting fresh login');
@@ -357,7 +357,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
 
   const loadAPIInfo = async (apiInstance: OpenSubtitlesAPI) => {
     try {
-      logger.info('APIContext', 'Loading API info...');
+      logger.debug(2, 'APIContext', 'Loading API info...');
 
       const [transcriptionResult, translationResult] = await Promise.all([
         apiInstance.getTranscriptionInfo(),
@@ -366,15 +366,15 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
 
       if (transcriptionResult.success && transcriptionResult.data) {
         setTranscriptionInfo(transcriptionResult.data);
-        logger.info('APIContext', 'Transcription info loaded');
+        logger.debug(2, 'APIContext', 'Transcription info loaded');
       }
 
       if (translationResult.success && translationResult.data) {
         setTranslationInfo(translationResult.data);
-        logger.info('APIContext', 'Translation info loaded');
+        logger.debug(2, 'APIContext', 'Translation info loaded');
       }
 
-      logger.info('APIContext', 'API info loading completed');
+      logger.debug(2, 'APIContext', 'API info loading completed');
     } catch (error) {
       logger.error('APIContext', 'Failed to load API info:', error);
     }
@@ -383,7 +383,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
   const refreshModelInfo = useCallback(async () => {
     if (!api) return;
 
-    logger.info('APIContext', 'Refreshing model info...');
+    logger.debug(2, 'APIContext', 'Refreshing model info...');
 
     // Clear cache entries
     CacheManager.remove('transcription_info');
@@ -414,7 +414,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
       if (!apiInstance || apiInstance.apiKey !== apiKey) {
         // Only create new instance if none exists or API key changed
         apiInstance = new OpenSubtitlesAPI(apiKey, initialConfig?.apiBaseUrl, initialConfig?.apiUrlParameter);
-        logger.info('APIContext', 'Setting API instance in state (login)');
+        logger.debug(2, 'APIContext', 'Setting API instance in state (login)');
         setApi(apiInstance);
       }
       apiInstance.setCredentials(username, password);
@@ -493,11 +493,11 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     if (!api || !isAuthenticated) return;
 
     try {
-      logger.info('APIContext', `refreshCredits: Using API instance with token: ${(api as any).token ? 'YES' : 'NO'}`);
+      logger.debug(2, 'APIContext', `refreshCredits: Using API instance with token: ${(api as any).token ? 'YES' : 'NO'}`);
       const result = await api.getCredits();
       if (result.success && typeof result.credits === 'number') {
         setCredits({ used: 0, remaining: result.credits });
-        logger.info('APIContext', `Credits refreshed: ${result.credits} remaining`);
+        logger.debug(2, 'APIContext', `Credits refreshed: ${result.credits} remaining`);
       }
     } catch (error) {
       logger.error('APIContext', 'Failed to refresh credits:', error);
@@ -506,15 +506,15 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
 
   const updateCredits = useCallback((newCredits: { used: number; remaining: number }) => {
     setCredits(newCredits);
-    logger.info('APIContext', `Credits updated: ${newCredits.remaining} remaining, ${newCredits.used} used`);
+    logger.debug(2, 'APIContext', `Credits updated: ${newCredits.remaining} remaining, ${newCredits.used} used`);
   }, []);
 
   // Test function to prepare authentication state for hibernation simulation
   const prepareForHibernationTest = useCallback(() => {
-    logger.info('APIContext', '🧪 TEST: Preparing for hibernation simulation');
+    logger.debug(3, 'APIContext', '🧪 TEST: Preparing for hibernation simulation');
     setAuthState(AuthState.UNAUTHENTICATED);
     // Token stays in API instance for re-authentication
-    logger.debug(1, 'APIContext', '🧪 TEST: Authentication state cleared, ready for hibernation simulation');
+    logger.debug(3, 'APIContext', '🧪 TEST: Authentication state cleared, ready for hibernation simulation');
   }, []);
 
   // Refresh connectivity and trigger re-authentication if needed
@@ -523,7 +523,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
 
     // RACE CONDITION FIX: Cancel any pending hibernation retry timer
     if (hibernationRetryTimerRef.current) {
-      logger.debug(1, 'APIContext', 'Cancelling pending hibernation retry timer');
+      logger.debug(2, 'APIContext', 'Cancelling pending hibernation retry timer');
       clearTimeout(hibernationRetryTimerRef.current);
       hibernationRetryTimerRef.current = null;
     }
@@ -534,14 +534,14 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
     // Force immediate connectivity check if we have API config
     if (initialConfig?.apiBaseUrl) {
       let connected = await forceConnectivityCheck(initialConfig.apiBaseUrl, 5000);
-      logger.debug(1, 'APIContext', `Initial connectivity check result: ${connected}`);
+      logger.debug(2, 'APIContext', `Initial connectivity check result: ${connected}`);
 
       // If initial check fails, retry after a short delay (DNS might not be ready yet after resume)
       if (!connected && navigator.onLine) {
-        logger.info('APIContext', 'Initial connectivity check failed but network is online, retrying after delay...');
+        logger.debug(2, 'APIContext', 'Initial connectivity check failed but network is online, retrying after delay...');
         await new Promise(resolve => setTimeout(resolve, 2000));
         connected = await forceConnectivityCheck(initialConfig.apiBaseUrl, 5000);
-        logger.debug(1, 'APIContext', `Retry connectivity check result: ${connected}`);
+        logger.debug(2, 'APIContext', `Retry connectivity check result: ${connected}`);
       }
 
       // If connected and we have credentials, trigger re-authentication
@@ -550,7 +550,7 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
 
         // RACE CONDITION FIX: If auth already in progress, wait for it instead of starting new one
         if (authPromiseRef.current) {
-          logger.debug(1, 'APIContext', 'Authentication already in progress, waiting for completion');
+          logger.debug(2, 'APIContext', 'Authentication already in progress, waiting for completion');
           await authPromiseRef.current;
         } else {
           await authenticateUser(api, initialConfig.username, initialConfig.password);
@@ -577,11 +577,11 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
       const HIBERNATION_REAUTH_WINDOW_MS = 30000; // 30 seconds
 
       if (timeSinceResume < HIBERNATION_REAUTH_WINDOW_MS && authState !== AuthState.AUTHENTICATED) {
-        logger.debug(1, 'APIContext', `${context}: Within post-hibernation window, attempting re-authentication`);
+        logger.debug(2, 'APIContext', `${context}: Within post-hibernation window, attempting re-authentication`);
 
         // RACE CONDITION FIX: If authentication is already in progress, wait for it
         if (authPromiseRef.current) {
-          logger.debug(1, 'APIContext', `${context}: Authentication already in progress, waiting...`);
+          logger.debug(2, 'APIContext', `${context}: Authentication already in progress, waiting...`);
           const authSuccess = await authPromiseRef.current;
           if (!authSuccess) {
             logger.warn('APIContext', `${context}: Post-hibernation re-authentication failed (waited for existing auth)`);

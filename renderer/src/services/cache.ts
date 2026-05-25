@@ -1,3 +1,5 @@
+import { logger } from '../utils/errorLogger';
+
 interface CacheItem<T> {
   data: T;
   timestamp: number;
@@ -32,7 +34,7 @@ class CacheManager {
         return hours * 60 * 60 * 1000; // Convert hours to milliseconds
       }
     } catch (error) {
-      console.warn('Failed to get cache duration from config:', error);
+      logger.warn('Cache', 'Failed to get cache duration from config:', error);
     }
     return this.DEFAULT_CACHE_DURATION;
   }
@@ -49,7 +51,7 @@ class CacheManager {
     try {
       localStorage.setItem(`${this.getPrefix()}${key}`, JSON.stringify(item));
     } catch (error) {
-      console.warn('Failed to cache data:', error);
+      logger.warn('Cache', 'Failed to cache data:', error);
     }
   }
 
@@ -70,7 +72,7 @@ class CacheManager {
 
       return item.data;
     } catch (error) {
-      console.warn('Failed to retrieve cached data:', error);
+      logger.warn('Cache', 'Failed to retrieve cached data:', error);
       this.remove(key);
       return null;
     }
@@ -80,7 +82,7 @@ class CacheManager {
     try {
       localStorage.removeItem(`${this.getPrefix()}${key}`);
     } catch (error) {
-      console.warn('Failed to remove cached data:', error);
+      logger.warn('Cache', 'Failed to remove cached data:', error);
     }
   }
 
@@ -94,7 +96,7 @@ class CacheManager {
         }
       });
     } catch (error) {
-      console.warn('Failed to clear cache:', error);
+      logger.warn('Cache', 'Failed to clear cache:', error);
     }
   }
 
@@ -107,7 +109,7 @@ class CacheManager {
         }
       });
     } catch (error) {
-      console.warn('Failed to remove cached data by prefix:', error);
+      logger.warn('Cache', 'Failed to remove cached data by prefix:', error);
     }
   }
 

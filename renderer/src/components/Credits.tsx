@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { CreditPackage, RecentActivityItem } from '../services/api';
 import { useAPI } from '../contexts/APIContext';
 import { usePower } from '../contexts/PowerContext';
+import { logger } from '../utils/errorLogger';
 
 interface AppConfig {
   username: string;
@@ -59,18 +60,18 @@ function Credits({ config, setAppProcessing, isVisible = true }: CreditsProps) {
     setAppProcessing(true, 'Loading credit packages...');
 
     try {
-      console.log('Credits: Starting getCreditPackages call, authenticated:', isAuthenticated);
+      logger.debug(2, 'Credits', 'Starting getCreditPackages call, authenticated', isAuthenticated);
       const result = await getCreditPackages(config.username);
 
       if (result.success && result.data) {
         setCreditPackages(result.data);
-        console.log('Credits: Successfully loaded', result.data.length, 'credit packages');
+        logger.debug(2, 'Credits', 'Successfully loaded ' + result.data.length + ' credit packages');
       } else {
-        console.log('Credits: getCreditPackages failed:', result.error);
+        logger.warn('Credits', 'getCreditPackages failed', result.error);
         throw new Error(result.error || 'Failed to load credit packages');
       }
     } catch (error: any) {
-      console.error('Error loading credit packages:', error);
+      logger.error('Credits', 'Error loading credit packages', error);
       setError(error.message || 'Failed to load credit packages');
     } finally {
       loadingRef.current = false;
@@ -93,7 +94,7 @@ function Credits({ config, setAppProcessing, isVisible = true }: CreditsProps) {
       const HIBERNATION_RETRY_WINDOW_MS = 10000; // 10 seconds
 
       if (timeSinceResume < HIBERNATION_RETRY_WINDOW_MS) {
-        console.log('Credits: Auto-retrying after hibernation recovery');
+        logger.debug(2, 'Credits', 'Auto-retrying after hibernation recovery');
         // Wait a moment for network/authentication to stabilize after hibernation
         const retryDelay = Math.max(0, 3000 - timeSinceResume); // Wait at least 3 seconds after resume
         setTimeout(() => {
@@ -132,7 +133,7 @@ function Credits({ config, setAppProcessing, isVisible = true }: CreditsProps) {
         setHasLoadedActivities(true);
       }
     } catch (error: any) {
-      console.error('Error loading activities:', error);
+      logger.error('Credits', 'Error loading activities', error);
     } finally {
       activitiesLoadingRef.current = false;
       setIsLoadingActivities(false);
@@ -186,7 +187,7 @@ function Credits({ config, setAppProcessing, isVisible = true }: CreditsProps) {
       try {
         await refreshCredits();
       } catch (error) {
-        console.error('Error refreshing credits:', error);
+        logger.error('Credits', 'Error refreshing credits', error);
       } finally {
         setIsLoadingCredits(false);
       }
