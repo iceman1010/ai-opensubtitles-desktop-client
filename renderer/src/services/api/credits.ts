@@ -8,6 +8,7 @@ import {
   CreditPackage,
   RecentMediaItem,
   RecentActivityItem,
+  PaymentHistoryItem,
 } from './types';
 
 export async function getCredits(
@@ -322,8 +323,8 @@ export async function getRecentActivities(
 
       const data: RecentActivityItem[] = responseData.data || responseData;
 
-      CacheManager.set(cacheKey, data);
-      logger.debug(2, 'API', 'Recent activities cached successfully');
+      CacheManager.set(cacheKey, data, 5 * 60 * 1000);
+      logger.debug(2, 'API', 'Recent activities cached successfully (5min TTL)');
 
       return {
         success: true,
@@ -335,6 +336,77 @@ export async function getRecentActivities(
   } catch (error: any) {
     rethrowIfAuthError(error);
     logger.error('API', 'Error fetching recent activities after retries:', error);
+    return {
+      success: false,
+      error: getUserFriendlyErrorMessage(error),
+    };
+  }
+}
+
+export async function getPaymentHistory(
+  state: ApiState,
+  getAIUrl: (endpoint: string) => string,
+  page: number = 1,
+): Promise<{ success: boolean; data?: PaymentHistoryItem[]; error?: string }> {
+  const cacheKey = `payment_history_page_${page}`;
+  const cached = CacheManager.get<PaymentHistoryItem[]>(cacheKey);
+
+  if (cached) {
+    logger.debug(2, 'API', `Using cached payment history data (page ${page})`);
+    return { success: true, data: cached };
+  }
+
+  if (!state.apiKey) {
+    const error = 'API Key is required to fetch payment history';
+    logger.error('API', error);
+    return { success: false, error };
+  }
+
+  try {
+    const result = await apiRequestWithRetry(async () => {
+      logger.debug(2, 'API', `Fetching payment history from API (page ${page})...`);
+
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'Api-Key': state.apiKey || '',
+        'Content-Type': 'application/json',
+        'User-Agent': getUserAgent(),
+      };
+
+      if (state.token) {
+        headers['Authorization'] = `Bearer ${state.token}`;
+      }
+
+      const response = await fetch(getAIUrl(`/payment_history?page=${page}`), {
+        method: 'POST',
+        headers,
+      });
+
+      if (!response.ok) {
+        const error = new Error(`Request failed: ${response.status} ${response.statusText}`);
+        (error as any).status = response.status;
+        (error as any).responseText = await response.text().catch(() => '');
+        throw error;
+      }
+
+      const responseData = await parseJsonResponse(response);
+      logger.debug(3, 'API', 'Payment history response:', responseData);
+
+      const data: PaymentHistoryItem[] = responseData.data || responseData;
+
+      CacheManager.set(cacheKey, data);
+      logger.debug(2, 'API', 'Payment history cached successfully');
+
+      return {
+        success: true,
+        data,
+      };
+    }, 'Get Payment History', 3);
+
+    return result;
+  } catch (error: any) {
+    rethrowIfAuthError(error);
+    logger.error('API', 'Error fetching payment history after retries:', error);
     return {
       success: false,
       error: getUserFriendlyErrorMessage(error),

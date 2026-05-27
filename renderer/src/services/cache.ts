@@ -39,9 +39,9 @@ class CacheManager {
     return this.DEFAULT_CACHE_DURATION;
   }
 
-  static set<T>(key: string, data: T): void {
+  static set<T>(key: string, data: T, ttlMs?: number): void {
     const now = Date.now();
-    const cacheDuration = this.getCacheDuration();
+    const cacheDuration = ttlMs ?? this.getCacheDuration();
     const item: CacheItem<T> = {
       data,
       timestamp: now,

@@ -30,6 +30,7 @@ import {
   LanguageDetectionResult,
   RecentMediaItem,
   RecentActivityItem,
+  PaymentHistoryItem,
   ApiState,
 } from './types';
 
@@ -56,6 +57,7 @@ export type {
   LanguageDetectionResult,
   RecentMediaItem,
   RecentActivityItem,
+  PaymentHistoryItem,
 };
 
 export class OpenSubtitlesAPI {
@@ -224,6 +226,10 @@ export class OpenSubtitlesAPI {
 
   async getRecentActivities(page: number = 1): Promise<{ success: boolean; data?: RecentActivityItem[]; error?: string }> {
     return credits.getRecentActivities(this.state, this.getAIUrl.bind(this), page);
+  }
+
+  async getPaymentHistory(page: number = 1): Promise<{ success: boolean; data?: PaymentHistoryItem[]; error?: string }> {
+    return credits.getPaymentHistory(this.state, this.getAIUrl.bind(this), page);
   }
 
   async downloadFile(url: string): Promise<{ success: boolean; content?: string; error?: string }> {

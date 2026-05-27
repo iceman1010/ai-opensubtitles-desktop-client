@@ -213,6 +213,15 @@ export interface RecentActivityItem {
   time_str: string;
 }
 
+export interface PaymentHistoryItem {
+  time: number;
+  credits: number;
+  reference: string | null;
+  orderid: string | null;
+  date: string;
+  usd: string;
+}
+
 export interface ApiState {
   apiKey: string;
   token: string;

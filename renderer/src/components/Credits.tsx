@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { CreditPackage, RecentActivityItem } from '../services/api';
+import { CreditPackage, RecentActivityItem, PaymentHistoryItem } from '../services/api';
 import { useAPI } from '../contexts/APIContext';
 import { usePower } from '../contexts/PowerContext';
 import { logger } from '../utils/errorLogger';
+import CacheManager from '../services/cache';
 
 interface AppConfig {
   username: string;
@@ -29,7 +30,7 @@ interface CreditsProps {
 const ACTIVITIES_PAGE_SIZE = 20;
 
 function Credits({ config, setAppProcessing, isVisible = true }: CreditsProps) {
-  const { credits, refreshCredits, getCreditPackages, getRecentActivities, isAuthenticated } = useAPI();
+  const { credits, refreshCredits, getCreditPackages, getRecentActivities, getPaymentHistory, isAuthenticated } = useAPI();
   const { lastResumeTime } = usePower();
 
   const [creditPackages, setCreditPackages] = useState<CreditPackage[]>([]);
@@ -47,6 +48,15 @@ function Credits({ config, setAppProcessing, isVisible = true }: CreditsProps) {
   const [hasMoreActivities, setHasMoreActivities] = useState(true);
   const [hasLoadedActivities, setHasLoadedActivities] = useState(false);
   const activitiesLoadingRef = useRef(false);
+
+  // Payment history state
+  const [payments, setPayments] = useState<PaymentHistoryItem[]>([]);
+  const [isLoadingPayments, setIsLoadingPayments] = useState(false);
+  const [isLoadingMorePayments, setIsLoadingMorePayments] = useState(false);
+  const [paymentsPage, setPaymentsPage] = useState(1);
+  const [hasMorePayments, setHasMorePayments] = useState(true);
+  const [hasLoadedPayments, setHasLoadedPayments] = useState(false);
+  const paymentsLoadingRef = useRef(false);
 
   const loadCreditPackages = useCallback(async () => {
     // Prevent multiple simultaneous calls using ref
@@ -148,8 +158,52 @@ function Credits({ config, setAppProcessing, isVisible = true }: CreditsProps) {
     }
   }, [isAuthenticated, isVisible, hasLoadedActivities, loadActivities]);
 
+  // Payment history loading
+  const loadPayments = useCallback(async (page: number = 1, append: boolean = false) => {
+    if (paymentsLoadingRef.current) return;
+    if (!isAuthenticated) return;
+
+    paymentsLoadingRef.current = true;
+    if (append) {
+      setIsLoadingMorePayments(true);
+    } else {
+      setIsLoadingPayments(true);
+    }
+
+    try {
+      const result = await getPaymentHistory(page);
+      if (result.success && result.data) {
+        if (append) {
+          setPayments(prev => [...prev, ...result.data!]);
+        } else {
+          setPayments(result.data);
+        }
+        setPaymentsPage(page);
+        setHasMorePayments(result.data.length >= ACTIVITIES_PAGE_SIZE);
+        setHasLoadedPayments(true);
+      }
+    } catch (error: any) {
+      logger.error('Credits', 'Error loading payment history', error);
+    } finally {
+      paymentsLoadingRef.current = false;
+      setIsLoadingPayments(false);
+      setIsLoadingMorePayments(false);
+    }
+  }, [getPaymentHistory, isAuthenticated]);
+
+  // Auto-load payments when screen becomes visible
+  useEffect(() => {
+    if (isAuthenticated && isVisible && !hasLoadedPayments) {
+      loadPayments();
+    }
+  }, [isAuthenticated, isVisible, hasLoadedPayments, loadPayments]);
+
   const handleLoadMoreActivities = () => {
     loadActivities(activitiesPage + 1, true);
+  };
+
+  const handleLoadMorePayments = () => {
+    loadPayments(paymentsPage + 1, true);
   };
 
   const formatActivityDate = (timeStr: string) => {
@@ -390,10 +444,40 @@ function Credits({ config, setAppProcessing, isVisible = true }: CreditsProps) {
 
       {/* Credit Activity Section */}
       <div style={{ marginTop: '30px' }}>
-        <h2 style={{ color: 'var(--text-primary)', marginBottom: '15px' }}>
-          <i className="fas fa-history" style={{ marginRight: '8px', color: 'var(--text-secondary)' }}></i>
-          Credit Activity
-        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
+          <h2 style={{ margin: 0, color: 'var(--text-primary)' }}>
+            <i className="fas fa-history" style={{ marginRight: '8px', color: 'var(--text-secondary)' }}></i>
+            Credit Activity
+          </h2>
+          <button
+            onClick={() => { CacheManager.removeByPrefix('recent_activities_page_'); setActivities([]); setHasLoadedActivities(false); }}
+            disabled={isLoadingActivities}
+            title="Refresh credit activity"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-secondary)',
+              cursor: isLoadingActivities ? 'not-allowed' : 'pointer',
+              padding: '4px',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '4px',
+              transition: 'color 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              if (!isLoadingActivities) {
+                e.currentTarget.style.color = 'var(--text-primary)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'var(--text-secondary)';
+            }}
+          >
+            <i className={`fas fa-sync-alt${isLoadingActivities ? ' fa-spin' : ''}`}></i>
+          </button>
+        </div>
 
         {isLoadingActivities && activities.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-secondary)' }}>
@@ -527,6 +611,193 @@ function Credits({ config, setAppProcessing, isVisible = true }: CreditsProps) {
                   }}
                 >
                   {isLoadingMoreActivities ? (
+                    <>
+                      <span style={{
+                        display: 'inline-block',
+                        width: '14px',
+                        height: '14px',
+                        border: '2px solid var(--text-secondary)',
+                        borderTop: '2px solid transparent',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite'
+                      }}></span>
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-chevron-down"></i>
+                      Load More
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Payment History Section */}
+      <div style={{ marginTop: '30px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
+          <h2 style={{ margin: 0, color: 'var(--text-primary)' }}>
+            <i className="fas fa-credit-card" style={{ marginRight: '8px', color: 'var(--text-secondary)' }}></i>
+            Payment History
+          </h2>
+          <button
+            onClick={() => { CacheManager.removeByPrefix('payment_history_page_'); setPayments([]); setHasLoadedPayments(false); }}
+            disabled={isLoadingPayments}
+            title="Refresh payment history"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-secondary)',
+              cursor: isLoadingPayments ? 'not-allowed' : 'pointer',
+              padding: '4px',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '4px',
+              transition: 'color 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              if (!isLoadingPayments) {
+                e.currentTarget.style.color = 'var(--text-primary)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'var(--text-secondary)';
+            }}
+          >
+            <i className={`fas fa-sync-alt${isLoadingPayments ? ' fa-spin' : ''}`}></i>
+          </button>
+        </div>
+        <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+          All amounts are displayed in USD.
+        </p>
+
+        {isLoadingPayments && payments.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-secondary)' }}>
+            <i className="fas fa-spinner fa-spin" style={{ fontSize: '20px', marginBottom: '10px', display: 'block' }}></i>
+            <p style={{ margin: 0 }}>Loading payment history...</p>
+          </div>
+        ) : payments.length === 0 && hasLoadedPayments ? (
+          <div style={{
+            textAlign: 'center',
+            padding: '30px',
+            color: 'var(--text-secondary)',
+            background: 'var(--bg-secondary)',
+            borderRadius: '8px',
+            border: '1px solid var(--border-color)'
+          }}>
+            <i className="fas fa-credit-card" style={{ fontSize: '32px', marginBottom: '10px', display: 'block' }}></i>
+            <p style={{ margin: 0 }}>No payments recorded yet</p>
+          </div>
+        ) : payments.length > 0 && (
+          <div style={{
+            background: 'var(--bg-secondary)',
+            borderRadius: '8px',
+            border: '1px solid var(--border-color)',
+            overflow: 'hidden'
+          }}>
+            {/* Table Header */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 100px 100px',
+              padding: '12px 16px',
+              background: 'var(--bg-tertiary)',
+              borderBottom: '1px solid var(--border-color)',
+              fontSize: '12px',
+              fontWeight: '600',
+              color: 'var(--text-secondary)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              <div>Date</div>
+              <div style={{ textAlign: 'right' }}>Amount</div>
+              <div style={{ textAlign: 'right' }}>Credits</div>
+            </div>
+
+            {/* Table Rows */}
+            {payments.map((payment, index) => (
+              <div
+                key={payment.orderid || index}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 100px 100px',
+                  padding: '10px 16px',
+                  borderBottom: index < payments.length - 1 ? '1px solid var(--border-color)' : 'none',
+                  fontSize: '13px',
+                  alignItems: 'center',
+                  transition: 'background-color 0.15s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                <div style={{ color: 'var(--text-secondary)' }}>
+                  {formatActivityDate(payment.date)}
+                </div>
+                <div style={{
+                  textAlign: 'right',
+                  color: 'var(--text-primary)',
+                  fontVariantNumeric: 'tabular-nums'
+                }}>
+                  ${payment.usd}
+                </div>
+                <div style={{
+                  textAlign: 'right',
+                  fontWeight: '600',
+                  fontVariantNumeric: 'tabular-nums',
+                  color: '#28a745'
+                }}>
+                  +{payment.credits}
+                </div>
+              </div>
+            ))}
+
+            {/* Load More Button */}
+            {hasMorePayments && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                padding: '12px',
+                borderTop: '1px solid var(--border-color)'
+              }}>
+                <button
+                  onClick={handleLoadMorePayments}
+                  disabled={isLoadingMorePayments}
+                  style={{
+                    padding: '8px 20px',
+                    backgroundColor: isLoadingMorePayments ? 'var(--bg-tertiary)' : 'var(--bg-primary)',
+                    color: isLoadingMorePayments ? 'var(--text-secondary)' : 'var(--primary-color)',
+                    border: `1px solid ${isLoadingMorePayments ? 'var(--border-color)' : 'var(--primary-color)'}`,
+                    borderRadius: '6px',
+                    cursor: isLoadingMorePayments ? 'not-allowed' : 'pointer',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isLoadingMorePayments) {
+                      e.currentTarget.style.backgroundColor = 'var(--primary-color)';
+                      e.currentTarget.style.color = 'white';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isLoadingMorePayments) {
+                      e.currentTarget.style.backgroundColor = 'var(--bg-primary)';
+                      e.currentTarget.style.color = 'var(--primary-color)';
+                    }
+                  }}
+                >
+                  {isLoadingMorePayments ? (
                     <>
                       <span style={{
                         display: 'inline-block',
