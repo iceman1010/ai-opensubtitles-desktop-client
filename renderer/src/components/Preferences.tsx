@@ -24,6 +24,7 @@ interface AppConfig {
   pollingTimeoutSeconds?: number;
   defaultFilenameFormat?: string;
   apiConnectivityTestIntervalMinutes?: number;
+  persistDownloadQueue?: boolean;
   credits?: {
     used: number;
     remaining: number;
@@ -59,6 +60,7 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
   const [autoLanguageDetection, setAutoLanguageDetection] = useState(config.autoLanguageDetection ?? false);
   const [defaultFilenameFormat, setDefaultFilenameFormat] = useState(config.defaultFilenameFormat || '{filename}.{language_code}.{type}');
   const [apiConnectivityTestIntervalMinutes, setApiConnectivityTestIntervalMinutes] = useState(config.apiConnectivityTestIntervalMinutes ?? 5);
+  const [persistDownloadQueue, setPersistDownloadQueue] = useState(config.persistDownloadQueue ?? false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [isTestingFfmpeg, setIsTestingFfmpeg] = useState(false);
@@ -1481,6 +1483,68 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
                 fontStyle: 'italic'
               }}>
                 Default: Enabled • Note: This setting only affects batch processing, not single file processing
+              </div>
+            </div>
+          </div>
+
+          {/* Search & Downloads Section */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '12px',
+            padding: '8px 0'
+          }}>
+            <div style={{ flex: 1 }}>
+              <label
+                htmlFor="persist-download-queue"
+                style={{
+                  margin: 0,
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  display: 'block',
+                  marginBottom: '4px'
+                }}
+              >
+                Keep Download Queue
+              </label>
+              <div style={{
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                lineHeight: '1.4',
+                maxWidth: '400px',
+                marginBottom: '12px'
+              }}>
+                Preserve the download queue across searches and tab switches
+              </div>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <input
+                  type="checkbox"
+                  id="persist-download-queue"
+                  checked={persistDownloadQueue}
+                  onChange={(e) => {
+                    const newValue = e.target.checked;
+                    setPersistDownloadQueue(newValue);
+                    handleInstantSave('persistDownloadQueue', newValue);
+                  }}
+                  disabled={isLoading}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    cursor: isLoading ? 'not-allowed' : 'pointer'
+                  }}
+                />
+                <span style={{
+                  fontSize: '14px',
+                  color: persistDownloadQueue ? '#28a745' : '#6c757d',
+                  fontWeight: '500'
+                }}>
+                  {persistDownloadQueue ? 'Enabled' : 'Disabled'}
+                </span>
               </div>
             </div>
           </div>

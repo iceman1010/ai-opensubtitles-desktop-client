@@ -19,6 +19,7 @@ function Update({}: UpdateProps) {
   const [releaseHistory, setReleaseHistory] = useState<ReleaseInfo[]>([]);
   const [showHistory, setShowHistory] = useState(true);
   const [currentReleaseUrl, setCurrentReleaseUrl] = useState<string>('');
+  const [expandedReleases, setExpandedReleases] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     // Get current version from package.json
@@ -96,12 +97,37 @@ function Update({}: UpdateProps) {
     });
   };
 
-  const parseChangelog = (body: string) => {
-    // Convert markdown-style changelog to HTML-like structure for display
-    return body.replace(/##\s*(.*)/g, '<strong>$1</strong>')
-               .replace(/\n- (.*)/g, '\n• $1')
-               .split('\n')
-               .filter(line => line.trim());
+  const getSummary = (body: string): string => {
+    for (const line of body.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      if (trimmed.startsWith('#') || trimmed.startsWith('![') || trimmed.startsWith('[!')) continue;
+      return trimmed;
+    }
+    return 'No release notes available.';
+  };
+
+  const toggleExpanded = (tagName: string) => {
+    setExpandedReleases(prev => {
+      const next = new Set(prev);
+      if (next.has(tagName)) {
+        next.delete(tagName);
+      } else {
+        next.add(tagName);
+      }
+      return next;
+    });
+  };
+
+  const parseBody = (body: string): string[] => {
+    return body.split('\n')
+      .map(line => line.trim())
+      .filter(line => line)
+      .map(line => line
+        .replace(/^##\s*(.*)/, '<strong>$1</strong>')
+        .replace(/^- (.*)/, '• $1')
+        .replace(/^\* (.*)/, '• $1')
+      );
   };
 
   const handleDownloadRelease = () => {
@@ -308,15 +334,38 @@ function Update({}: UpdateProps) {
                     color: index === 0 ? 'var(--bg-primary)' : 'var(--text-secondary)',
                     lineHeight: '1.5'
                   }}>
-                    {parseChangelog(release.body).map((line, lineIndex) => (
-                      <div key={lineIndex} style={{ marginBottom: '4px' }}>
-                        {line.includes('<strong>') ? (
-                          <div dangerouslySetInnerHTML={{ __html: line }} style={{ fontWeight: 'bold', marginTop: lineIndex > 0 ? '12px' : '0' }} />
-                        ) : (
-                          line
-                        )}
-                      </div>
-                    ))}
+                    {expandedReleases.has(release.tag_name) ? (
+                      parseBody(release.body).map((line, lineIndex) => (
+                        <div key={lineIndex} style={{ marginBottom: '4px' }}>
+                          {line.includes('<strong>') ? (
+                            <div dangerouslySetInnerHTML={{ __html: line }} style={{ fontWeight: 'bold', marginTop: lineIndex > 0 ? '12px' : '0' }} />
+                          ) : (
+                            line
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <span>{getSummary(release.body)}</span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => toggleExpanded(release.tag_name)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        background: 'none',
+                        border: 'none',
+                        color: index === 0 ? 'var(--bg-primary)' : '#007bff',
+                        cursor: 'pointer',
+                        padding: '4px 0',
+                        fontSize: '13px',
+                        textDecoration: 'underline'
+                      }}
+                    >
+                      <i className={`fas fa-chevron-${expandedReleases.has(release.tag_name) ? 'up' : 'down'}`} style={{ fontSize: '10px' }}></i>
+                      {expandedReleases.has(release.tag_name) ? 'Show less' : 'Show more'}
+                    </button>
                   </div>
                 </div>
               ))}

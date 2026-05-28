@@ -16,6 +16,11 @@ interface SearchResultsProps {
   previewLoadingId: number | null;
   searchType?: 'subtitles' | 'file';
   hasSearched?: boolean;
+  downloadQueue?: SubtitleSearchResult[];
+  onToggleQueueItem?: (result: SubtitleSearchResult) => void;
+  onSelectAll?: () => void;
+  onDeselectAll?: () => void;
+  batchDownloading?: boolean;
 }
 
 function SearchResults({
@@ -29,7 +34,12 @@ function SearchResults({
   downloadingIds,
   previewLoadingId,
   searchType = 'subtitles',
-  hasSearched = false
+  hasSearched = false,
+  downloadQueue = [],
+  onToggleQueueItem,
+  onSelectAll,
+  onDeselectAll,
+  batchDownloading = false,
 }: SearchResultsProps) {
   if (isLoading) {
     return (
@@ -95,11 +105,16 @@ function SearchResults({
         alignItems: 'center',
         marginBottom: '20px',
         padding: '0 4px',
+        flexWrap: 'wrap',
+        gap: '8px',
       }}>
         <div style={{
           fontSize: '16px',
           fontWeight: 'bold',
           color: 'var(--text-primary)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
         }}>
           <i className="fas fa-list"></i> {results.length} subtitle{results.length !== 1 ? 's' : ''} found
           {totalPages > 1 && (
@@ -107,12 +122,77 @@ function SearchResults({
               fontSize: '14px',
               fontWeight: 'normal',
               color: 'var(--text-secondary)',
-              marginLeft: '8px',
             }}>
               (Page {currentPage + 1} of {totalPages})
             </span>
           )}
+          {downloadQueue.length > 0 && (
+            <span style={{
+              fontSize: '12px',
+              fontWeight: '600',
+              color: 'var(--primary-color)',
+              background: 'var(--bg-tertiary)',
+              padding: '2px 8px',
+              borderRadius: '10px',
+            }}>
+              {downloadQueue.length} selected
+            </span>
+          )}
         </div>
+        {results.length > 0 && onToggleQueueItem && (
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button
+              onClick={onSelectAll}
+              disabled={batchDownloading}
+              style={{
+                padding: '4px 10px',
+                fontSize: '12px',
+                fontWeight: '500',
+                background: 'transparent',
+                color: 'var(--text-secondary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '4px',
+                cursor: batchDownloading ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--primary-color)';
+                e.currentTarget.style.color = 'var(--primary-color)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border-color)';
+                e.currentTarget.style.color = 'var(--text-secondary)';
+              }}
+            >
+              <i className="fas fa-check-double"></i> Select All
+            </button>
+            <button
+              onClick={onDeselectAll}
+              disabled={batchDownloading}
+              style={{
+                padding: '4px 10px',
+                fontSize: '12px',
+                fontWeight: '500',
+                background: 'transparent',
+                color: 'var(--text-secondary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '4px',
+                cursor: batchDownloading ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--danger-color)';
+                e.currentTarget.style.color = 'var(--danger-color)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border-color)';
+                e.currentTarget.style.color = 'var(--text-secondary)';
+              }}
+            >
+              <i className="fas fa-times"></i> Deselect All
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Top Pagination */}
@@ -132,6 +212,9 @@ function SearchResults({
             isLoadingPreview={result.attributes.files.some(file =>
               file.file_id === previewLoadingId
             )}
+            isSelected={downloadQueue.some(q => q.id === result.id)}
+            onToggleSelect={onToggleQueueItem}
+            batchDownloading={batchDownloading}
           />
         ))}
       </div>

@@ -51,9 +51,12 @@ interface SubtitleCardProps {
   onPreview: (fileId: number, fileName: string) => void;
   isDownloading?: boolean;
   isLoadingPreview?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (result: SubtitleSearchResult) => void;
+  batchDownloading?: boolean;
 }
 
-function SubtitleCard({ result, onDownload, onPreview, isDownloading = false, isLoadingPreview = false }: SubtitleCardProps) {
+function SubtitleCard({ result, onDownload, onPreview, isDownloading = false, isLoadingPreview = false, isSelected = false, onToggleSelect, batchDownloading = false }: SubtitleCardProps) {
   const { attributes } = result;
   const [showAIModal, setShowAIModal] = useState(false);
 
@@ -166,7 +169,7 @@ function SubtitleCard({ result, onDownload, onPreview, isDownloading = false, is
   return (
     <div style={{
       background: 'var(--bg-secondary)',
-      border: '1px solid var(--border-color)',
+      border: isSelected ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
       borderRadius: '8px',
       padding: '14px',
       marginBottom: '10px',
@@ -175,12 +178,16 @@ function SubtitleCard({ result, onDownload, onPreview, isDownloading = false, is
     }}
     className="subtitle-card"
     onMouseEnter={(e) => {
-      e.currentTarget.style.borderColor = 'var(--primary-color)';
+      if (!isSelected) {
+        e.currentTarget.style.borderColor = 'var(--primary-color)';
+      }
       e.currentTarget.style.transform = 'translateY(-2px)';
       e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
     }}
     onMouseLeave={(e) => {
-      e.currentTarget.style.borderColor = 'var(--border-color)';
+      if (!isSelected) {
+        e.currentTarget.style.borderColor = 'var(--border-color)';
+      }
       e.currentTarget.style.transform = 'translateY(0)';
       e.currentTarget.style.boxShadow = 'none';
     }}
@@ -389,7 +396,43 @@ function SubtitleCard({ result, onDownload, onPreview, isDownloading = false, is
         </div>
 
         {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: '6px', flex: '0 0 auto' }}>
+        <div style={{ display: 'flex', gap: '6px', flex: '0 0 auto', alignItems: 'center' }}>
+          {onToggleSelect && (
+            <label
+              title="Add to download queue. Select multiple files and download them all at once using the batch download bar at the bottom."
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                cursor: batchDownloading ? 'not-allowed' : 'pointer',
+                margin: 0,
+                padding: '0 6px',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <input
+                type="checkbox"
+                checked={isSelected}
+                disabled={batchDownloading}
+                onChange={() => onToggleSelect(result)}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  width: '16px',
+                  height: '16px',
+                  cursor: batchDownloading ? 'not-allowed' : 'pointer',
+                  accentColor: 'var(--primary-color)',
+                }}
+              />
+              <span style={{
+                fontSize: '11px',
+                color: isSelected ? 'var(--primary-color)' : 'var(--text-secondary)',
+                fontWeight: isSelected ? '600' : '400',
+                whiteSpace: 'nowrap',
+              }}>
+                Queue
+              </span>
+            </label>
+          )}
           {/* Preview Button */}
           <button
             onClick={(e) => {
