@@ -262,7 +262,38 @@ function AppContent({
   const [mainScreenProcessing, setMainScreenProcessing] = useState(false);
   const [batchScreenProcessing, setBatchScreenProcessing] = useState(false);
   const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
-  
+  const creditsRef = useRef<HTMLDivElement>(null);
+  const costTextRef = useRef<HTMLDivElement>(null);
+  const creditsNumberRef = useRef<HTMLElement>(null);
+
+  const triggerCreditsFlash = (containerClass: string, textClass: string) => {
+    if (creditsRef.current) {
+      creditsRef.current.classList.remove('credits-flash', 'credits-deduct');
+      void creditsRef.current.offsetWidth;
+      creditsRef.current.classList.add(containerClass);
+    }
+    if (creditsNumberRef.current) {
+      creditsNumberRef.current.classList.remove('credits-deduct-text');
+      void creditsNumberRef.current.offsetWidth;
+      creditsNumberRef.current.classList.add(textClass);
+    }
+  };
+
+  useEffect(() => {
+    if (estimatedCost !== null && creditsRef.current) {
+      const el = creditsRef.current;
+      el.classList.remove('credits-flash', 'credits-deduct');
+      void el.offsetWidth;
+      el.classList.add('credits-flash');
+    }
+    if (estimatedCost !== null && costTextRef.current) {
+      const el = costTextRef.current;
+      el.classList.remove('credits-cost-flash');
+      void el.offsetWidth;
+      el.classList.add('credits-cost-flash');
+    }
+  }, [estimatedCost]);
+
   // Centralized status state
   const [_isNetworkOnline, setIsNetworkOnline] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -464,10 +495,9 @@ function AppContent({
   };
 
   const handleCreditsUpdate = (creditsData: { used: number; remaining: number }) => {
-    // Update credits in centralized context
     updateCredits(creditsData);
+    triggerCreditsFlash('credits-deduct', 'credits-deduct-text');
 
-    // Also update local config for backwards compatibility
     setConfig(prevConfig => {
       if (!prevConfig) return prevConfig;
       return {
@@ -856,6 +886,7 @@ function AppContent({
       {/* Floating Credits Display */}
       {credits && currentScreen !== 'login' && (
         <div
+          ref={creditsRef}
           onClick={() => setCurrentScreen('credits')}
           style={{
             position: 'fixed',
@@ -882,9 +913,11 @@ function AppContent({
             e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
           }}
         >
-          <i className="fas fa-coins" style={{color: 'var(--text-primary)', marginRight: '6px'}}></i>Credits: <strong>{credits.remaining}</strong>
+          <i className="fas fa-coins" style={{color: 'var(--text-primary)', marginRight: '6px'}}></i>Credits: <strong ref={creditsNumberRef}>{credits.remaining}</strong>
           {estimatedCost !== null && (
-            <div style={{
+            <div
+              ref={costTextRef}
+              style={{
               fontSize: '12px',
               color: estimatedCost === 0 ? 'var(--success-color)' : estimatedCost > credits.remaining ? 'var(--danger-color)' : 'var(--text-muted)',
               marginTop: '4px',
