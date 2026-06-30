@@ -11,6 +11,7 @@ import { useAPI } from '../contexts/APIContext';
 import { generateFilename } from '../utils/filenameGenerator';
 import appConfig from '../config/appConfig.json';
 import * as fileFormatsConfig from '../../../shared/fileFormats.json';
+import SubtitlePreviewModal from './SubtitlePreviewModal';
 
 // Utility functions for file type checking
 const isVideoFile = (fileName: string): boolean => {
@@ -1372,64 +1373,74 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
     poll();
   };
 
+  // ── Generate the output filename for the processed result ──
+  const generateResultFilename = (): string => {
+    if (!selectedFile || !fileType) return '';
+
+    // Derive basename synchronously from the path (handles both / and \ separators)
+    const originalFileName = selectedFile.split(/[/\\]/).pop() || selectedFile;
+
+    let languageCode = '';
+    let languageName = '';
+    let format = '';
+
+    if (fileType === 'translation') {
+      languageCode = translationOptions.destinationLanguage;
+      format = translationOptions.format;
+
+      // Find language name from translation info using sync function
+      if (translationOptions.model) {
+        const syncLanguageName = getTranslationLanguageNameSync(translationOptions.model, languageCode);
+        languageName = syncLanguageName || languageCode;
+      } else {
+        languageName = languageCode;
+      }
+    } else {
+      languageCode = transcriptionOptions.language;
+      format = transcriptionOptions.format;
+
+      // Find language name from transcription info using sync function
+      if (transcriptionOptions.model) {
+        const syncLanguageName = getTranscriptionLanguageNameSync(transcriptionOptions.model, languageCode);
+        languageName = syncLanguageName || languageCode;
+      } else {
+        languageName = languageCode;
+      }
+    }
+
+    // Use custom filename format if available, otherwise fallback to default
+    const filenamePattern = config.defaultFilenameFormat || '{filename}.{language_code}.{type}.{extension}';
+    return generateFilename(
+      filenamePattern,
+      originalFileName,
+      languageCode,
+      languageName,
+      fileType,
+      format
+    );
+  };
+
+  // ── Save result file via Electron save dialog ──
   const handleSaveFile = async (content: string) => {
-    if (!selectedFile || !fileType) return;
+    if (!selectedFile) return;
 
     try {
-      // Generate filename suggestion with language code and same directory as source
-      const originalFileName = await window.electronAPI.getBaseName(selectedFile);
+      const newFileName = generateResultFilename();
+      if (!newFileName) return;
+
       const originalDirectory = await window.electronAPI.getDirectoryName(selectedFile);
-
-      let languageCode = '';
-      let languageName = '';
-      let format = '';
-
-      if (fileType === 'translation') {
-        languageCode = translationOptions.destinationLanguage;
-        format = translationOptions.format;
-
-        // Find language name from translation info using sync function
-        if (translationOptions.model) {
-          const syncLanguageName = getTranslationLanguageNameSync(translationOptions.model, languageCode);
-          languageName = syncLanguageName || languageCode;
-        } else {
-          languageName = languageCode;
-        }
-      } else {
-        languageCode = transcriptionOptions.language;
-        format = transcriptionOptions.format;
-
-        // Find language name from transcription info using sync function
-        if (transcriptionOptions.model) {
-          const syncLanguageName = getTranscriptionLanguageNameSync(transcriptionOptions.model, languageCode);
-          languageName = syncLanguageName || languageCode;
-        } else {
-          languageName = languageCode;
-        }
-      }
-
-      // Use custom filename format if available, otherwise fallback to default
-      const filenamePattern = config.defaultFilenameFormat || '{filename}.{language_code}.{type}.{extension}';
-      const newFileName = generateFilename(
-        filenamePattern,
-        originalFileName,
-        languageCode,
-        languageName,
-        fileType,
-        format
-      );
 
       // Combine directory path with new filename
       const suggestedFullPath = originalDirectory ? `${originalDirectory}/${newFileName}` : newFileName;
-      
+
       logger.info('MainScreen', `Saving file with suggested path: ${suggestedFullPath}`);
-      
+
       const savedPath = await window.electronAPI.saveFile(content, suggestedFullPath);
-      
+
       if (savedPath) {
-        setStatusMessage({ 
-          type: 'success', 
-          message: `File saved successfully: ${savedPath}` 
+        setStatusMessage({
+          type: 'success',
+          message: `File saved successfully: ${savedPath}`
         });
         setShowPreview(false);
       } else {
@@ -1437,16 +1448,16 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       }
     } catch (error: any) {
       logger.error('MainScreen', 'File save error:', error);
-      
+
       // Show detailed error only in debug mode, simple message otherwise
       let errorMessage = 'Failed to save file. Please try again.';
       if (config.debugMode) {
         errorMessage = error.message || errorMessage;
       }
-      
-      setStatusMessage({ 
-        type: 'error', 
-        message: `Failed to save file: ${errorMessage}` 
+
+      setStatusMessage({
+        type: 'error',
+        message: `Failed to save file: ${errorMessage}`
       });
     }
   };
@@ -1920,17 +1931,13 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         </div>
       )}
 
-      {showPreview && (
-        <PreviewDialog 
-          content={previewContent}
-          onClose={handlePreviewClose}
-          onSave={handleSaveFile}
-          fileType={fileType}
-          selectedFile={selectedFile}
-          translationOptions={translationOptions}
-          transcriptionOptions={transcriptionOptions}
-        />
-      )}
+      <SubtitlePreviewModal
+        isOpen={showPreview}
+        onClose={handlePreviewClose}
+        content={previewContent}
+        fileName={generateResultFilename() || selectedFile?.split(/[/\\]/).pop() || ''}
+        onDownload={() => handleSaveFile(previewContent)}
+      />
       
       {/* Credit Warning Modal */}
       {showCreditModal && (
@@ -2044,120 +2051,6 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
     </div>
   );
 }
-
-
-interface PreviewDialogProps {
-  content: string;
-  onClose: () => void;
-  onSave: (content: string) => void;
-  fileType: 'transcription' | 'translation' | null;
-  selectedFile: string | null;
-  translationOptions: {
-    sourceLanguage: string;
-    destinationLanguage: string;
-    model: string;
-    format: string;
-  };
-  transcriptionOptions: {
-    language: string;
-    model: string;
-    format: string;
-  };
-}
-
-function PreviewDialog({ content, onClose, onSave }: PreviewDialogProps) {
-  return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000
-    }}>
-      <div style={{
-        backgroundColor: 'var(--bg-primary)',
-        padding: '20px',
-        borderRadius: '8px',
-        maxWidth: '80%',
-        maxHeight: '80%',
-        overflow: 'auto',
-        minWidth: '500px',
-        minHeight: '400px',
-        border: '1px solid var(--border-color)',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-          <h3 style={{ color: 'var(--text-primary)', margin: 0 }}>Result Preview</h3>
-          <button
-            onClick={onClose}
-            style={{
-              fontSize: '18px',
-              padding: '5px 10px',
-              backgroundColor: 'var(--bg-secondary)',
-              color: 'var(--text-primary)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
-            <i className="fas fa-times"></i>
-          </button>
-        </div>
-
-        <textarea
-          value={content}
-          readOnly
-          style={{
-            width: '100%',
-            height: '300px',
-            fontFamily: 'monospace',
-            fontSize: '12px',
-            border: '1px solid var(--border-color)',
-            padding: '10px',
-            resize: 'vertical',
-            backgroundColor: 'var(--bg-secondary)',
-            color: 'var(--text-primary)'
-          }}
-        />
-
-        <div style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
-          <button
-            onClick={() => onSave(content)}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: 'var(--success-color)',
-              color: 'var(--bg-primary)',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
-            Save to File
-          </button>
-          <button
-            onClick={onClose}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: 'var(--bg-tertiary)',
-              color: 'var(--text-primary)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 
 
 export default MainScreen;

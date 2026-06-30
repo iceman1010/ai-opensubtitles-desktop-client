@@ -6,6 +6,7 @@ import { isFullyOnline } from '../utils/networkUtils';
 import { useAPI } from '../contexts/APIContext';
 import { generateFilename } from '../utils/filenameGenerator';
 import * as fileFormatsConfig from '../../../shared/fileFormats.json';
+import SubtitlePreviewModal from './SubtitlePreviewModal';
 
 // Cache for file type checks to avoid repeated calculations
 const fileTypeCache = new Map<string, { isVideo: boolean; isAudio: boolean; isSubtitle: boolean; timestamp: number }>();
@@ -157,6 +158,10 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
 
   const [showCompletionSummary, setShowCompletionSummary] = useState(false);
   const [showLanguageValidationModal, setShowLanguageValidationModal] = useState(false);
+
+  // Preview state (subtitle preview modal, rendered above the completion summary)
+  const [previewContent, setPreviewContent] = useState<string | null>(null);
+  const [previewFileName, setPreviewFileName] = useState<string>('');
   
   // API and data states - now using centralized APIContext
   const { 
@@ -976,6 +981,48 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
         clearTimeout(detectionTimeoutRef.current);
       }
     };
+  }, []);
+
+  // ── Preview helpers ──
+  // Reads the output file from disk (files are written directly during batch processing)
+  // and opens it in the subtitle preview modal.
+  // NOTE: readTextFile IPC returns { content, fileName }, not a plain string.
+  const handlePreviewFile = useCallback(async (filePath: string) => {
+    try {
+      const result = await window.electronAPI?.readTextFile(filePath);
+      if (result?.content) {
+        setPreviewContent(result.content);
+        setPreviewFileName(filePath.split(/[/\\]/).pop() || filePath);
+      } else {
+        logger.error('BatchScreen', `Preview: output file is empty or unreadable: ${filePath}`);
+      }
+    } catch (error: any) {
+      logger.error('BatchScreen', 'Preview: failed to read output file:', error);
+    }
+  }, []);
+
+  const handlePreviewClose = useCallback(() => {
+    setPreviewContent(null);
+    setPreviewFileName('');
+  }, []);
+
+  const handlePreviewDownload = useCallback(async () => {
+    if (previewContent && previewFileName) {
+      await window.electronAPI?.saveFile(previewContent, previewFileName);
+    }
+  }, [previewContent, previewFileName]);
+
+  // Save a copy of an output file to a user-chosen location via the save dialog
+  const handleDownloadFile = useCallback(async (filePath: string) => {
+    try {
+      const result = await window.electronAPI?.readTextFile(filePath);
+      if (result?.content) {
+        const baseName = filePath.split(/[/\\]/).pop() || filePath;
+        await window.electronAPI?.saveFile(result.content, baseName);
+      }
+    } catch (error: any) {
+      logger.error('BatchScreen', 'Download: failed to read/save output file:', error);
+    }
   }, []);
 
   // Keep queueRef in sync with queue state for dynamic queue monitoring
@@ -2777,23 +2824,102 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
                   backgroundColor: '#f8f9fa'
                 }}>
                   {batchStats.outputFiles.map((filePath, index) => (
-                    <div 
+                    <div
                       key={index}
                       style={{
                         padding: '8px 12px',
                         borderBottom: index < batchStats.outputFiles.length - 1 ? '1px solid #eee' : 'none',
-                        fontSize: '13px',
-                        fontFamily: 'monospace',
-                        color: '#333',
-                        cursor: 'pointer'
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '8px',
                       }}
-                      onClick={() => {
-                        // Copy to clipboard
-                        navigator.clipboard.writeText(filePath);
-                      }}
-                      title="Click to copy path"
                     >
-                      {filePath}
+                      <span
+                        style={{
+                          fontSize: '13px',
+                          fontFamily: 'monospace',
+                          color: '#333',
+                          wordBreak: 'break-all',
+                          flex: 1,
+                          minWidth: 0,
+                          cursor: 'pointer',
+                        }}
+                        onClick={() => {
+                          // Copy to clipboard
+                          navigator.clipboard.writeText(filePath);
+                        }}
+                        title="Click to copy path"
+                      >
+                        {filePath}
+                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                        {/* Preview Button */}
+                        <div
+                          onClick={() => handlePreviewFile(filePath)}
+                          title="Preview subtitle"
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'var(--text-secondary)',
+                            cursor: 'pointer',
+                            padding: '6px',
+                            borderRadius: '4px',
+                            fontSize: '13px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '28px',
+                            height: '28px',
+                            transition: 'all 0.2s ease',
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--primary-color)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                        >
+                          <i className="fas fa-eye"></i>
+                        </div>
+                        {/* Download Button */}
+                        <div
+                          onClick={() => handleDownloadFile(filePath)}
+                          title="Save a copy"
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'var(--primary-color)',
+                            cursor: 'pointer',
+                            padding: '6px',
+                            borderRadius: '4px',
+                            fontSize: '13px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '28px',
+                            height: '28px',
+                            transition: 'all 0.2s ease',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(52, 73, 94, 0.7)';
+                            const icon = e.currentTarget.querySelector('i');
+                            if (icon) {
+                              icon.style.transform = 'scale(1.3)';
+                              const isDarkMode = document.documentElement.classList.contains('dark-mode');
+                              icon.style.textShadow = isDarkMode
+                                ? '0 0 8px rgba(255, 255, 0, 0.6)'
+                                : '0 0 8px rgba(0, 150, 255, 0.8)';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                            const icon = e.currentTarget.querySelector('i');
+                            if (icon) {
+                              icon.style.transform = 'scale(1)';
+                              icon.style.textShadow = 'none';
+                            }
+                          }}
+                        >
+                          <i className="fas fa-download"></i>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -2829,6 +2955,15 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
           </div>
         </div>
       )}
+
+      {/* Subtitle Preview Modal (rendered above the completion summary via portal) */}
+      <SubtitlePreviewModal
+        isOpen={previewContent !== null}
+        onClose={handlePreviewClose}
+        content={previewContent || ''}
+        fileName={previewFileName}
+        onDownload={handlePreviewDownload}
+      />
 
       <style>{`
         @media (max-width: 1024px) {
