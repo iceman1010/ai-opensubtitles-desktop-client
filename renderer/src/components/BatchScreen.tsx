@@ -2809,10 +2809,10 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
             {/* Output Files List */}
             {batchStats.outputFiles.length > 0 && (
               <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ 
-                  margin: '0 0 12px 0', 
-                  fontSize: '16px', 
-                  color: '#333' 
+                <h3 style={{
+                  margin: '0 0 12px 0',
+                  fontSize: '16px',
+                  color: 'var(--text-primary)'
                 }}>
                   Output Files:
                 </h3>
@@ -2821,14 +2821,14 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
                   overflow: 'auto',
                   border: '1px solid var(--border-color)',
                   borderRadius: '4px',
-                  backgroundColor: '#f8f9fa'
+                  backgroundColor: 'var(--bg-tertiary)'
                 }}>
                   {batchStats.outputFiles.map((filePath, index) => (
                     <div
                       key={index}
                       style={{
                         padding: '8px 12px',
-                        borderBottom: index < batchStats.outputFiles.length - 1 ? '1px solid #eee' : 'none',
+                        borderBottom: index < batchStats.outputFiles.length - 1 ? '1px solid var(--border-color)' : 'none',
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
@@ -2839,7 +2839,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
                         style={{
                           fontSize: '13px',
                           fontFamily: 'monospace',
-                          color: '#333',
+                          color: 'var(--text-primary)',
                           wordBreak: 'break-all',
                           flex: 1,
                           minWidth: 0,
