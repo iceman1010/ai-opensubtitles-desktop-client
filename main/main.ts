@@ -5,8 +5,51 @@ import * as crypto from 'crypto';
 import { ConfigManager } from './config';
 import { FFmpegManager } from './ffmpeg';
 import { initializePowerSaveBlocker, cleanupPowerSaveBlocker } from './powerSaveBlocker';
+import { logger } from './logger';
 import * as fileFormatsConfig from '../shared/fileFormats.json';
 import { calculateMovieHash } from './utils/moviehash';
+
+// Initialize crash-survivable logging FIRST, before anything else.
+// This must survive even if initialize() never runs (e.g. fatal crash before ready).
+logger.init();
+
+// Global crash handlers — registered at module load so they catch errors
+// regardless of when/where they occur in the lifecycle.
+process.on('uncaughtException', (error: Error) => {
+  logger.error('FATAL', `Uncaught exception: ${error.message}`, { stack: error.stack });
+  logger.flushAndExit(1);
+});
+
+process.on('unhandledRejection', (reason: unknown) => {
+  const message = reason instanceof Error ? reason.message : String(reason);
+  const stack = reason instanceof Error ? reason.stack : undefined;
+  logger.error('FATAL', `Unhandled promise rejection: ${message}`, { stack });
+  // Do not exit — unhandled rejections are often non-fatal
+});
+
+app.on('render-process-gone', (_event, _webContents, details) => {
+  logger.error('RENDER', `Render process gone: reason=${details.reason} exitCode=${details.exitCode}`, details);
+});
+
+app.on('child-process-gone', (_event, details) => {
+  logger.error('CHILD-PROC', `Child process gone: type=${details.type} reason=${details.reason} exitCode=${details.exitCode}`, details);
+});
+
+// Crash-report IPC — registered at module load (not in setupIPC) so the renderer
+// can query a pending crash report even when initialization fails before
+// setupIPC() runs.
+ipcMain.handle('crash-report:pending', () => {
+  return logger.hasPendingCrashReport();
+});
+
+ipcMain.handle('crash-report:get', () => {
+  return logger.getCrashReport();
+});
+
+ipcMain.handle('crash-report:dismiss', () => {
+  logger.dismissCrashReport();
+  return true;
+});
 
 class MainApp {
   private mainWindow: BrowserWindow | null = null;
@@ -28,6 +71,17 @@ class MainApp {
     if (debugLevel >= level) {
       console.log(`[${category}] ${message}`, ...args);
     }
+  }
+
+  // Safely show a message box — bails with a logged warning if the main window
+  // is gone (e.g. updater callback firing after window close). Returns a
+  // simulated "cancel" response so callers can treat it as a no-op.
+  private async safeShowMessageBox(options: Electron.MessageBoxOptions): Promise<Electron.MessageBoxReturnValue> {
+    if (!this.mainWindow || this.mainWindow.isDestroyed()) {
+      logger.warn('Dialog', `Skipped dialog (window unavailable): ${options.title || options.message}`);
+      return { response: 1, checkboxChecked: false } as Electron.MessageBoxReturnValue;
+    }
+    return dialog.showMessageBox(this.mainWindow, options);
   }
 
   private checkForMultipleInstallations() {
@@ -108,69 +162,100 @@ class MainApp {
   }
 
   async initialize() {
-    // Check for multiple installations on Windows
-    this.checkForMultipleInstallations();
-
-    // Parse command line arguments for file path
-    this.parseCommandLineArguments(process.argv);
-
-    // Enforce single instance
-    const gotTheLock = app.requestSingleInstanceLock();
-    
-    if (!gotTheLock) {
-      // Another instance is already running - show warning and exit
-      console.warn('Another instance of the application is already running.');
-      app.quit();
-      return;
-    }
-
-    // Handle when someone tries to run a second instance
-    app.on('second-instance', (event, commandLine, workingDirectory) => {
-      // Parse the file paths from second instance
-      const filePaths = this.parseCommandLineArguments(commandLine);
-      
-      // Focus the existing window
-      if (this.mainWindow) {
-        if (this.mainWindow.isMinimized()) this.mainWindow.restore();
-        this.mainWindow.focus();
-        
-        // Send the file paths to renderer if provided
-        if (filePaths.length > 0) {
-          this.sendFilesToRenderer(filePaths);
-        }
-      }
-    });
-
-    await app.whenReady();
-    
-    // Get user-agent from config, fallback to hardcoded value
-    const userConfig = await this.configManager.getConfig();
-    let customUserAgent = 'API_Test_AI.OS'; // fallback
-    
+    logger.stage('start');
     try {
-      const appConfigPath = path.join(__dirname, '../../renderer/src/config/appConfig.json');
-      const fs = require('fs');
-      if (fs.existsSync(appConfigPath)) {
-        const appConfig = JSON.parse(fs.readFileSync(appConfigPath, 'utf8'));
-        if (appConfig.userAgent) {
-          customUserAgent = appConfig.userAgent;
-        }
+      // Check for multiple installations on Windows
+      this.checkForMultipleInstallations();
+      logger.stage('multi-install-checked');
+
+      // Parse command line arguments for file path
+      this.parseCommandLineArguments(process.argv);
+
+      // Enforce single instance
+      const gotTheLock = app.requestSingleInstanceLock();
+      logger.stage('single-instance-lock');
+
+      if (!gotTheLock) {
+        // Another instance is already running - show warning and exit
+        logger.warn('STARTUP', 'Another instance already running, quitting');
+        console.warn('Another instance of the application is already running.');
+        app.quit();
+        return;
       }
+
+      // Handle when someone tries to run a second instance
+      app.on('second-instance', (event, commandLine, workingDirectory) => {
+        // Parse the file paths from second instance
+        const filePaths = this.parseCommandLineArguments(commandLine);
+        
+        // Focus the existing window
+        if (this.mainWindow) {
+          if (this.mainWindow.isMinimized()) this.mainWindow.restore();
+          this.mainWindow.focus();
+          
+          // Send the file paths to renderer if provided
+          if (filePaths.length > 0) {
+            this.sendFilesToRenderer(filePaths);
+          }
+        }
+      });
+
+      await app.whenReady();
+      logger.stage('app-ready');
+
+      // Sync logger debug level from stored config
+      const earlyConfig = this.configManager.getConfig();
+      logger.setDebugLevel(earlyConfig.debugLevel ?? 0);
+
+      // Get user-agent from config, fallback to hardcoded value
+      const userConfig = await this.configManager.getConfig();
+      let customUserAgent = 'API_Test_AI.OS'; // fallback
+      
+      try {
+        const appConfigPath = path.join(__dirname, '../../renderer/src/config/appConfig.json');
+        const fs = require('fs');
+        if (fs.existsSync(appConfigPath)) {
+          const appConfig = JSON.parse(fs.readFileSync(appConfigPath, 'utf8'));
+          if (appConfig.userAgent) {
+            customUserAgent = appConfig.userAgent;
+          }
+        }
+      } catch (error) {
+        this.debug(1, 'Main', 'Failed to load user-agent from config, using fallback:', error);
+      }
+      
+      this.debug(2, 'Main', 'Setting User-Agent to:', customUserAgent);
+      
+      // Set globally for the default session
+      session.defaultSession.setUserAgent(customUserAgent);
+      
+      await this.createWindow();
+      logger.stage('window-created');
+
+      await this.setupIPC();
+      logger.stage('ipc-setup');
+
+      await this.setupAutoUpdater();
+      logger.stage('auto-updater');
+
+      const appConfig = this.configManager.getConfig();
+      this.ffmpegManager.setDebugLevel(appConfig.debugLevel ?? 0);
+      await this.ffmpegManager.initialize(appConfig.ffmpegPath);
+      logger.stage('ffmpeg-ready');
     } catch (error) {
-      this.debug(1, 'Main', 'Failed to load user-agent from config, using fallback:', error);
+      const message = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack : undefined;
+      logger.error('STARTUP', `Initialization failed: ${message}`, { stack });
+      try {
+        dialog.showErrorBox(
+          'Startup Failed',
+          `The application failed to start: ${message}\n\nPlease try again. If the problem persists, please contact support.`
+        );
+      } catch {
+        // If the dialog itself fails, the log entry is our only record
+      }
+      app.quit();
     }
-    
-    this.debug(2, 'Main', 'Setting User-Agent to:', customUserAgent);
-    
-    // Set globally for the default session
-    session.defaultSession.setUserAgent(customUserAgent);
-    
-    await this.createWindow();
-    await this.setupIPC();
-    await this.setupAutoUpdater();
-    const appConfig = this.configManager.getConfig();
-    this.ffmpegManager.setDebugLevel(appConfig.debugLevel ?? 0);
-    await this.ffmpegManager.initialize(appConfig.ffmpegPath);
   }
 
   private async createWindow() {
@@ -221,12 +306,25 @@ class MainApp {
 
       this.debug(3, 'Renderer', '==========================');
       
-      await this.mainWindow.loadFile(rendererPath);
+      try {
+        await this.mainWindow.loadFile(rendererPath);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        logger.error('RENDERER', `loadFile failed: ${message}`, {
+          rendererPath,
+          stack: error instanceof Error ? error.stack : undefined
+        });
+        throw error; // re-throw to be caught by initialize()'s try/catch
+      }
     }
 
     // Force show the window and add error handling
     this.mainWindow.show();
-    this.mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    this.mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+      logger.error('RENDERER', `did-fail-load: code=${errorCode} desc=${errorDescription}`, {
+        validatedURL,
+        isMainFrame
+      });
       console.error('Failed to load:', errorCode, errorDescription);
     });
 
@@ -240,6 +338,10 @@ class MainApp {
 
     // Send pending file paths to renderer once the window is ready
     this.mainWindow.webContents.once('did-finish-load', () => {
+      // Startup completed successfully — clear the crash sentinel
+      logger.stage('renderer-finished-load');
+      logger.clearSentinel();
+
       if (this.pendingFilePaths.length > 0) {
         this.sendFilesToRenderer(this.pendingFilePaths);
         this.pendingFilePaths = [];
@@ -624,7 +726,7 @@ class MainApp {
 
        // Show confirmation dialog before downloading
        const currentVersion = app.getVersion();
-       const response = await dialog.showMessageBox(this.mainWindow!, {
+       const response = await this.safeShowMessageBox({
          type: 'info',
          buttons: ['Download Now', 'Later'],
          defaultId: 0,
@@ -734,7 +836,7 @@ class MainApp {
     }
 
     // Show confirmation dialog before downloading
-    const response = await dialog.showMessageBox(this.mainWindow!, {
+    const response = await this.safeShowMessageBox({
       type: 'info',
       buttons: ['Download Now', 'Cancel'],
       defaultId: 0,
@@ -852,7 +954,7 @@ class MainApp {
       this.sendUpdateStatus('update-error', `Installation failed: ${permissionCheck.error}`);
 
       // Show error dialog to user
-      await dialog.showMessageBox(this.mainWindow!, {
+      await this.safeShowMessageBox({
         type: 'error',
         title: 'Update Installation Failed',
         message: 'Cannot install update due to insufficient permissions.',
@@ -862,7 +964,7 @@ class MainApp {
     }
 
     // Show final confirmation before installation
-    const response = await dialog.showMessageBox(this.mainWindow!, {
+    const response = await this.safeShowMessageBox({
       type: 'question',
       buttons: ['Install & Restart', 'Cancel'],
       defaultId: 0,
@@ -900,7 +1002,7 @@ class MainApp {
       this.sendUpdateStatus('update-error', `Installation failed: ${permissionCheck.error}`);
 
       // Show error dialog to user
-      await dialog.showMessageBox(this.mainWindow!, {
+      await this.safeShowMessageBox({
         type: 'error',
         title: 'Update Installation Failed',
         message: 'Cannot install update due to insufficient permissions.',
@@ -914,7 +1016,7 @@ class MainApp {
       (updateInfo.releaseNotes || `Version ${updateInfo.version}`) :
       `Version ${updateInfo.version}`;
 
-    const response = await dialog.showMessageBox(this.mainWindow!, {
+    const response = await this.safeShowMessageBox({
       type: 'question',
       buttons: ['Install & Restart Now', 'Install Later'],
       defaultId: 0,
@@ -1723,7 +1825,12 @@ MimeType=`;
 const mainApp = new MainApp();
 
 app.on('ready', () => {
-  mainApp.initialize();
+  // initialize() has its own try/catch that logs + shows a dialog + quits.
+  // This outer .catch is a safety net for any rejection that escapes it.
+  mainApp.initialize().catch((error) => {
+    logger.error('FATAL', `initialize() escaped its try/catch: ${error instanceof Error ? error.message : String(error)}`,
+      { stack: error instanceof Error ? error.stack : undefined });
+  });
 });
 
 app.on('window-all-closed', () => {

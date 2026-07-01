@@ -12,6 +12,7 @@ import Help from './components/Help';
 import Support from './components/Support';
 import StatusBar from './components/StatusBar';
 import ErrorLogControls from './components/ErrorLogControls';
+import CrashReportModal from './components/CrashReportModal';
 import { APIProvider, useAPI } from './contexts/APIContext';
 import { PowerProvider, usePower, usePowerEvents, useHibernationRecovery } from './contexts/PowerContext';
 import { activityTracker } from './utils/activityTracker';
@@ -258,6 +259,11 @@ function AppContent({
   const [pendingBatchFiles, setPendingBatchFiles] = useState<string[]>([]);
   const [pendingMainFile, setPendingMainFile] = useState<string | null>(null);
 
+  // Crash-report state — detects a failed previous startup and offers to send
+  // a diagnostic report to support via the existing ticket flow.
+  const [crashReport, setCrashReport] = useState<any | null>(null);
+  const [pendingCrashDescription, setPendingCrashDescription] = useState<string | undefined>(undefined);
+
   // Track processing states from child screens
   const [mainScreenProcessing, setMainScreenProcessing] = useState(false);
   const [batchScreenProcessing, setBatchScreenProcessing] = useState(false);
@@ -360,6 +366,65 @@ function AppContent({
       window.electronAPI.removeKeyboardShortcutListener(handleKeyboardShortcut);
     };
   }, []);
+
+  // Detect a pending crash report from a failed previous startup
+  useEffect(() => {
+    const checkForCrashReport = async () => {
+      try {
+        const hasPending = await window.electronAPI?.hasPendingCrashReport?.();
+        if (hasPending) {
+          const report = await window.electronAPI?.getCrashReport?.();
+          if (report) {
+            logger.warn('App', `Pending crash report detected (last stage: ${report.lastStage})`);
+            setCrashReport(report);
+          }
+        }
+      } catch (error) {
+        logger.error('App', 'Failed to check for pending crash report:', error);
+      }
+    };
+
+    checkForCrashReport();
+  }, []);
+
+  // Format a crash report into a ticket description block
+  const formatCrashReportForTicket = (report: any): string => {
+    const logTail = (report.logTail || []).join('\n');
+    return [
+      '--- Automatic crash report ---',
+      `App version: ${report.appVersion}`,
+      `Platform: ${report.platform} ${report.platformVersion}`,
+      `Last startup stage reached: ${report.lastStage}`,
+      `Failed session started at: ${report.startedAt}`,
+      `Detected at: ${report.detectedAt}`,
+      'Last log lines:',
+      logTail,
+      '-------------------------------'
+    ].join('\n');
+  };
+
+  const handleCrashReportSend = async () => {
+    if (!crashReport) return;
+    const description = formatCrashReportForTicket(crashReport);
+    setPendingCrashDescription(description);
+    setCrashReport(null);
+    setCurrentScreen('support');
+    // Delete the crash report file so it doesn't reappear on next launch
+    try {
+      await window.electronAPI?.dismissCrashReport?.();
+    } catch (error) {
+      logger.error('App', 'Failed to clear crash report after sending:', error);
+    }
+  };
+
+  const handleCrashReportDismiss = async () => {
+    setCrashReport(null);
+    try {
+      await window.electronAPI?.dismissCrashReport?.();
+    } catch (error) {
+      logger.error('App', 'Failed to dismiss crash report:', error);
+    }
+  };
 
   // Handle external file opening (from file associations or command line)
   useEffect(() => {
@@ -879,7 +944,7 @@ function AppContent({
           <Help />
         )}
         {currentScreen === 'support' && (
-          <Support />
+          <Support prefilledDescription={pendingCrashDescription} />
         )}
       </div>
 
@@ -973,6 +1038,15 @@ function AppContent({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Crash report modal — shown when a previous startup failed */}
+      {crashReport && (
+        <CrashReportModal
+          report={crashReport}
+          onSend={handleCrashReportSend}
+          onDismiss={handleCrashReportDismiss}
+        />
       )}
     </div>
   );

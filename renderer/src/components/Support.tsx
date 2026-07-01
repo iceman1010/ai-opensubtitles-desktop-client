@@ -1,8 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAPI } from '../contexts/APIContext';
 import { logger } from '../utils/errorLogger';
 
-const Support: React.FC = () => {
+interface SupportProps {
+  prefilledDescription?: string;
+}
+
+const Support: React.FC<SupportProps> = ({ prefilledDescription }) => {
   const { createSupportTicket } = useAPI();
 
   const [name, setName] = useState('');
@@ -16,10 +20,20 @@ const Support: React.FC = () => {
   const [emailError, setEmailError] = useState('');
   const [descriptionError, setDescriptionError] = useState('');
 
+  // Track whether the prefill has been consumed so it only applies once per mount
+  const prefillConsumed = useRef(false);
+
   // Load initial values on mount
   useEffect(() => {
     const loadSavedData = async () => {
       try {
+        // Apply crash-report prefill (once per mount) — the user types their
+        // own description above this block.
+        if (prefilledDescription && !prefillConsumed.current) {
+          prefillConsumed.current = true;
+          setProblemDescription(prefilledDescription);
+        }
+
         // Try to load saved email from config
         const config = await window.electronAPI?.getConfig?.();
         if (config?.supportEmail) {
@@ -31,7 +45,7 @@ const Support: React.FC = () => {
     };
     
     loadSavedData();
-  }, []);
+  }, [prefilledDescription]);
 
   const validateEmail = (value: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

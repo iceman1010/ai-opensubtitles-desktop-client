@@ -1,6 +1,6 @@
 {
   "name": "ai-opensubtitles-client",
-  "version": "1.14.4",
+  "version": "1.14.5",
   "description": "Cross-platform desktop client for AI.Opensubtitles.com",
   "main": "dist/main/main.js",
   "homepage": "./",
@@ -11,7 +11,7 @@
   },
   "scripts": {
     "dev": "concurrently \"npm run dev:main\" \"npm run dev:renderer\"",
-    "dev:main": "tsc -p main/tsconfig.json && npm run copy:shared && NODE_ENV=development electron dist/main/main.js --no-sandbox --disable-gpu --disable-software-rasterizer --disable-gpu-sandbox",
+    "dev:main": "tsc -p main/tsconfig.json && npm run copy:shared && NODE_ENV=development electron dist/main/main.js",
     "dev:renderer": "vite",
     "build": "npm run build:main && npm run build:renderer && npm run copy:shared",
     "build:main": "tsc -p main/tsconfig.json",
