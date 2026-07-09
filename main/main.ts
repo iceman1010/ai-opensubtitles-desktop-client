@@ -283,6 +283,38 @@ class MainApp {
       this.debug(1, 'Main', 'Debug mode enabled - opening DevTools');
     }
 
+    // Register ALL webContents event listeners BEFORE loading content.
+    // loadFile()/loadURL() resolves when did-finish-load fires, so any
+    // listener registered after the await would silently miss the event
+    // (race condition). This is the correct Electron pattern.
+    this.mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+      logger.error('RENDERER', `did-fail-load: code=${errorCode} desc=${errorDescription}`, {
+        validatedURL,
+        isMainFrame
+      });
+      console.error('Failed to load:', errorCode, errorDescription);
+    });
+
+    this.mainWindow.webContents.on('dom-ready', () => {
+      this.debug(2, 'Main', 'DOM ready');
+    });
+
+    this.mainWindow.on('closed', () => {
+      this.mainWindow = null;
+    });
+
+    // Clear the crash sentinel and send pending file paths once the
+    // renderer has fully loaded. Must be registered before loadFile().
+    this.mainWindow.webContents.once('did-finish-load', () => {
+      logger.stage('renderer-finished-load');
+      logger.clearSentinel();
+
+      if (this.pendingFilePaths.length > 0) {
+        this.sendFilesToRenderer(this.pendingFilePaths);
+        this.pendingFilePaths = [];
+      }
+    });
+
     const isDev = process.env.NODE_ENV === 'development';
     if (isDev) {
       const devPort = process.env.VITE_DEV_PORT || '5173';
@@ -321,35 +353,8 @@ class MainApp {
       }
     }
 
-    // Force show the window and add error handling
+    // Force show the window after content has loaded
     this.mainWindow.show();
-    this.mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL, isMainFrame) => {
-      logger.error('RENDERER', `did-fail-load: code=${errorCode} desc=${errorDescription}`, {
-        validatedURL,
-        isMainFrame
-      });
-      console.error('Failed to load:', errorCode, errorDescription);
-    });
-
-    this.mainWindow.webContents.on('dom-ready', () => {
-      this.debug(2, 'Main', 'DOM ready');
-    });
-
-    this.mainWindow.on('closed', () => {
-      this.mainWindow = null;
-    });
-
-    // Send pending file paths to renderer once the window is ready
-    this.mainWindow.webContents.once('did-finish-load', () => {
-      // Startup completed successfully — clear the crash sentinel
-      logger.stage('renderer-finished-load');
-      logger.clearSentinel();
-
-      if (this.pendingFilePaths.length > 0) {
-        this.sendFilesToRenderer(this.pendingFilePaths);
-        this.pendingFilePaths = [];
-      }
-    });
 
     // Register keyboard shortcuts
     this.registerShortcuts();
