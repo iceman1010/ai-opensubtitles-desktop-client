@@ -46,11 +46,30 @@ macOS may block the app if it's not signed by the Apple App Store. This is norma
 
 ## Windows Installation
 
-### First-time Installation
+### Which file should I download?
 
-1. **Download** the `.exe` installer
+The release includes two Windows files. They are the **same application**, just packaged differently — you only need one.
+
+| File | Type | Best for |
+|------|------|----------|
+| **`AI.Opensubtitles.com.Client-Setup.exe`** | Installer (setup wizard) | Most users. Installs the app, creates Start Menu & Desktop shortcuts, registers an uninstaller, and enables auto-updates. |
+| **`AI.Opensubtitles.com.Client.exe`** | Portable (standalone) | Running without installing — e.g. company laptops without admin rights, USB sticks, or if you just don't want anything installed. |
+
+**Not sure? Pick `Client-Setup.exe`.** It is the recommended option for everyday use.
+
+### First-time Installation (Installer)
+
+1. **Download** `AI.Opensubtitles.com.Client-Setup.exe`
 2. **Run** the installer
 3. If prompted, allow the app to make changes to your device
+
+### Using the Portable Version
+
+1. **Download** `AI.Opensubtitles.com.Client.exe`
+2. **Save** it anywhere on your PC (e.g. Desktop or a USB drive)
+3. **Double-click** to run — no installation, no shortcuts, no registry entries
+
+> **Note:** The portable version does **not** support auto-updates. You will need to download future releases manually.
 
 ### Troubleshooting: "Windows protected your PC"
 
@@ -64,10 +83,6 @@ Windows may show a SmartScreen warning because the app isn't signed with a Micro
 - Code signing certificates cost $300+/year
 - We're working on obtaining one
 - The warning is a security feature that flags unsigned software
-
-### Alternative: Portable Version
-
-If the installer doesn't work, try the portable `.exe` version that doesn't require installation.
 
 ## Linux Installation
 

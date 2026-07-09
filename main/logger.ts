@@ -213,6 +213,9 @@ class Logger {
   private argsToString(args: any[]): string {
     return args.map((arg) => {
       if (typeof arg === 'string') return arg;
+      // Error objects have non-enumerable message/stack, so JSON.stringify
+      // collapses them to {}. Surface the stack (includes message) instead.
+      if (arg instanceof Error) return arg.stack || arg.message || arg.constructor.name;
       try {
         return JSON.stringify(arg);
       } catch {

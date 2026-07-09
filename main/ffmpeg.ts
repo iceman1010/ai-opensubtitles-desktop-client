@@ -272,44 +272,53 @@ export class FFmpegManager {
   private async downloadFFmpeg(): Promise<void> {
     this.debug(2, 'FFmpeg', 'Attempting to use ffmpeg-static fallback...');
 
+    let ffmpegStatic: string | null = null;
     try {
-      const ffmpegStatic = require('ffmpeg-static');
+      ffmpegStatic = require('ffmpeg-static');
       this.debug(3, 'FFmpeg', `ffmpeg-static returned path: ${ffmpegStatic}`);
-
-      if (ffmpegStatic) {
-        // Verify the path exists and is accessible
-        if (fs.existsSync(ffmpegStatic)) {
-          // Test if the binary is executable
-          const isExecutable = await this.testFFmpegPath(ffmpegStatic);
-          if (isExecutable) {
-            this.ffmpegPath = ffmpegStatic;
-            this.debug(2, 'FFmpeg', `✅ Using ffmpeg-static binary: ${ffmpegStatic}`);
-            return;
-          } else {
-            this.debug(1, 'FFmpeg', `❌ ffmpeg-static binary exists but is not executable: ${ffmpegStatic}`);
-          }
-        } else {
-          this.debug(1, 'FFmpeg', `❌ ffmpeg-static binary path does not exist: ${ffmpegStatic}`);
-        }
-      } else {
-        this.debug(1, 'FFmpeg', '❌ ffmpeg-static returned null/undefined path');
-      }
     } catch (error) {
-      this.debug(1, 'FFmpeg', `❌ Error loading ffmpeg-static module:`, error instanceof Error ? error.message : 'Unknown error');
-
-      // More detailed error information
-      if (error instanceof Error) {
-        if (error.message.includes('Cannot find module')) {
-          this.debug(1, 'FFmpeg', '❌ ffmpeg-static dependency is missing from node_modules');
-        } else if (error.message.includes('ENOENT') || error.message.includes('not found')) {
-          this.debug(1, 'FFmpeg', '❌ ffmpeg-static binary download failed or file system error');
-        }
+      const reason = error instanceof Error ? error.message : String(error);
+      console.error(`[FFmpeg] ffmpeg-static module failed to load: ${reason}`);
+      if (reason.includes('Cannot find module')) {
+        console.error('[FFmpeg] ffmpeg-static dependency is missing from the package');
       }
+    }
+
+    if (ffmpegStatic) {
+      // When packaged, the binary lives inside app.asar and cannot be executed.
+      // electron-builder unpacks it (via asarUnpack) to app.asar.unpacked.
+      // Translate the asar path to the real on-disk location so spawn works.
+      let realPath = ffmpegStatic;
+      if (realPath.includes('app.asar')) {
+        realPath = realPath.replace(/\bapp\.asar\b/, 'app.asar.unpacked');
+        this.debug(2, 'FFmpeg', `Translated asar path -> unpacked: ${realPath}`);
+      }
+
+      if (fs.existsSync(realPath)) {
+        const isExecutable = await this.testFFmpegPath(realPath);
+        if (isExecutable) {
+          this.ffmpegPath = realPath;
+          this.debug(2, 'FFmpeg', `Using ffmpeg-static binary: ${realPath}`);
+          return;
+        } else {
+          console.error(`[FFmpeg] ffmpeg-static binary exists but is NOT executable: ${realPath}`);
+        }
+      } else if (fs.existsSync(ffmpegStatic)) {
+        // existsSync passed on the asar path (Electron fs shim) but the real
+        // unpacked file is missing — asarUnpack likely not applied to this build.
+        console.error(`[FFmpeg] ffmpeg-static binary is trapped inside app.asar (asarUnpack missing): ${ffmpegStatic}`);
+        console.error(`[FFmpeg] Expected unpacked location: ${realPath}`);
+      } else {
+        console.error(`[FFmpeg] ffmpeg-static binary path does not exist: ${ffmpegStatic}`);
+      }
+    } else if (ffmpegStatic === null) {
+      // require succeeded but returned null (unsupported platform/arch)
+      console.error('[FFmpeg] ffmpeg-static returned null — platform/arch unsupported for bundled binary');
     }
 
     // If we reach here, ffmpeg-static failed
     const errorMsg = 'FFmpeg is required but not available. Please install FFmpeg on your system or check the application logs for details.';
-    this.debug(1, 'FFmpeg', `❌ ${errorMsg}`);
+    console.error(`[FFmpeg] ${errorMsg}`);
     throw new Error(errorMsg);
   }
 

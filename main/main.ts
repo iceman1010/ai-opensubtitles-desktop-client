@@ -240,8 +240,11 @@ class MainApp {
 
       const appConfig = this.configManager.getConfig();
       this.ffmpegManager.setDebugLevel(appConfig.debugLevel ?? 0);
-      await this.ffmpegManager.initialize(appConfig.ffmpegPath);
-      logger.stage('ffmpeg-ready');
+      const ffmpegOk = await this.ffmpegManager.initialize(appConfig.ffmpegPath);
+      logger.stage(ffmpegOk ? 'ffmpeg-ready' : 'ffmpeg-failed');
+      if (!ffmpegOk) {
+        logger.warn('STARTUP', 'FFmpeg initialization failed — media processing will be unavailable until FFmpeg is installed or the app is updated.');
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       const stack = error instanceof Error ? error.stack : undefined;

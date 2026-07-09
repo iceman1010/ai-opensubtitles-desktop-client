@@ -17,8 +17,13 @@ chmod +x AI.Opensubtitles.com-Client-x.x.x.AppImage
 ```
 
 ### Install AI Opensubtitles Client on Windows
-- **`.exe` installer** - Standard setup wizard for Windows 10/11
-- **Portable version** - Run without installation
+
+Each release includes two Windows files. They are the **same application**, just packaged differently — you only need one.
+
+- **`AI.Opensubtitles.com.Client-Setup.exe`** (Installer) — Standard setup wizard for Windows 10/11. Installs the app, creates Start Menu and Desktop shortcuts, registers an uninstaller, and enables auto-updates. **Recommended for most users.**
+- **`AI.Opensubtitles.com.Client.exe`** (Portable) — A standalone, single-file executable. No installation, no shortcuts, no registry entries — just double-click and run. Ideal for company laptops without admin rights, USB sticks, or if you prefer not to install software. Note that the portable version does **not** support auto-updates, so you'll need to download future releases manually.
+
+**Not sure which to pick?** Go with `Client-Setup.exe`.
 
 ### Install AI Opensubtitles Client on macOS
 - **`.dmg` package** - Drag and drop application bundle
