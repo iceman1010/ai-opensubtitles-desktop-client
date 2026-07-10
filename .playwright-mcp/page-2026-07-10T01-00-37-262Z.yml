@@ -1,0 +1,53 @@
+- generic [ref=e2]:
+  - region "Skip to main content":
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#__docusaurus_skipToContent_fallback"
+  - navigation "Main" [ref=e4]:
+    - generic [ref=e6]:
+      - button "Toggle navigation bar" [ref=e7] [cursor=pointer]:
+        - img [ref=e8]
+      - link "electron-builder" [ref=e10] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e11]: electron-builder
+  - main [ref=e13]:
+    - generic [ref=e15]:
+      - heading "Page Not Found" [level=1] [ref=e16]
+      - paragraph [ref=e17]: We could not find what you were looking for.
+      - paragraph [ref=e18]: Please contact the owner of the site that linked you to the original URL and let them know their link is broken.
+  - contentinfo [ref=e19]:
+    - generic [ref=e20]:
+      - generic [ref=e21]:
+        - generic [ref=e22]:
+          - generic [ref=e23]: Docs
+          - list [ref=e24]:
+            - listitem [ref=e25]:
+              - link "Overview" [ref=e26] [cursor=pointer]:
+                - /url: /docs
+            - listitem [ref=e27]:
+              - link "CLI" [ref=e28] [cursor=pointer]:
+                - /url: /docs/cli
+            - listitem [ref=e29]:
+              - link "Configuration" [ref=e30] [cursor=pointer]:
+                - /url: /docs/configuration
+        - generic [ref=e31]:
+          - generic [ref=e32]: Community
+          - list [ref=e33]:
+            - listitem [ref=e34]:
+              - link "GitHub Issues(opens in new tab)" [ref=e35] [cursor=pointer]:
+                - /url: https://github.com/electron-userland/electron-builder/issues
+                - text: GitHub Issues
+                - img "(opens in new tab)" [ref=e36]
+            - listitem [ref=e38]:
+              - link "npm(opens in new tab)" [ref=e39] [cursor=pointer]:
+                - /url: https://www.npmjs.com/package/electron-builder
+                - text: npm
+                - img "(opens in new tab)" [ref=e40]
+        - generic [ref=e42]:
+          - generic [ref=e43]: Donate
+          - list [ref=e44]:
+            - listitem [ref=e45]:
+              - link "Donate(opens in new tab)" [ref=e46] [cursor=pointer]:
+                - /url: https://www.electron.build/docs/donate
+                - text: Donate
+                - img "(opens in new tab)" [ref=e47]
+      - generic [ref=e50]: Copyright © 2026 electron-builder contributors. Built with Docusaurus.

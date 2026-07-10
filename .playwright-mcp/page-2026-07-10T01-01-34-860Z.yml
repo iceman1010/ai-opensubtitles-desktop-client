@@ -1,0 +1,457 @@
+- generic [ref=e2]:
+  - region "Skip to main content":
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#__docusaurus_skipToContent_fallback"
+  - navigation "Main" [ref=e4]:
+    - generic [ref=e6]:
+      - button "Toggle navigation bar" [ref=e7] [cursor=pointer]:
+        - img [ref=e8]
+      - link "electron-builder" [ref=e10] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e11]: electron-builder
+  - main [ref=e15]:
+    - generic [ref=e19]:
+      - article [ref=e20]:
+        - button "On this page" [ref=e22] [cursor=pointer]
+        - generic [ref=e23]:
+          - 'heading "Interface: PortableOptions" [level=1] [ref=e25]'
+          - paragraph [ref=e26]: Portable options.
+          - heading "ExtendsDirect link to Extends" [level=2] [ref=e27]:
+            - text: Extends
+            - link "Direct link to Extends" [ref=e28] [cursor=pointer]:
+              - /url: "#extends"
+              - text: "#"
+          - list [ref=e29]:
+            - listitem [ref=e30]:
+              - link "TargetSpecificOptions" [ref=e31] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.TargetSpecificOptions
+                - code [ref=e32]: TargetSpecificOptions
+              - text: .
+              - link "CommonNsisOptions" [ref=e33] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.CommonNsisOptions
+                - code [ref=e34]: CommonNsisOptions
+          - heading "PropertiesDirect link to Properties" [level=2] [ref=e35]:
+            - text: Properties
+            - link "Direct link to Properties" [ref=e36] [cursor=pointer]:
+              - /url: "#properties"
+              - text: "#"
+          - heading "artifactName?Direct link to artifactName?" [level=3] [ref=e37]:
+            - text: artifactName?
+            - link "Direct link to artifactName?" [ref=e38] [cursor=pointer]:
+              - /url: "#artifactname"
+              - text: "#"
+          - blockquote [ref=e39]:
+            - paragraph [ref=e40]:
+              - code [ref=e41]: readonly
+              - code [ref=e42]: optional
+              - strong [ref=e43]: artifactName?
+              - text: ":"
+              - code [ref=e44]: string
+              - text: "|"
+              - code [ref=e45]: "null"
+          - paragraph [ref=e46]:
+            - text: The
+            - link "artifact file name template" [ref=e47] [cursor=pointer]:
+              - /url: https://www.electron.build/configuration#artifact-file-name-template
+            - text: .
+          - heading "Inherited fromDirect link to Inherited from" [level=4] [ref=e48]:
+            - text: Inherited from
+            - link "Direct link to Inherited from" [ref=e49] [cursor=pointer]:
+              - /url: "#inherited-from"
+              - text: "#"
+          - paragraph [ref=e50]:
+            - link "TargetSpecificOptions" [ref=e51] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.TargetSpecificOptions
+              - code [ref=e52]: TargetSpecificOptions
+            - text: .
+            - link "artifactName" [ref=e53] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.TargetSpecificOptions#artifactname
+              - code [ref=e54]: artifactName
+          - separator [ref=e55]
+          - heading "buildUniversalInstaller?Direct link to buildUniversalInstaller?" [level=3] [ref=e56]:
+            - text: buildUniversalInstaller?
+            - link "Direct link to buildUniversalInstaller?" [ref=e57] [cursor=pointer]:
+              - /url: "#builduniversalinstaller"
+              - text: "#"
+          - blockquote [ref=e58]:
+            - paragraph [ref=e59]:
+              - code [ref=e60]: readonly
+              - code [ref=e61]: optional
+              - strong [ref=e62]: buildUniversalInstaller?
+              - text: ":"
+              - code [ref=e63]: boolean
+          - paragraph [ref=e64]: Disable building an universal installer of the archs specified in the target configuration
+          - heading "DefaultDirect link to Default" [level=4] [ref=e65]:
+            - text: Default
+            - link "Direct link to Default" [ref=e66] [cursor=pointer]:
+              - /url: "#default"
+              - text: "#"
+          - code [ref=e70]:
+            - generic [ref=e71]: "true"
+          - separator [ref=e72]
+          - heading "customNsisBinary?Direct link to customNsisBinary?" [level=3] [ref=e73]:
+            - text: customNsisBinary?
+            - link "Direct link to customNsisBinary?" [ref=e74] [cursor=pointer]:
+              - /url: "#customnsisbinary"
+              - text: "#"
+          - blockquote [ref=e75]:
+            - paragraph [ref=e76]:
+              - code [ref=e77]: readonly
+              - code [ref=e78]: optional
+              - strong [ref=e79]: customNsisBinary?
+              - text: ":"
+              - link "CustomNsisBinary" [ref=e80] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.CustomNsisBinary
+                - code [ref=e81]: CustomNsisBinary
+              - text: "|"
+              - code [ref=e82]: "null"
+          - paragraph [ref=e83]:
+            - text: Allows you to provide your own
+            - code [ref=e84]: makensis
+            - text: ", such as one with support for debug logging via LogSet and LogText. (Logging also requires option"
+            - code [ref=e85]: debugLogging = true
+            - text: )
+          - heading "Inherited fromDirect link to Inherited from" [level=4] [ref=e86]:
+            - text: Inherited from
+            - link "Direct link to Inherited from" [ref=e87] [cursor=pointer]:
+              - /url: "#inherited-from-1"
+              - text: "#"
+          - paragraph [ref=e88]:
+            - link "CommonNsisOptions" [ref=e89] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.CommonNsisOptions
+              - code [ref=e90]: CommonNsisOptions
+            - text: .
+            - link "customNsisBinary" [ref=e91] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.CommonNsisOptions#customnsisbinary
+              - code [ref=e92]: customNsisBinary
+          - separator [ref=e93]
+          - heading "customNsisResources?Direct link to customNsisResources?" [level=3] [ref=e94]:
+            - text: customNsisResources?
+            - link "Direct link to customNsisResources?" [ref=e95] [cursor=pointer]:
+              - /url: "#customnsisresources"
+              - text: "#"
+          - blockquote [ref=e96]:
+            - paragraph [ref=e97]:
+              - code [ref=e98]: readonly
+              - code [ref=e99]: optional
+              - strong [ref=e100]: customNsisResources?
+              - text: ":"
+              - code [ref=e101]: CustomNsisResources
+              - text: "|"
+              - code [ref=e102]: "null"
+          - paragraph [ref=e103]:
+            - text: Allows you to provide your own
+            - code [ref=e104]: nsis-resources
+          - heading "Inherited fromDirect link to Inherited from" [level=4] [ref=e105]:
+            - text: Inherited from
+            - link "Direct link to Inherited from" [ref=e106] [cursor=pointer]:
+              - /url: "#inherited-from-2"
+              - text: "#"
+          - paragraph [ref=e107]:
+            - link "CommonNsisOptions" [ref=e108] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.CommonNsisOptions
+              - code [ref=e109]: CommonNsisOptions
+            - text: .
+            - link "customNsisResources" [ref=e110] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.CommonNsisOptions#customnsisresources
+              - code [ref=e111]: customNsisResources
+          - separator [ref=e112]
+          - heading "guid?Direct link to guid?" [level=3] [ref=e113]:
+            - text: guid?
+            - link "Direct link to guid?" [ref=e114] [cursor=pointer]:
+              - /url: "#guid"
+              - text: "#"
+          - blockquote [ref=e115]:
+            - paragraph [ref=e116]:
+              - code [ref=e117]: readonly
+              - code [ref=e118]: optional
+              - strong [ref=e119]: guid?
+              - text: ":"
+              - code [ref=e120]: string
+              - text: "|"
+              - code [ref=e121]: "null"
+          - paragraph [ref=e122]:
+            - text: The GUID for the installer. Used to identify the application for upgrade and uninstall operations. If not specified, a deterministic GUID is generated from the app ID (
+            - code [ref=e123]: appId
+            - text: ) — but this means changing your
+            - code [ref=e124]: appId
+            - text: will break silent upgrades of existing installs.
+          - heading "SeeDirect link to See" [level=4] [ref=e125]:
+            - text: See
+            - link "Direct link to See" [ref=e126] [cursor=pointer]:
+              - /url: "#see"
+              - text: "#"
+          - paragraph [ref=e127]:
+            - link "GUID vs Application Name" [ref=e128] [cursor=pointer]:
+              - /url: https://www.electron.build/docs/nsis#guid-vs-application-name
+          - heading "Inherited fromDirect link to Inherited from" [level=4] [ref=e129]:
+            - text: Inherited from
+            - link "Direct link to Inherited from" [ref=e130] [cursor=pointer]:
+              - /url: "#inherited-from-3"
+              - text: "#"
+          - paragraph [ref=e131]:
+            - link "CommonNsisOptions" [ref=e132] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.CommonNsisOptions
+              - code [ref=e133]: CommonNsisOptions
+            - text: .
+            - link "guid" [ref=e134] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.CommonNsisOptions#guid
+              - code [ref=e135]: guid
+          - separator [ref=e136]
+          - heading "publish?Direct link to publish?" [level=3] [ref=e137]:
+            - text: publish?
+            - link "Direct link to publish?" [ref=e138] [cursor=pointer]:
+              - /url: "#publish"
+              - text: "#"
+          - blockquote [ref=e139]:
+            - paragraph [ref=e140]:
+              - code [ref=e141]: optional
+              - strong [ref=e142]: publish?
+              - text: ":"
+              - code [ref=e143]: Publish
+          - heading "Inherited fromDirect link to Inherited from" [level=4] [ref=e144]:
+            - text: Inherited from
+            - link "Direct link to Inherited from" [ref=e145] [cursor=pointer]:
+              - /url: "#inherited-from-4"
+              - text: "#"
+          - paragraph [ref=e146]:
+            - link "TargetSpecificOptions" [ref=e147] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.TargetSpecificOptions
+              - code [ref=e148]: TargetSpecificOptions
+            - text: .
+            - link "publish" [ref=e149] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.TargetSpecificOptions#publish
+              - code [ref=e150]: publish
+          - separator [ref=e151]
+          - heading "requestExecutionLevel?Direct link to requestExecutionLevel?" [level=3] [ref=e152]:
+            - text: requestExecutionLevel?
+            - link "Direct link to requestExecutionLevel?" [ref=e153] [cursor=pointer]:
+              - /url: "#requestexecutionlevel"
+              - text: "#"
+          - blockquote [ref=e154]:
+            - paragraph [ref=e155]:
+              - code [ref=e156]: readonly
+              - code [ref=e157]: optional
+              - strong [ref=e158]: requestExecutionLevel?
+              - text: ":"
+              - code [ref=e159]: "\"user\""
+              - text: "|"
+              - code [ref=e160]: "\"highest\""
+              - text: "|"
+              - code [ref=e161]: "\"admin\""
+          - paragraph [ref=e162]:
+            - text: The
+            - link "requested execution level" [ref=e163] [cursor=pointer]:
+              - /url: http://nsis.sourceforge.net/Reference/RequestExecutionLevel
+            - text: for Windows.
+          - heading "DefaultDirect link to Default" [level=4] [ref=e164]:
+            - text: Default
+            - link "Direct link to Default" [ref=e165] [cursor=pointer]:
+              - /url: "#default-1"
+              - text: "#"
+          - code [ref=e169]:
+            - generic [ref=e170]: user
+          - separator [ref=e171]
+          - heading "splashImage?Direct link to splashImage?" [level=3] [ref=e172]:
+            - text: splashImage?
+            - link "Direct link to splashImage?" [ref=e173] [cursor=pointer]:
+              - /url: "#splashimage"
+              - text: "#"
+          - blockquote [ref=e174]:
+            - paragraph [ref=e175]:
+              - code [ref=e176]: readonly
+              - code [ref=e177]: optional
+              - strong [ref=e178]: splashImage?
+              - text: ":"
+              - code [ref=e179]: string
+              - text: "|"
+              - code [ref=e180]: "null"
+          - paragraph [ref=e181]:
+            - text: The image to show while the portable executable is extracting. This image must be a bitmap (
+            - code [ref=e182]: .bmp
+            - text: ) image.
+          - separator [ref=e183]
+          - heading "unicode?Direct link to unicode?" [level=3] [ref=e184]:
+            - text: unicode?
+            - link "Direct link to unicode?" [ref=e185] [cursor=pointer]:
+              - /url: "#unicode"
+              - text: "#"
+          - blockquote [ref=e186]:
+            - paragraph [ref=e187]:
+              - code [ref=e188]: readonly
+              - code [ref=e189]: optional
+              - strong [ref=e190]: unicode?
+              - text: ":"
+              - code [ref=e191]: boolean
+          - paragraph [ref=e192]:
+            - text: Whether to create
+            - link "Unicode installer" [ref=e193] [cursor=pointer]:
+              - /url: http://nsis.sourceforge.net/Docs/Chapter1.html#intro-unicode
+            - text: .
+          - heading "DefaultDirect link to Default" [level=4] [ref=e194]:
+            - text: Default
+            - link "Direct link to Default" [ref=e195] [cursor=pointer]:
+              - /url: "#default-2"
+              - text: "#"
+          - code [ref=e199]:
+            - generic [ref=e200]: "true"
+          - heading "Inherited fromDirect link to Inherited from" [level=4] [ref=e201]:
+            - text: Inherited from
+            - link "Direct link to Inherited from" [ref=e202] [cursor=pointer]:
+              - /url: "#inherited-from-5"
+              - text: "#"
+          - paragraph [ref=e203]:
+            - link "CommonNsisOptions" [ref=e204] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.CommonNsisOptions
+              - code [ref=e205]: CommonNsisOptions
+            - text: .
+            - link "unicode" [ref=e206] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.CommonNsisOptions#unicode
+              - code [ref=e207]: unicode
+          - separator [ref=e208]
+          - heading "unpackDirName?Direct link to unpackDirName?" [level=3] [ref=e209]:
+            - text: unpackDirName?
+            - link "Direct link to unpackDirName?" [ref=e210] [cursor=pointer]:
+              - /url: "#unpackdirname"
+              - text: "#"
+          - blockquote [ref=e211]:
+            - paragraph [ref=e212]:
+              - code [ref=e213]: readonly
+              - code [ref=e214]: optional
+              - strong [ref=e215]: unpackDirName?
+              - text: ":"
+              - code [ref=e216]: string
+              - text: "|"
+              - code [ref=e217]: boolean
+          - paragraph [ref=e218]: The unpack directory for the portable app resources.
+          - paragraph [ref=e219]:
+            - text: If set to a string, it will be the name in
+            - link "TEMP" [ref=e220] [cursor=pointer]:
+              - /url: https://www.askvg.com/where-does-windows-store-temporary-files-and-how-to-change-temp-folder-location/
+            - text: directory If set explicitly to
+            - code [ref=e221]: "false"
+            - text: ", it will use the Windows temp directory ($PLUGINSDIR) that is unique to each launch of the portable application."
+          - paragraph [ref=e222]:
+            - text: Defaults to
+            - link "uuid" [ref=e223] [cursor=pointer]:
+              - /url: https://github.com/segmentio/ksuid
+            - text: of build (changed on each build of portable executable).
+          - separator [ref=e224]
+          - heading "useZip?Direct link to useZip?" [level=3] [ref=e225]:
+            - text: useZip?
+            - link "Direct link to useZip?" [ref=e226] [cursor=pointer]:
+              - /url: "#usezip"
+              - text: "#"
+          - blockquote [ref=e227]:
+            - paragraph [ref=e228]:
+              - code [ref=e229]: readonly
+              - code [ref=e230]: optional
+              - strong [ref=e231]: useZip?
+              - text: ":"
+              - code [ref=e232]: boolean
+          - paragraph [ref=e233]: Forces zip compression format instead of LZMA. Used internally for differential update packages.
+          - heading "DefaultDirect link to Default" [level=4] [ref=e234]:
+            - text: Default
+            - link "Direct link to Default" [ref=e235] [cursor=pointer]:
+              - /url: "#default-3"
+              - text: "#"
+          - code [ref=e239]:
+            - generic [ref=e240]: "false"
+          - heading "Inherited fromDirect link to Inherited from" [level=4] [ref=e241]:
+            - text: Inherited from
+            - link "Direct link to Inherited from" [ref=e242] [cursor=pointer]:
+              - /url: "#inherited-from-6"
+              - text: "#"
+          - paragraph [ref=e243]:
+            - link "CommonNsisOptions" [ref=e244] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.CommonNsisOptions
+              - code [ref=e245]: CommonNsisOptions
+            - text: .
+            - link "useZip" [ref=e246] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.CommonNsisOptions#usezip
+              - code [ref=e247]: useZip
+          - separator [ref=e248]
+          - heading "warningsAsErrors?Direct link to warningsAsErrors?" [level=3] [ref=e249]:
+            - text: warningsAsErrors?
+            - link "Direct link to warningsAsErrors?" [ref=e250] [cursor=pointer]:
+              - /url: "#warningsaserrors"
+              - text: "#"
+          - blockquote [ref=e251]:
+            - paragraph [ref=e252]:
+              - code [ref=e253]: readonly
+              - code [ref=e254]: optional
+              - strong [ref=e255]: warningsAsErrors?
+              - text: ":"
+              - code [ref=e256]: boolean
+          - paragraph [ref=e257]:
+            - text: If
+            - code [ref=e258]: warningsAsErrors
+            - text: is
+            - code [ref=e259]: "true"
+            - text: "(default): NSIS will treat warnings as errors. If"
+            - code [ref=e260]: warningsAsErrors
+            - text: is
+            - code [ref=e261]: "false"
+            - text: ": NSIS will allow warnings."
+          - heading "DefaultDirect link to Default" [level=4] [ref=e262]:
+            - text: Default
+            - link "Direct link to Default" [ref=e263] [cursor=pointer]:
+              - /url: "#default-4"
+              - text: "#"
+          - code [ref=e267]:
+            - generic [ref=e268]: "true"
+          - heading "Inherited fromDirect link to Inherited from" [level=4] [ref=e269]:
+            - text: Inherited from
+            - link "Direct link to Inherited from" [ref=e270] [cursor=pointer]:
+              - /url: "#inherited-from-7"
+              - text: "#"
+          - paragraph [ref=e271]:
+            - link "CommonNsisOptions" [ref=e272] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.CommonNsisOptions
+              - code [ref=e273]: CommonNsisOptions
+            - text: .
+            - link "warningsAsErrors" [ref=e274] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.CommonNsisOptions#warningsaserrors
+              - code [ref=e275]: warningsAsErrors
+        - link "Edit this page" [ref=e279] [cursor=pointer]:
+          - /url: https://github.com/electron-userland/electron-builder/edit/master/website/docs/api/app-builder-lib.Interface.PortableOptions.md
+          - img [ref=e280]
+          - text: Edit this page
+      - navigation "Docs pages"
+  - contentinfo [ref=e283]:
+    - generic [ref=e284]:
+      - generic [ref=e285]:
+        - generic [ref=e286]:
+          - generic [ref=e287]: Docs
+          - list [ref=e288]:
+            - listitem [ref=e289]:
+              - link "Overview" [ref=e290] [cursor=pointer]:
+                - /url: /docs
+            - listitem [ref=e291]:
+              - link "CLI" [ref=e292] [cursor=pointer]:
+                - /url: /docs/cli
+            - listitem [ref=e293]:
+              - link "Configuration" [ref=e294] [cursor=pointer]:
+                - /url: /docs/configuration
+        - generic [ref=e295]:
+          - generic [ref=e296]: Community
+          - list [ref=e297]:
+            - listitem [ref=e298]:
+              - link "GitHub Issues(opens in new tab)" [ref=e299] [cursor=pointer]:
+                - /url: https://github.com/electron-userland/electron-builder/issues
+                - text: GitHub Issues
+                - img "(opens in new tab)" [ref=e300]
+            - listitem [ref=e302]:
+              - link "npm(opens in new tab)" [ref=e303] [cursor=pointer]:
+                - /url: https://www.npmjs.com/package/electron-builder
+                - text: npm
+                - img "(opens in new tab)" [ref=e304]
+        - generic [ref=e306]:
+          - generic [ref=e307]: Donate
+          - list [ref=e308]:
+            - listitem [ref=e309]:
+              - link "Donate(opens in new tab)" [ref=e310] [cursor=pointer]:
+                - /url: https://www.electron.build/docs/donate
+                - text: Donate
+                - img "(opens in new tab)" [ref=e311]
+      - generic [ref=e314]: Copyright © 2026 electron-builder contributors. Built with Docusaurus.

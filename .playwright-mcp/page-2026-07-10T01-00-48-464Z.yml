@@ -1,0 +1,82 @@
+- generic [ref=e2]:
+  - region "Skip to main content":
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#__docusaurus_skipToContent_fallback"
+  - navigation "Main" [ref=e4]:
+    - generic [ref=e6]:
+      - button "Toggle navigation bar" [ref=e7] [cursor=pointer]:
+        - img [ref=e8]
+      - link "electron-builder" [ref=e10] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e11]: electron-builder
+  - generic [ref=e12]:
+    - generic [ref=e15]:
+      - generic [ref=e16]:
+        - heading "electron-builder" [level=1] [ref=e17]
+        - paragraph [ref=e18]: A complete solution to package and build a ready-for-distribution Electron app
+        - generic [ref=e19]:
+          - link "Get Started" [ref=e20] [cursor=pointer]:
+            - /url: /docs
+          - link "GitHub" [ref=e21] [cursor=pointer]:
+            - /url: https://github.com/electron-userland/electron-builder
+      - img [ref=e23]
+    - main [ref=e28]:
+      - generic [ref=e31]:
+        - generic [ref=e32]:
+          - img [ref=e35]
+          - generic [ref=e39]:
+            - heading "One Command to Ship" [level=3] [ref=e40]
+            - paragraph [ref=e41]:
+              - text: Package your Electron app for macOS, Windows, and Linux with the
+              - code [ref=e42]: electron-builder
+              - text: command. Produces installers, portable builds, and distribution-ready archives easily.
+        - generic [ref=e43]:
+          - img [ref=e46]
+          - generic [ref=e48]:
+            - heading "Auto-Update Built In" [level=3] [ref=e49]
+            - paragraph [ref=e50]:
+              - text: Ship updates seamlessly with
+              - code [ref=e51]: electron-updater
+              - text: . Supports differential updates, staged rollouts, and multiple providers — GitHub Releases, S3, and more — with minimal configuration required.
+        - generic [ref=e52]:
+          - img [ref=e55]
+          - generic [ref=e57]:
+            - heading "Code Signing & Notarization" [level=3] [ref=e58]
+            - paragraph [ref=e59]: macOS notarization and Windows Authenticode signing — all available out of the box. Your users can see trusted, verified apps on their platform.
+  - contentinfo [ref=e60]:
+    - generic [ref=e61]:
+      - generic [ref=e62]:
+        - generic [ref=e63]:
+          - generic [ref=e64]: Docs
+          - list [ref=e65]:
+            - listitem [ref=e66]:
+              - link "Overview" [ref=e67] [cursor=pointer]:
+                - /url: /docs
+            - listitem [ref=e68]:
+              - link "CLI" [ref=e69] [cursor=pointer]:
+                - /url: /docs/cli
+            - listitem [ref=e70]:
+              - link "Configuration" [ref=e71] [cursor=pointer]:
+                - /url: /docs/configuration
+        - generic [ref=e72]:
+          - generic [ref=e73]: Community
+          - list [ref=e74]:
+            - listitem [ref=e75]:
+              - link "GitHub Issues(opens in new tab)" [ref=e76] [cursor=pointer]:
+                - /url: https://github.com/electron-userland/electron-builder/issues
+                - text: GitHub Issues
+                - img "(opens in new tab)" [ref=e77]
+            - listitem [ref=e79]:
+              - link "npm(opens in new tab)" [ref=e80] [cursor=pointer]:
+                - /url: https://www.npmjs.com/package/electron-builder
+                - text: npm
+                - img "(opens in new tab)" [ref=e81]
+        - generic [ref=e83]:
+          - generic [ref=e84]: Donate
+          - list [ref=e85]:
+            - listitem [ref=e86]:
+              - link "Donate(opens in new tab)" [ref=e87] [cursor=pointer]:
+                - /url: https://www.electron.build/docs/donate
+                - text: Donate
+                - img "(opens in new tab)" [ref=e88]
+      - generic [ref=e91]: Copyright © 2026 electron-builder contributors. Built with Docusaurus.

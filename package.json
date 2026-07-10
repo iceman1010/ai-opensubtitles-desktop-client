@@ -1,6 +1,6 @@
 {
   "name": "ai-opensubtitles-client",
-  "version": "1.14.7",
+  "version": "1.14.8",
   "description": "Cross-platform desktop client for AI.Opensubtitles.com",
   "main": "dist/main/main.js",
   "homepage": "./",
@@ -82,8 +82,7 @@
             "x64"
           ]
         }
-      ],
-      "artifactName": "${productName}-Setup.${ext}"
+      ]
     },
     "linux": {
       "target": [
@@ -104,6 +103,7 @@
       "artifactName": "${productName}.${ext}"
     },
     "nsis": {
+      "artifactName": "${productName}-Setup.${ext}",
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
@@ -112,6 +112,9 @@
       "allowElevation": false,
       "runAfterFinish": true,
       "deleteAppDataOnUninstall": true
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable.${ext}"
     },
     "publish": {
       "provider": "github",
