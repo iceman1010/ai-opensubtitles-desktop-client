@@ -57,6 +57,7 @@ class MainApp {
   private ffmpegManager: FFmpegManager;
   private pendingFilePaths: string[] = [];
   private sessionId: string;
+  private runningFromTempDir = false;
 
   constructor() {
     this.configManager = new ConfigManager();
@@ -161,11 +162,35 @@ class MainApp {
     }
   }
 
+  private checkRunningFromTempDirectory(): void {
+    const isDev = process.env.NODE_ENV === 'development';
+    if (isDev) return;
+
+    try {
+      const os = require('os');
+      const tempDir = path.resolve(os.tmpdir());
+      const execDir = path.resolve(path.dirname(process.execPath));
+
+      if (execDir === tempDir || execDir.startsWith(tempDir + path.sep)) {
+        this.runningFromTempDir = true;
+        logger.warn('STARTUP', `App is running from a temp directory`, {
+          execDir,
+          tempDir,
+          execPath: process.execPath
+        });
+        console.warn('App is running from a temporary directory. Auto-updates and bundled FFmpeg may not work. Please install the app properly.');
+      }
+    } catch (error) {
+      this.debug(1, 'TempCheck', 'Failed to check temp directory:', error);
+    }
+  }
+
   async initialize() {
     logger.stage('start');
     try {
       // Check for multiple installations on Windows
       this.checkForMultipleInstallations();
+      this.checkRunningFromTempDirectory();
       logger.stage('multi-install-checked');
 
       // Parse command line arguments for file path
@@ -232,6 +257,18 @@ class MainApp {
       await this.createWindow();
       logger.stage('window-created');
 
+      // Warn user if running from a temp directory (affects auto-update and FFmpeg)
+      if (this.runningFromTempDir) {
+        await this.safeShowMessageBox({
+          type: 'warning',
+          buttons: ['OK'],
+          defaultId: 0,
+          title: 'Running from Temporary Directory',
+          message: 'The app appears to be running from a temporary or extracted folder.',
+          detail: 'Some features like auto-updates and bundled FFmpeg may not work correctly.\n\nFor the best experience, please install the app using the setup installer or extract the portable version to a permanent folder.'
+        });
+      }
+
       await this.setupIPC();
       logger.stage('ipc-setup');
 
@@ -297,6 +334,10 @@ class MainApp {
 
     this.mainWindow.webContents.on('dom-ready', () => {
       this.debug(2, 'Main', 'DOM ready');
+      // dom-ready is a reliable early signal that the renderer is functional.
+      // Clear the sentinel here as a fallback in case did-finish-load never
+      // fires (known edge case observed when running from temp directories).
+      logger.clearSentinel();
     });
 
     this.mainWindow.on('closed', () => {
@@ -352,6 +393,13 @@ class MainApp {
         throw error; // re-throw to be caught by initialize()'s try/catch
       }
     }
+
+    // Fallback: clear sentinel after 30s regardless of renderer events.
+    // Prevents false-positive crash reports if neither dom-ready nor
+    // did-finish-load fire (extremely rare but observed in the wild).
+    setTimeout(() => {
+      logger.clearSentinel();
+    }, 30000);
 
     // Force show the window after content has loaded
     this.mainWindow.show();
@@ -745,13 +793,37 @@ class MainApp {
        });
 
        if (response.response === 0) {
-         this.debug(2, 'AutoUpdater', 'User confirmed update download');
-         this.sendUpdateStatus('update-downloading', 'Starting download...');
-         try {
+        this.debug(2, 'AutoUpdater', 'User confirmed update download');
+        this.sendUpdateStatus('update-downloading', 'Starting download...');
+        try {
           await autoUpdater.downloadUpdate();
         } catch (error) {
           console.error('Failed to download update:', error);
-          this.sendUpdateStatus('update-error', 'Failed to download update');
+          const errMsg = error instanceof Error ? error.message : String(error);
+          const errCode = (error as any)?.code;
+          const isENOENT = errCode === 'ENOENT' || errMsg.includes('ENOENT') || errMsg.includes('app-update.yml');
+
+          if (isENOENT) {
+            this.sendUpdateStatus('update-error', 'Update failed — app may not be properly installed');
+            await this.safeShowMessageBox({
+              type: 'warning',
+              buttons: ['OK'],
+              defaultId: 0,
+              title: 'Update Failed',
+              message: 'The update could not be downloaded because the app installation appears to be incomplete.',
+              detail: 'This can happen if the app was run from a compressed archive or temporary folder instead of being properly installed.\n\nPlease reinstall the app or download the latest version manually.'
+            });
+          } else {
+            this.sendUpdateStatus('update-error', `Failed to download update: ${errMsg}`);
+            await this.safeShowMessageBox({
+              type: 'warning',
+              buttons: ['OK'],
+              defaultId: 0,
+              title: 'Update Failed',
+              message: `The update could not be downloaded: ${errMsg}`,
+              detail: 'Please check your internet connection and try again later. If the problem persists, download the latest version manually.'
+            });
+          }
         }
       } else {
         this.debug(2, 'AutoUpdater', 'User declined update download');

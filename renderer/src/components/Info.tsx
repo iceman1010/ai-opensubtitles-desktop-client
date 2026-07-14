@@ -191,6 +191,17 @@ function Info({ config: _config, setAppProcessing }: InfoProps) {
     });
   };
 
+  const descKeyFor = (section: SectionKey, modelName: string) => `${section}:${modelName}:desc`;
+  const toggleDesc = (section: SectionKey, modelName: string) => {
+    const k = descKeyFor(section, modelName);
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      return next;
+    });
+  };
+
   // Component for rendering collapsible language list
   const LanguageList: React.FC<{ languages: LanguageInfo[] | undefined; modelName: string }> = ({ languages, modelName }) => {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -516,6 +527,7 @@ function Info({ config: _config, setAppProcessing }: InfoProps) {
           <tbody>
             {sorted.map((model, i) => {
               const expanded = expandedRows.has(rowKeyFor(section, model.name));
+              const descExpanded = expandedRows.has(descKeyFor(section, model.name));
               const count = model.languages_supported?.length ?? 0;
               const stripeBg = i % 2 ? 'var(--bg-tertiary)' : 'var(--bg-secondary)';
               return (
@@ -557,8 +569,13 @@ function Info({ config: _config, setAppProcessing }: InfoProps) {
                       </button>
                     </td>
                     <td
-                      style={{ ...tdBase, maxWidth: '240px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
-                      title={model.description}
+                      style={{
+                        ...tdBase,
+                        maxWidth: '360px',
+                        whiteSpace: 'normal',
+                        wordBreak: 'break-word',
+                        lineHeight: '1.5',
+                      }}
                     >
                       {model.description}
                     </td>
@@ -586,6 +603,7 @@ function Info({ config: _config, setAppProcessing }: InfoProps) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
         {sorted.map((model, i) => {
           const expanded = expandedRows.has(rowKeyFor(section, model.name));
+          const descExpanded = expandedRows.has(descKeyFor(section, model.name));
           const count = model.languages_supported?.length ?? 0;
           return (
             <div
@@ -617,13 +635,15 @@ function Info({ config: _config, setAppProcessing }: InfoProps) {
                   </span>
                 </div>
                 <div
-                  title={model.description}
+                  onClick={() => toggleDesc(section, model.name)}
+                  title={descExpanded ? 'Click to collapse' : 'Click to expand'}
                   style={{
                     flex: '1 1 30%',
                     minWidth: '160px',
                     fontSize: '13px',
                     color: 'var(--text-secondary)',
-                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                    whiteSpace: descExpanded ? 'normal' : 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                   }}
@@ -745,9 +765,9 @@ function Info({ config: _config, setAppProcessing }: InfoProps) {
         <ul style={{ marginLeft: '20px', lineHeight: '1.6', color: 'var(--text-secondary)' }}>
           <li>All prices are quoted in credits, which are deducted from your account upon successful processing</li>
           <li>Transcription costs are calculated based on audio duration (per minute)</li>
-          <li>Translation costs are calculated based on character count (per 500 characters)</li>
-          <li>Failed or cancelled operations do not consume credits</li>
-          <li>Prices may vary based on language complexity and audio quality</li>
+          <li>Translation costs are calculated based on character count (per character)</li>
+          <li>Failed operations do not consume credits</li>
+           <li>Prices may vary based on selected model</li>
           <li>Pricing is subject to change - check this page for the latest information</li>
         </ul>
       </section>

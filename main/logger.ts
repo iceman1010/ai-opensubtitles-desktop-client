@@ -216,6 +216,15 @@ class Logger {
       // Error objects have non-enumerable message/stack, so JSON.stringify
       // collapses them to {}. Surface the stack (includes message) instead.
       if (arg instanceof Error) return arg.stack || arg.message || arg.constructor.name;
+      // Many errors crossing IPC/ffmpeg boundaries lose their prototype chain
+      // but still carry .message and/or .stack as plain properties.
+      if (arg && typeof arg === 'object' && (arg.message || arg.stack)) {
+        const parts: string[] = [];
+        if (arg.message) parts.push(String(arg.message));
+        if (arg.stack) parts.push(String(arg.stack));
+        if (arg.code) parts.push(`(code: ${arg.code})`);
+        return parts.join('\n');
+      }
       try {
         return JSON.stringify(arg);
       } catch {
@@ -234,6 +243,15 @@ class Logger {
 
   // Sentinel helpers ---------------------------------------------------------
 
+  private isProcessAlive(pid: number): boolean {
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   private sentinelPath(): string | null {
     if (!this.logDir) return null;
     return path.join(this.logDir, SENTINEL_FILE);
@@ -243,11 +261,21 @@ class Logger {
     const sp = this.sentinelPath();
     if (!sp) return;
     try {
+      // Don't overwrite a live process's sentinel. If another instance is
+      // still running (e.g. this is a second-instance launch that will be
+      // redirected by the single-instance lock), preserve its crash tracking.
+      if (fs.existsSync(sp)) {
+        const existing = JSON.parse(fs.readFileSync(sp, 'utf8'));
+        if (existing.pid && existing.pid !== process.pid && this.isProcessAlive(existing.pid)) {
+          return;
+        }
+      }
       const sentinel = {
         startedAt: new Date().toISOString(),
         stage: 'init',
         stageTimestamp: new Date().toISOString(),
-        appVersion: this.safeAppVersion()
+        appVersion: this.safeAppVersion(),
+        pid: process.pid
       };
       fs.writeFileSync(sp, JSON.stringify(sentinel, null, 2));
     } catch {
@@ -275,12 +303,21 @@ class Logger {
 
     try {
       const sentinel = JSON.parse(fs.readFileSync(sp, 'utf8'));
+
+      // If the sentinel's PID is still alive, the previous instance is still
+      // running (e.g., this is a second-instance launch). Don't generate a
+      // crash report — leave the sentinel for the live process to manage.
+      if (sentinel.pid && sentinel.pid !== process.pid && this.isProcessAlive(sentinel.pid)) {
+        this.writeRaw(`[STARTUP] Sentinel from live process (PID ${sentinel.pid}) found — skipping crash check.`);
+        return;
+      }
+
       const logTail = this.readLogTail(MAX_LOG_TAIL_LINES);
 
       const report: CrashReport = {
         startedAt: sentinel.startedAt || 'unknown',
         detectedAt: new Date().toISOString(),
-        appVersion: this.safeAppVersion(),
+        appVersion: sentinel.appVersion || this.safeAppVersion(),
         platform: process.platform,
         platformVersion: os.release(),
         lastStage: sentinel.stage || 'unknown',
