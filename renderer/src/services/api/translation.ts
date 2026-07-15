@@ -37,12 +37,13 @@ export async function getTranslationInfo(
         headers['Authorization'] = `Bearer ${state.token}`;
       }
 
+      const betaParam = state.betaTest ? '?beta=true' : '';
       const [apisResponse, languagesResponse] = await Promise.all([
-        fetch(getAIUrl('/info/translation_apis'), {
+        fetch(getAIUrl(`/info/translation_apis${betaParam}`), {
           method: 'POST',
           headers,
         }),
-        fetch(getAIUrl('/info/translation_languages'), {
+        fetch(getAIUrl(`/info/translation_languages${betaParam}`), {
           method: 'POST',
           headers,
         }),
@@ -139,7 +140,7 @@ export async function initiateTranslation(
         headers['Authorization'] = `Bearer ${state.token}`;
       }
 
-      const response = await fetch(getAIUrl('/translate'), {
+      const response = await fetch(getAIUrl(`/translate${state.betaTest ? '?beta=true' : ''}`), {
         method: 'POST',
         headers,
         body: formData,
@@ -201,7 +202,7 @@ export async function checkTranslationStatus(
         headers['Authorization'] = `Bearer ${state.token}`;
       }
 
-      const response = await fetch(getAIUrl(`/translation/${correlationId}`), {
+      const response = await fetch(getAIUrl(`/translation/${correlationId}${state.betaTest ? '?beta=true' : ''}`), {
         method: 'POST',
         headers,
       });
@@ -250,7 +251,7 @@ export async function getTranslationLanguagesForApi(
 
       logger.debug(2, 'API', `Fetching translation languages for API: ${apiId}`);
 
-      const response = await fetch(getAIUrl('/info/translation_languages'), {
+      const response = await fetch(getAIUrl(`/info/translation_languages${state.betaTest ? '?beta=true' : ''}`), {
         method: 'POST',
         headers,
         body: JSON.stringify({ api: apiId }),
@@ -327,7 +328,7 @@ export async function getTranslationApisForLanguage(
         headers['Authorization'] = `Bearer ${state.token}`;
       }
 
-      const response = await fetch(getAIUrl('/info/translation_apis'), {
+      const response = await fetch(getAIUrl(`/info/translation_apis${state.betaTest ? '?beta=true' : ''}`), {
         method: 'POST',
         headers,
       });

@@ -266,7 +266,7 @@ export async function getSubtitleSearchLanguages(
         'User-Agent': getUserAgent(),
       };
 
-      const url = 'https://api.opensubtitles.com/api/v1/infos/languages';
+      const url = `https://api.opensubtitles.com/api/v1/infos/languages${state.betaTest ? '?beta=true' : ''}`;
 
       const response = await fetch(url, {
         method: 'GET',

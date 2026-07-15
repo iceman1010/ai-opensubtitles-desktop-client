@@ -37,12 +37,13 @@ export async function getTranscriptionInfo(
         headers['Authorization'] = `Bearer ${state.token}`;
       }
 
+      const betaParam = state.betaTest ? '?beta=true' : '';
       const [apisResponse, languagesResponse] = await Promise.all([
-        fetch(getAIUrl('/info/transcription_apis'), {
+        fetch(getAIUrl(`/info/transcription_apis${betaParam}`), {
           method: 'POST',
           headers,
         }),
-        fetch(getAIUrl('/info/transcription_languages'), {
+        fetch(getAIUrl(`/info/transcription_languages${betaParam}`), {
           method: 'POST',
           headers,
         }),
@@ -150,7 +151,7 @@ export async function initiateTranscription(
         returnContent: options.returnContent,
       });
 
-      const response = await fetch(getAIUrl('/transcribe'), {
+      const response = await fetch(getAIUrl(`/transcribe${state.betaTest ? '?beta=true' : ''}`), {
         method: 'POST',
         headers,
         body: formData,
@@ -220,7 +221,7 @@ export async function checkTranscriptionStatus(
         headers['Authorization'] = `Bearer ${state.token}`;
       }
 
-      const response = await fetch(getAIUrl(`/transcribe/${correlationId}`), {
+      const response = await fetch(getAIUrl(`/transcribe/${correlationId}${state.betaTest ? '?beta=true' : ''}`), {
         method: 'POST',
         headers,
       });
@@ -267,7 +268,7 @@ export async function getTranscriptionLanguagesForApi(
         headers['Authorization'] = `Bearer ${state.token}`;
       }
 
-      const response = await fetch(getAIUrl('/info/transcription_languages'), {
+      const response = await fetch(getAIUrl(`/info/transcription_languages${state.betaTest ? '?beta=true' : ''}`), {
         method: 'POST',
         headers,
         body: JSON.stringify({ api: apiId }),

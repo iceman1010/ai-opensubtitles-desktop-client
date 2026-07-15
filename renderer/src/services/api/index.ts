@@ -97,6 +97,10 @@ export class OpenSubtitlesAPI {
     this.state.apiUrlParameter = apiUrlParameter;
   }
 
+  setBetaTest(betaTest: boolean): void {
+    this.state.betaTest = betaTest;
+  }
+
   private getAIUrl(endpoint: string): string {
     const baseUrl = `${this.state.baseURL}/ai${endpoint}`;
     return this.state.apiUrlParameter ? `${baseUrl}${this.state.apiUrlParameter}` : baseUrl;

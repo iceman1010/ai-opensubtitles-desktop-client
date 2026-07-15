@@ -326,9 +326,9 @@ export function invalidateConnectivityCache(): void {
  * Forces an immediate connectivity check and updates the cache
  * Returns the updated connectivity status
  */
-export async function forceConnectivityCheck(apiBaseUrl: string, timeoutMs: number = 5000): Promise<boolean> {
+export async function forceConnectivityCheck(apiBaseUrl: string, timeoutMs: number = 5000, betaTest?: boolean): Promise<boolean> {
   logger.debug(2, 'NetworkUtils', 'Forcing immediate connectivity check');
-  const result = await checkAPIConnectivity(apiBaseUrl, timeoutMs);
+  const result = await checkAPIConnectivity(apiBaseUrl, timeoutMs, betaTest);
   updateAPIConnectivityCache(result.connected, 30000);
   return result.connected;
 }
@@ -353,7 +353,8 @@ export function getAPIConnectivityStatus(): { connected: boolean; lastChecked: n
  */
 export async function checkAPIConnectivity(
   apiBaseUrl: string,
-  timeoutMs: number = 5000
+  timeoutMs: number = 5000,
+  betaTest?: boolean
 ): Promise<{
   connected: boolean;
   error?: string;
@@ -374,7 +375,8 @@ export async function checkAPIConnectivity(
     const sessionId = await getSessionId();
 
     // Use discovery endpoint for connectivity testing with session ID
-    const discoveryUrl = `${apiBaseUrl}/ai/info/discovery?sessionId=${encodeURIComponent(sessionId)}`;
+    const betaParam = betaTest ? '&beta=true' : '';
+    const discoveryUrl = `${apiBaseUrl}/ai/info/discovery?sessionId=${encodeURIComponent(sessionId)}${betaParam}`;
     logger.debug(2, 'NetworkUtils', `Testing connectivity to: ${discoveryUrl}`);
 
     const controller = new AbortController();

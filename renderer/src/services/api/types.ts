@@ -229,4 +229,5 @@ export interface ApiState {
   apiUrlParameter: string;
   username: string;
   password: string;
+  betaTest?: boolean;
 }

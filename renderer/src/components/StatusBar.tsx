@@ -9,6 +9,7 @@ interface StatusBarProps {
   config?: {
     apiBaseUrl?: string;
     apiConnectivityTestIntervalMinutes?: number;
+    betaTest?: boolean;
   };
   // Callback to register notification function for instant messages (warnings, info, errors)
   // Usage: showNotification("message", duration_ms) - displays orange notification with info icon
@@ -101,7 +102,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
       }
 
       try {
-        const result = await checkAPIConnectivity(config.apiBaseUrl);
+        const result = await checkAPIConnectivity(config.apiBaseUrl, 5000, config.betaTest);
         const newConnectivity = result.connected ? 'connected' : 'unreachable';
         setApiConnectivity(newConnectivity);
 

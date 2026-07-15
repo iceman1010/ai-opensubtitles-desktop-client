@@ -123,7 +123,8 @@ function App() {
           password: config.password,
           apiKey: config.apiKey!,
           apiBaseUrl: config.apiBaseUrl,
-          apiUrlParameter: config.apiUrlParameter
+          apiUrlParameter: config.apiUrlParameter,
+          betaTest: config.betaTest
         } : undefined}
       >
         {/* Splash screen overlay - conditional render inside providers */}
@@ -1001,7 +1002,8 @@ function AppContent({
         currentTask={currentTask}
         config={config ? {
           apiBaseUrl: config.apiBaseUrl,
-          apiConnectivityTestIntervalMinutes: config.apiConnectivityTestIntervalMinutes
+          apiConnectivityTestIntervalMinutes: config.apiConnectivityTestIntervalMinutes,
+          betaTest: config.betaTest
         } : undefined}
         onNotificationShow={(callback) => { showNotificationRef.current = callback; }}
       />

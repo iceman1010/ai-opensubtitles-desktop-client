@@ -92,7 +92,7 @@ export async function getServicesInfo(
         headers['Authorization'] = `Bearer ${state.token}`;
       }
 
-      const response = await fetch(getAIUrl('/info/services'), {
+      const response = await fetch(getAIUrl(`/info/services${state.betaTest ? '?beta=true' : ''}`), {
         method: 'GET',
         headers,
       });

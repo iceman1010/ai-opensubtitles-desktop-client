@@ -86,6 +86,7 @@ interface APIProviderProps {
     apiKey: string;
     apiBaseUrl?: string;
     apiUrlParameter?: string;
+    betaTest?: boolean;
   };
 }
 
@@ -168,6 +169,9 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
       logger.debug(2, 'APIContext', 'Creating initial API instance');
       apiCreatedRef.current = true;
       const apiInstance = new OpenSubtitlesAPI(initialConfig.apiKey, initialConfig.apiBaseUrl, initialConfig.apiUrlParameter);
+      if (initialConfig.betaTest !== undefined) {
+        apiInstance.setBetaTest(initialConfig.betaTest);
+      }
       logger.debug(2, 'APIContext', 'Setting API instance in state (initial)');
       setApi(apiInstance);
 
@@ -415,6 +419,9 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
       if (!apiInstance || apiInstance.apiKey !== apiKey) {
         // Only create new instance if none exists or API key changed
         apiInstance = new OpenSubtitlesAPI(apiKey, initialConfig?.apiBaseUrl, initialConfig?.apiUrlParameter);
+        if (initialConfig?.betaTest !== undefined) {
+          apiInstance.setBetaTest(initialConfig.betaTest);
+        }
         logger.debug(2, 'APIContext', 'Setting API instance in state (login)');
         setApi(apiInstance);
       }
@@ -534,14 +541,14 @@ export const APIProvider: React.FC<APIProviderProps> = ({ children, initialConfi
 
     // Force immediate connectivity check if we have API config
     if (initialConfig?.apiBaseUrl) {
-      let connected = await forceConnectivityCheck(initialConfig.apiBaseUrl, 5000);
+      let connected = await forceConnectivityCheck(initialConfig.apiBaseUrl, 5000, initialConfig?.betaTest);
       logger.debug(2, 'APIContext', `Initial connectivity check result: ${connected}`);
 
       // If initial check fails, retry after a short delay (DNS might not be ready yet after resume)
       if (!connected && navigator.onLine) {
         logger.debug(2, 'APIContext', 'Initial connectivity check failed but network is online, retrying after delay...');
         await new Promise(resolve => setTimeout(resolve, 2000));
-        connected = await forceConnectivityCheck(initialConfig.apiBaseUrl, 5000);
+        connected = await forceConnectivityCheck(initialConfig.apiBaseUrl, 5000, initialConfig?.betaTest);
         logger.debug(2, 'APIContext', `Retry connectivity check result: ${connected}`);
       }
 
