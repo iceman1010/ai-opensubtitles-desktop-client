@@ -57,6 +57,7 @@ class MainApp {
   private ffmpegManager: FFmpegManager;
   private pendingFilePaths: string[] = [];
   private sessionId: string;
+  private isPortable = false;
   private runningFromTempDir = false;
 
   constructor() {
@@ -162,7 +163,17 @@ class MainApp {
     }
   }
 
-  private checkRunningFromTempDirectory(): void {
+  // Detect how the app is being run. Two flags:
+  //   - isPortable: not installed via the official setup installer (e.g. AppImage
+  //     on Linux, .exe in Downloads on Windows, app not under /Applications on macOS).
+  //   - runningFromTempDir: the executable lives in the OS temp directory, which is
+  //     a strict subset of isPortable and the more concerning case (auto-update and
+  //     bundled FFmpeg may misbehave). On Linux, AppImage runtime mounts under
+  //     /tmp/.mount_*/ are explicitly ignored — that's how AppImage works, not a
+  //     real temp-dir execution.
+  // Both flags are exposed to the renderer via the 'get-app-runtime-info' IPC so
+  // the Preferences screen can show a small, non-disruptive label.
+  private detectRuntimeMode(): void {
     const isDev = process.env.NODE_ENV === 'development';
     if (isDev) return;
 
@@ -171,7 +182,38 @@ class MainApp {
       const tempDir = path.resolve(os.tmpdir());
       const execDir = path.resolve(path.dirname(process.execPath));
 
-      if (execDir === tempDir || execDir.startsWith(tempDir + path.sep)) {
+      // --- Portable detection (per platform) -------------------------------
+      if (process.platform === 'linux') {
+        // Our official Linux distribution is the AppImage, which is always
+        // "portable" by design. Flatpak (/app/) and system packages (/usr/,
+        // /opt/) count as installed.
+        const installed = execDir.startsWith('/usr/') ||
+                          execDir.startsWith('/usr/local/') ||
+                          execDir.startsWith('/opt/') ||
+                          execDir.startsWith('/app/');
+        this.isPortable = !installed;
+      } else if (process.platform === 'win32') {
+        const programFiles = process.env['ProgramFiles'] || 'C:\\Program Files';
+        const programFilesX86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
+        const localPrograms = path.join(os.homedir(), 'AppData', 'Local', 'Programs');
+        const installed =
+          execDir.toLowerCase().startsWith(programFiles.toLowerCase()) ||
+          execDir.toLowerCase().startsWith(programFilesX86.toLowerCase()) ||
+          execDir.toLowerCase().startsWith(localPrograms.toLowerCase());
+        this.isPortable = !installed;
+      } else if (process.platform === 'darwin') {
+        // Installed apps live under /Applications (or ~/Applications)
+        const appsDir = path.resolve('/Applications').toLowerCase();
+        const userAppsDir = path.join(os.homedir(), 'Applications').toLowerCase();
+        const execLower = path.resolve(process.execPath).toLowerCase();
+        this.isPortable = !execLower.startsWith(appsDir) && !execLower.startsWith(userAppsDir);
+      }
+
+      // --- Genuine temp-directory detection -------------------------------
+      const inTempDir = execDir === tempDir || execDir.startsWith(tempDir + path.sep);
+      const isAppImageMount = process.platform === 'linux' &&
+                              execDir.startsWith(path.join(tempDir, '.mount_') + path.sep);
+      if (inTempDir && !isAppImageMount) {
         this.runningFromTempDir = true;
         logger.warn('STARTUP', `App is running from a temp directory`, {
           execDir,
@@ -181,7 +223,7 @@ class MainApp {
         console.warn('App is running from a temporary directory. Auto-updates and bundled FFmpeg may not work. Please install the app properly.');
       }
     } catch (error) {
-      this.debug(1, 'TempCheck', 'Failed to check temp directory:', error);
+      this.debug(1, 'RuntimeDetect', 'Failed to detect runtime mode:', error);
     }
   }
 
@@ -190,7 +232,7 @@ class MainApp {
     try {
       // Check for multiple installations on Windows
       this.checkForMultipleInstallations();
-      this.checkRunningFromTempDirectory();
+      this.detectRuntimeMode();
       logger.stage('multi-install-checked');
 
       // Parse command line arguments for file path
@@ -256,18 +298,6 @@ class MainApp {
       
       await this.createWindow();
       logger.stage('window-created');
-
-      // Warn user if running from a temp directory (affects auto-update and FFmpeg)
-      if (this.runningFromTempDir) {
-        await this.safeShowMessageBox({
-          type: 'warning',
-          buttons: ['OK'],
-          defaultId: 0,
-          title: 'Running from Temporary Directory',
-          message: 'The app appears to be running from a temporary or extracted folder.',
-          detail: 'Some features like auto-updates and bundled FFmpeg may not work correctly.\n\nFor the best experience, please install the app using the setup installer or extract the portable version to a permanent folder.'
-        });
-      }
 
       await this.setupIPC();
       logger.stage('ipc-setup');
@@ -1189,6 +1219,18 @@ class MainApp {
 
     ipcMain.handle('get-session-id', () => {
       return this.sessionId;
+    });
+
+    // Expose runtime mode to the renderer so the Preferences screen can show a
+    // small "Portable version" / "Temp directory" label instead of interrupting
+    // the user with a popup at startup.
+    ipcMain.handle('get-app-runtime-info', () => {
+      return {
+        isPortable: this.isPortable,
+        runningFromTempDir: this.runningFromTempDir,
+        execPath: process.execPath,
+        platform: process.platform
+      };
     });
 
     ipcMain.handle('select-file', async () => {

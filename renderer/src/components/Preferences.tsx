@@ -70,6 +70,7 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
   const [isRegisteringAssociations, setIsRegisteringAssociations] = useState(false);
   const [isClearingCache, setIsClearingCache] = useState(false);
   const [isSimulatingOffline, setIsSimulatingOffline] = useState(false);
+  const [runtimeInfo, setRuntimeInfo] = useState<{ isPortable: boolean; runningFromTempDir: boolean } | null>(null);
 
   // Get API context for refreshing model info
   const { refreshModelInfo } = useAPI();
@@ -119,6 +120,18 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
 
   useEffect(() => {
     checkFileAssociationStatus();
+  }, []);
+
+  useEffect(() => {
+    // Fetch runtime info (portable vs installed, temp dir flag) once on mount.
+    // Used only to show a small non-disruptive label below the title.
+    window.electronAPI.getAppRuntimeInfo()
+      .then((info: { isPortable: boolean; runningFromTempDir: boolean }) => {
+        setRuntimeInfo(info);
+      })
+      .catch((error: unknown) => {
+        logger.error('Preferences', 'Failed to load runtime info', error);
+      });
   }, []);
 
   const checkFileAssociationStatus = async () => {
@@ -328,6 +341,27 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
         gap: '20px'
       }}>
       <h1>Preferences</h1>
+
+      {runtimeInfo?.isPortable && (
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '4px 10px',
+          fontSize: '12px',
+          color: 'var(--text-secondary)',
+          background: 'var(--bg-tertiary)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '12px',
+          alignSelf: 'flex-start',
+          lineHeight: '1.2'
+        }}>
+          <i className="fas fa-suitcase" style={{ fontSize: '11px' }}></i>
+          {runtimeInfo.runningFromTempDir
+            ? 'Portable version — running from a temporary folder; auto-updates and bundled FFmpeg may not work correctly.'
+            : 'Portable version'}
+        </div>
+      )}
       
       {error && (
         <div className="status-message error">

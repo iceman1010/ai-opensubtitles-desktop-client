@@ -4,6 +4,7 @@ const electronAPI = {
   getConfig: () => ipcRenderer.invoke('get-config'),
   saveConfig: (config: any) => ipcRenderer.invoke('save-config', config),
   getSessionId: () => ipcRenderer.invoke('get-session-id'),
+  getAppRuntimeInfo: () => ipcRenderer.invoke('get-app-runtime-info'),
   selectFile: () => ipcRenderer.invoke('select-file'),
   selectMultipleFiles: () => ipcRenderer.invoke('select-multiple-files'),
   selectDirectory: () => ipcRenderer.invoke('select-directory'),
