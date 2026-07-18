@@ -2,6 +2,14 @@ import React, { useState, useEffect } from 'react';
 import CacheManager from '../services/cache';
 import { logger } from '../utils/errorLogger';
 import { useAPI } from '../contexts/APIContext';
+import FFmpegDownloadDialog from './FFmpegDownloadDialog';
+
+interface FfmpegInfo {
+  ready: boolean;
+  path: string | null;
+  source: 'custom' | 'bundled' | 'system' | 'download' | null;
+  platform: string;
+}
 
 interface AppConfig {
   username: string;
@@ -71,6 +79,8 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
   const [isClearingCache, setIsClearingCache] = useState(false);
   const [isSimulatingOffline, setIsSimulatingOffline] = useState(false);
   const [runtimeInfo, setRuntimeInfo] = useState<{ isPortable: boolean; runningFromTempDir: boolean } | null>(null);
+  const [ffmpegInfo, setFfmpegInfo] = useState<FfmpegInfo | null>(null);
+  const [showFfmpegDownloadDialog, setShowFfmpegDownloadDialog] = useState(false);
 
   // Get API context for refreshing model info
   const { refreshModelInfo } = useAPI();
@@ -131,6 +141,17 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
       })
       .catch((error: unknown) => {
         logger.error('Preferences', 'Failed to load runtime info', error);
+      });
+    // Also fetch current FFmpeg resolution state so we can show
+    // "Using bundled FFmpeg from …" / "Missing" beneath the custom-path field,
+    // and reveal the Download button when nothing else worked.
+    window.electronAPI.getFfmpegInfo?.()
+      .then((info: FfmpegInfo) => {
+        setFfmpegInfo(info);
+      })
+      .catch((error: unknown) => {
+        // Older main builds may not expose getFfmpegInfo — silently ignore.
+        logger.debug?.(2, 'Preferences', 'getFfmpegInfo not available:', error);
       });
   }, []);
 
@@ -1902,6 +1923,57 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
                   <i className={`fas ${ffmpegTestResult.success ? 'fa-check-circle text-success' : 'fa-times-circle text-danger'}`}></i> {ffmpegTestResult.message}
                 </div>
               )}
+
+              {/* Live FFmpeg resolution status. Surfaces which layer won
+                  (bundled / system / downloaded) and offers the one-time
+                  download fallback on Windows when nothing else worked. */}
+              {ffmpegInfo && (
+                <div style={{
+                  marginTop: '12px',
+                  padding: '10px 12px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--text-secondary)',
+                  border: '1px solid var(--border-color)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px'
+                }}>
+                  {ffmpegInfo.ready ? (
+                    <span>
+                      <i className="fas fa-check-circle" style={{ color: '#28a745', marginRight: '6px' }}></i>
+                      FFmpeg ready via <strong>{ffmpegInfo.source}</strong>:
+                      <code style={{ marginLeft: '4px', fontFamily: 'monospace' }}>{ffmpegInfo.path}</code>
+                    </span>
+                  ) : (
+                    <span>
+                      <i className="fas fa-exclamation-triangle" style={{ color: 'var(--danger-color)', marginRight: '6px' }}></i>
+                      FFmpeg is not available. You can specify a custom path above, or trigger a one-time download below.
+                    </span>
+                  )}
+                  {!ffmpegInfo.ready && (
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setShowFfmpegDownloadDialog(true)}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#007bff',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <i className="fas fa-download" style={{ marginRight: '6px' }}></i>
+                        Download FFmpeg
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             
             {window.electronAPI?.platform === 'darwin' && (
@@ -2105,6 +2177,21 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
         </div>
       </form>
       </div>
+
+      <FFmpegDownloadDialog
+        open={showFfmpegDownloadDialog}
+        onClose={() => setShowFfmpegDownloadDialog(false)}
+        onCompleted={(info) => {
+          setShowFfmpegDownloadDialog(false);
+          // Refresh the live status line so the UI reflects the new state.
+          setFfmpegInfo({
+            ready: info.ready,
+            path: info.path,
+            source: info.source as FfmpegInfo['source'],
+            platform: window.electronAPI?.platform || 'unknown',
+          });
+        }}
+      />
     </>
   );
 }

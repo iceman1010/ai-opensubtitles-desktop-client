@@ -1,11 +1,54 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
+import { app } from 'electron';
 import { spawn } from 'child_process';
 import ffmpeg from 'fluent-ffmpeg';
 
+// Layered FFmpeg resolution. Adopted from lossless-cut's proven pattern:
+//   1. User-supplied custom path (Preferences → "Custom FFmpeg Path")
+//   2. Bundled binary at process.resourcesPath (shipped via extraResources,
+//      completely outside asar — no asarUnpack / path-translation hacks)
+//   3. System FFmpeg via where/which, FFMPEG_PATH env, platform standard dirs
+//   4. One-time download from our GitHub release into userData/binaries/
+//      (only triggered if the bundled binary is missing/quarantined and the
+//      user explicitly confirms the download via dialog)
+//
+// Layer 2 is the load-bearing change vs. the previous ffmpeg-static design:
+// the binary sits at a predictable path (process.resourcesPath/ffmpeg(.exe))
+// that is always readable, regardless of where the app was launched from.
+
+const BINARY_NAME = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg';
+
+// GitHub release that hosts the standalone ffmpeg.exe as a fallback download.
+// Keep this tag in sync with the latest stable release.
+const FALLBACK_RELEASE_TAG = 'v1.14.11';
+const FALLBACK_DOWNLOAD_URL =
+  `https://github.com/iceman1010/ai-opensubtitles-desktop-client/releases/download/${FALLBACK_RELEASE_TAG}/ffmpeg.exe`;
+// SHA-256 of the ffmpeg.exe asset at FALLBACK_DOWNLOAD_URL. Used to verify
+// the download (and re-verify on each launch so a corrupted cache is detected).
+const FALLBACK_SHA256_WIN = '04e1307997530f9cf2fe35cba2ca7e8875ca91da02f89d6c7243df819c94ad00';
+
+export interface FFmpegResolution {
+  path: string;
+  source: 'custom' | 'bundled' | 'system' | 'download';
+}
+
+export interface FFmpegInitOptions {
+  /** Optional custom path supplied from Preferences. Can be a directory
+   * containing ffmpeg.exe, or a full path to the binary itself. */
+  customPath?: string;
+  /** Called when layers 1-3 all failed and Layer 4 download is about to be
+   * attempted. Should show a modal asking the user to confirm the download.
+   * Return true to proceed, false to abort. */
+  confirmDownload?: () => Promise<boolean>;
+  /** Optional progress callback for Layer 4 download. percent is 0-100. */
+  onDownloadProgress?: (percent: number) => void;
+}
+
 export class FFmpegManager {
   private ffmpegPath: string | null = null;
+  private resolutionSource: FFmpegResolution['source'] | null = null;
   private isInitialized = false;
   private debugLevel: number = 0;
 
@@ -19,44 +62,63 @@ export class FFmpegManager {
     }
   }
 
-  async initialize(customPath?: string): Promise<boolean> {
+  async initialize(options: FFmpegInitOptions = {}): Promise<boolean> {
     if (this.isInitialized) {
       return true;
     }
 
     try {
-      // Try custom path first if provided
+      const { customPath, confirmDownload, onDownloadProgress } = options;
+
+      // Layer 1 — user-supplied path (Preferences)
       if (customPath && customPath.trim()) {
-        this.debug(2, 'FFmpeg', `Trying custom FFmpeg path: ${customPath}`);
-        if (await this.testFFmpegPath(customPath)) {
-          this.ffmpegPath = customPath;
-          ffmpeg.setFfmpegPath(this.ffmpegPath);
-          this.isInitialized = true;
-          this.debug(2, 'FFmpeg', `FFmpeg using custom path: ${this.ffmpegPath}`);
+        this.debug(2, 'FFmpeg', `Layer 1: trying custom path: ${customPath}`);
+        const resolved = this.resolveCustomPath(customPath);
+        if (resolved && await this.testFFmpegPath(resolved)) {
+          this.applyPath(resolved, 'custom');
           return true;
-        } else {
-          this.debug(1, 'FFmpeg', `Custom FFmpeg path failed, falling back to auto-detection: ${customPath}`);
         }
+        this.debug(1, 'FFmpeg', 'Layer 1: custom path failed, falling through');
       }
 
-      this.ffmpegPath = await this.findFFmpeg();
-      
-      if (this.ffmpegPath) {
-        ffmpeg.setFfmpegPath(this.ffmpegPath);
-        this.isInitialized = true;
-        this.debug(2, 'FFmpeg', `FFmpeg found at: ${this.ffmpegPath}`);
+      // Layer 2 — bundled binary at process.resourcesPath (extraResources).
+      // This is the load-bearing fix: outside asar, always readable, signed
+      // with the installer.
+      const bundled = this.getBundledPath();
+      this.debug(2, 'FFmpeg', `Layer 2: trying bundled: ${bundled}`);
+      if (await this.testFFmpegPath(bundled)) {
+        this.applyPath(bundled, 'bundled');
+        return true;
+      }
+      this.debug(2, 'FFmpeg', 'Layer 2: bundled not present or not executable');
+
+      // Layer 3 — system FFmpeg via where/which + platform standard locations
+      this.debug(2, 'FFmpeg', 'Layer 3: searching system PATH and standard locations');
+      const systemPath = await this.findSystemFFmpeg();
+      if (systemPath) {
+        this.applyPath(systemPath, 'system');
         return true;
       }
 
-      console.warn('FFmpeg not found in PATH, attempting to download...');
-      await this.downloadFFmpeg();
-      
-      this.ffmpegPath = await this.findFFmpeg();
-      if (this.ffmpegPath) {
-        ffmpeg.setFfmpegPath(this.ffmpegPath);
-        this.isInitialized = true;
-        this.debug(2, 'FFmpeg', `FFmpeg downloaded and configured at: ${this.ffmpegPath}`);
+      // Layer 4 — staged download from our GitHub release into userData.
+      // Only attempt if (a) we already have a cached copy from a prior
+      // download, OR (b) the user confirms the download via dialog.
+      this.debug(2, 'FFmpeg', 'Layer 4: considering staged/download fallback');
+      const staged = await this.tryStagedCopy();
+      if (staged) {
+        this.applyPath(staged, 'download');
         return true;
+      }
+
+      if (confirmDownload) {
+        const approved = await confirmDownload();
+        if (approved) {
+          const downloaded = await this.downloadToUserData(onDownloadProgress);
+          if (downloaded) {
+            this.applyPath(downloaded, 'download');
+            return true;
+          }
+        }
       }
 
       this.logPlatformSpecificError();
@@ -67,74 +129,205 @@ export class FFmpegManager {
       console.error('Error details:', {
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : 'No stack trace',
-        customPath: customPath || 'none provided'
+        customPath: options.customPath || 'none provided'
       });
       console.error('=== END FFmpeg ERROR ===');
       return false;
     }
   }
 
-  private async findFFmpeg(): Promise<string | null> {
-    // Get platform-specific possible paths
-    const possiblePaths = this.getPlatformSpecificPaths();
-
-    this.debug(3, 'FFmpeg', '=== FFmpeg PATH DETECTION START ===');
-    this.debug(3, 'FFmpeg', `Platform: ${process.platform}, Architecture: ${process.arch}`);
-    this.debug(3, 'FFmpeg', 'Searching for FFmpeg in multiple locations...');
-    this.debug(3, 'FFmpeg', 'Possible paths to check:', possiblePaths);
-
-    // Step 1: Try system PATH via which/where command
-    this.debug(3, 'FFmpeg', 'Step 1: Trying system PATH via which/where command...');
-    const whichResult = await this.tryWhichCommand();
-    if (whichResult) {
-      this.debug(2, 'FFmpeg', `✅ FFmpeg found via system PATH: ${whichResult}`);
-      return whichResult;
-    }
-    this.debug(3, 'FFmpeg', '❌ System PATH search failed');
-
-    // Step 2: Try predefined platform-specific paths
-    this.debug(3, 'FFmpeg', 'Step 2: Testing platform-specific predefined paths...');
-    for (const testPath of possiblePaths) {
-      if (testPath) {
-        this.debug(3, 'FFmpeg', `  Testing: ${testPath}`);
-        if (await this.testFFmpegPath(testPath)) {
-          this.debug(2, 'FFmpeg', `  ✅ FFmpeg found at: ${testPath}`);
-          return testPath;
-        }
-        this.debug(3, 'FFmpeg', `  ❌ Failed: ${testPath}`);
+  /** Resolve a user-entered path to a concrete ffmpeg binary path. Accepts
+   * either a directory containing ffmpeg(.exe) or a full file path. */
+  private resolveCustomPath(customPath: string): string | null {
+    const trimmed = customPath.trim();
+    if (!trimmed) return null;
+    try {
+      const stat = fs.statSync(trimmed);
+      if (stat.isDirectory()) {
+        return path.join(trimmed, BINARY_NAME);
       }
+      return trimmed;
+    } catch {
+      // stat failed — maybe it's a bare 'ffmpeg' resolvable via PATH
+      return trimmed;
     }
+  }
 
-    // Step 3: Try package manager detection (Homebrew on macOS)
-    if (process.platform === 'darwin') {
-      this.debug(3, 'FFmpeg', 'Step 3: Trying Homebrew detection...');
-      const brewResult = await this.tryHomebrewPath();
-      if (brewResult) {
-        this.debug(2, 'FFmpeg', `✅ FFmpeg found via Homebrew: ${brewResult}`);
-        return brewResult;
-      }
-      this.debug(3, 'FFmpeg', '❌ Homebrew detection failed');
+  /** Path to the binary shipped via electron-builder `extraResources`. */
+  private getBundledPath(): string {
+    // process.resourcesPath is set by Electron and points to the resources
+    // directory of the app (next to app.asar on Windows/Linux, inside
+    // Contents/Resources on macOS). It is undefined during local dev when
+    // not running through Electron — fall back to the dev tree layout.
+    const resourcesPath = process.resourcesPath || path.join(__dirname, '..', '..', 'ffmpeg', `${process.platform}-${process.arch}`, 'lib');
+    return path.join(resourcesPath, BINARY_NAME);
+  }
+
+  /** Where staged/downloaded binaries live: app.getPath('userData')/binaries.
+   * Always writable regardless of where the app was launched from
+   * (installed, portable, temp dir, AppImage). */
+  private getStagedDir(): string {
+    return path.join(app.getPath('userData'), 'binaries');
+  }
+
+  private getStagedPath(): string {
+    return path.join(this.getStagedDir(), BINARY_NAME);
+  }
+
+  /** Layer 4a: check userData/binaries for a previously-downloaded copy. */
+  private async tryStagedCopy(): Promise<string | null> {
+    const staged = this.getStagedPath();
+    if (!fs.existsSync(staged)) {
+      return null;
     }
-
-    this.debug(3, 'FFmpeg', '=== FFmpeg PATH DETECTION END ===');
-    this.debug(1, 'FFmpeg', '⚠️  FFmpeg not found in any standard locations');
+    // On Windows, ensure the binary is unblocked (Zone.Identifier ADS may
+    // have been written by the download). On other platforms this is a no-op.
+    this.unblockBinary(staged);
+    if (await this.testFFmpegPath(staged)) {
+      return staged;
+    }
     return null;
   }
 
-  private getPlatformSpecificPaths(): string[] {
-    const paths: string[] = [];
-
-    // Always include user-defined environment variable first
-    if (process.env.FFMPEG_PATH) {
-      paths.push(process.env.FFMPEG_PATH);
+  /** Layer 4b: download from our GitHub release into userData/binaries.
+   * Verifies SHA-256 (Windows only — that's the only asset we host today). */
+  private async downloadToUserData(onProgress?: (pct: number) => void): Promise<string | null> {
+    if (process.platform !== 'win32') {
+      // We currently only host a Windows ffmpeg.exe on the release page.
+      // macOS/Linux users fall back to system/Homebrew or custom path.
+      this.debug(1, 'FFmpeg', 'Layer 4: download fallback is Windows-only for now');
+      return null;
     }
+    const stagedDir = this.getStagedDir();
+    fs.mkdirSync(stagedDir, { recursive: true });
+    const dest = this.getStagedPath();
+    const tmpDest = `${dest}.tmp`;
+
+    try {
+      this.debug(1, 'FFmpeg', `Layer 4: downloading ${FALLBACK_DOWNLOAD_URL} -> ${dest}`);
+      await this.downloadWithProgress(FALLBACK_DOWNLOAD_URL, tmpDest, onProgress);
+
+      // Verify SHA-256 against pinned value.
+      const actualHash = await this.sha256OfFile(tmpDest);
+      if (actualHash.toLowerCase() !== FALLBACK_SHA256_WIN.toLowerCase()) {
+        throw new Error(`SHA-256 mismatch. Expected ${FALLBACK_SHA256_WIN}, got ${actualHash}`);
+      }
+      this.debug(2, 'FFmpeg', 'Layer 4: SHA-256 verified');
+
+      // Atomic rename into place
+      fs.renameSync(tmpDest, dest);
+      this.unblockBinary(dest);
+      return dest;
+    } catch (err) {
+      this.debug(1, 'FFmpeg', `Layer 4 download failed: ${err instanceof Error ? err.message : String(err)}`);
+      try { fs.unlinkSync(tmpDest); } catch (_) { /* ignore */ }
+      try { fs.unlinkSync(dest); } catch (_) { /* ignore partial */ }
+      return null;
+    }
+  }
+
+  private downloadWithProgress(url: string, destPath: string, onProgress?: (pct: number) => void): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const https = require('https');
+      const file = fs.createWriteStream(destPath);
+      const req = (currentUrl: string, redirectsLeft = 5) => {
+        https.get(currentUrl, (res: any) => {
+          if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+            if (redirectsLeft <= 0) { reject(new Error('Too many redirects')); return; }
+            res.resume();
+            req(res.headers.location, redirectsLeft - 1);
+            return;
+          }
+          if (res.statusCode !== 200) {
+            reject(new Error(`HTTP ${res.statusCode}`));
+            return;
+          }
+          const total = parseInt(res.headers['content-length'] || '0', 10);
+          let received = 0;
+          res.on('data', (chunk: Buffer) => {
+            received += chunk.length;
+            if (onProgress && total > 0) {
+              onProgress(Math.min(100, Math.round((received / total) * 100)));
+            }
+          });
+          res.pipe(file);
+          file.on('finish', () => { file.close(() => resolve()); });
+        }).on('error', reject);
+      };
+      req(url);
+    });
+  }
+
+  private sha256OfFile(filePath: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const crypto = require('crypto');
+      const hash = crypto.createHash('sha256');
+      const stream = fs.createReadStream(filePath);
+      stream.on('data', (chunk) => hash.update(chunk));
+      stream.on('end', () => resolve(hash.digest('hex')));
+      stream.on('error', reject);
+    });
+  }
+
+  /** On Windows, delete the Zone.Identifier ADS if present. This is what
+   * PowerShell's `Unblock-File` does internally; we just touch the file
+   * directly. No-op on macOS/Linux. */
+  private unblockBinary(filePath: string): void {
+    if (process.platform !== 'win32') return;
+    try {
+      // Deleting the alternate-data-stream is enough; the file itself is untouched.
+      fs.unlinkSync(`${filePath}:Zone.Identifier`);
+      this.debug(3, 'FFmpeg', `Unblocked (stripped Zone.Identifier): ${filePath}`);
+    } catch (err: any) {
+      // ENOENT means there was no MotW — that's fine.
+      if (err && err.code !== 'ENOENT') {
+        this.debug(2, 'FFmpeg', `Unblock skipped: ${err.message}`);
+      }
+    }
+  }
+
+  /** Probe for a system-installed FFmpeg. Used as Layer 3 fallback when the
+   * bundled binary isn't present (e.g. dev mode without ffmpeg/ tree, or
+   * broken install). */
+  private async findSystemFFmpeg(): Promise<string | null> {
+    const possiblePaths = this.getSystemSearchPaths();
+
+    this.debug(3, 'FFmpeg', '=== Layer 3 PATH DETECTION ===');
+    this.debug(3, 'FFmpeg', `Platform: ${process.platform}, Arch: ${process.arch}`);
+
+    // 3a. Try which/where
+    const whichResult = await this.tryWhichCommand();
+    if (whichResult) {
+      this.debug(2, 'FFmpeg', `Layer 3: found via PATH: ${whichResult}`);
+      return whichResult;
+    }
+
+    // 3b. Try platform-specific predefined paths
+    for (const testPath of possiblePaths) {
+      if (testPath && await this.testFFmpegPath(testPath)) {
+        this.debug(2, 'FFmpeg', `Layer 3: found at: ${testPath}`);
+        return testPath;
+      }
+    }
+
+    // 3c. macOS Homebrew detection
+    if (process.platform === 'darwin') {
+      const brewResult = await this.tryHomebrewPath();
+      if (brewResult) return brewResult;
+    }
+
+    return null;
+  }
+
+  private getSystemSearchPaths(): string[] {
+    const paths: string[] = [];
+    if (process.env.FFMPEG_PATH) paths.push(process.env.FFMPEG_PATH);
 
     switch (process.platform) {
       case 'win32':
-        // Windows-specific paths
         paths.push(
-          'ffmpeg', // System PATH (if user installed)
-          'C:\\ffmpeg\\bin\\ffmpeg.exe', // Common manual installation
+          'ffmpeg',
+          'C:\\ffmpeg\\bin\\ffmpeg.exe',
           'C:\\Program Files\\ffmpeg\\bin\\ffmpeg.exe',
           'C:\\Program Files (x86)\\ffmpeg\\bin\\ffmpeg.exe',
           path.join(process.env.LOCALAPPDATA || '', 'ffmpeg', 'bin', 'ffmpeg.exe'),
@@ -142,188 +335,136 @@ export class FFmpegManager {
           path.join(process.env['PROGRAMFILES(X86)'] || '', 'ffmpeg', 'bin', 'ffmpeg.exe')
         );
         break;
-
       case 'darwin':
-        // macOS-specific paths (Intel + Apple Silicon)
         paths.push(
-          'ffmpeg', // System PATH
-          '/usr/local/bin/ffmpeg', // Homebrew Intel Mac
-          '/opt/homebrew/bin/ffmpeg', // Homebrew Apple Silicon Mac
-          '/usr/bin/ffmpeg', // System default
-          '/usr/local/Cellar/ffmpeg', // Alternative Homebrew location (will be tested with bin/ appended)
-          '/opt/local/bin/ffmpeg', // MacPorts
-          '/Applications/ffmpeg', // Some app-style installations
-          path.join(process.env.HOME || '', 'bin', 'ffmpeg') // User local installation
+          'ffmpeg',
+          '/usr/local/bin/ffmpeg',
+          '/opt/homebrew/bin/ffmpeg',
+          '/usr/bin/ffmpeg',
+          '/opt/local/bin/ffmpeg',
+          path.join(process.env.HOME || '', 'bin', 'ffmpeg')
         );
         break;
-
       case 'linux':
       default:
-        // Linux and other Unix-like systems
         paths.push(
-          'ffmpeg', // System PATH
-          '/usr/bin/ffmpeg', // System package manager
-          '/usr/local/bin/ffmpeg', // Manual/source installation
-          '/opt/ffmpeg/bin/ffmpeg', // Alternative installation
-          '/snap/bin/ffmpeg', // Snap package
-          '/var/lib/flatpak/exports/bin/ffmpeg', // Flatpak
-          path.join(process.env.HOME || '', 'bin', 'ffmpeg'), // User local installation
-          path.join(process.env.HOME || '', '.local', 'bin', 'ffmpeg') // User local installation (newer convention)
+          'ffmpeg',
+          '/usr/bin/ffmpeg',
+          '/usr/local/bin/ffmpeg',
+          '/opt/ffmpeg/bin/ffmpeg',
+          '/snap/bin/ffmpeg',
+          '/var/lib/flatpak/exports/bin/ffmpeg',
+          path.join(process.env.HOME || '', 'bin', 'ffmpeg'),
+          path.join(process.env.HOME || '', '.local', 'bin', 'ffmpeg')
         );
         break;
     }
-
-    return paths.filter(Boolean); // Remove any undefined/empty paths
+    return paths.filter(Boolean);
   }
 
   private async tryWhichCommand(): Promise<string | null> {
     return new Promise((resolve) => {
-      // Use platform-appropriate command for finding executables
       const isWindows = process.platform === 'win32';
       const command = isWindows ? 'where' : 'which';
-      const args = ['ffmpeg'];
-
-      this.debug(3, 'FFmpeg', `Using ${command} command for platform: ${process.platform}`);
-
-      const child = spawn(command, args, { stdio: 'pipe' });
+      const child = spawn(command, ['ffmpeg'], { stdio: 'pipe' });
 
       let output = '';
-      child.stdout.on('data', (data) => {
-        output += data.toString();
-      });
-
+      child.stdout.on('data', (data) => { output += data.toString(); });
       child.on('close', (code) => {
         if (code === 0 && output.trim()) {
-          // Windows 'where' command can return multiple paths, take the first one
-          const firstPath = output.trim().split('\n')[0].trim();
-          this.debug(3, 'FFmpeg', `${command} command found: ${firstPath}`);
-          resolve(firstPath);
+          resolve(output.trim().split('\n')[0].trim());
         } else {
-          this.debug(3, 'FFmpeg', `${command} command failed with code: ${code}`);
           resolve(null);
         }
       });
-
-      child.on('error', (error) => {
-        this.debug(3, 'FFmpeg', `${command} command error:`, error.message);
-        resolve(null);
-      });
-    });
-  }
-
-  private async testFFmpegPath(path: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      const child = spawn(path, ['-version'], { stdio: 'pipe' });
-      
-      child.on('close', (code) => {
-        resolve(code === 0);
-      });
-
-      child.on('error', () => {
-        resolve(false);
-      });
-
-      // Timeout after 5 seconds
-      setTimeout(() => {
-        child.kill();
-        resolve(false);
-      }, 5000);
+      child.on('error', () => resolve(null));
     });
   }
 
   private async tryHomebrewPath(): Promise<string | null> {
     return new Promise((resolve) => {
-      // First, get the general Homebrew prefix (more reliable than ffmpeg-specific prefix)
       const child = spawn('brew', ['--prefix'], { stdio: 'pipe' });
-
       let output = '';
-      child.stdout.on('data', (data) => {
-        output += data.toString();
-      });
-
+      child.stdout.on('data', (data) => { output += data.toString(); });
       child.on('close', async (code) => {
         if (code === 0 && output.trim()) {
-          const brewPrefix = output.trim();
-          const brewPath = path.join(brewPrefix, 'bin', 'ffmpeg');
-
-          this.debug(3, 'FFmpeg', `Testing Homebrew path: ${brewPath}`);
-
-          const isValid = await this.testFFmpegPath(brewPath);
-          if (isValid) {
-            this.debug(3, 'FFmpeg', `✅ Found FFmpeg via Homebrew: ${brewPath}`);
+          const brewPath = path.join(output.trim(), 'bin', 'ffmpeg');
+          if (await this.testFFmpegPath(brewPath)) {
             resolve(brewPath);
           } else {
-            this.debug(3, 'FFmpeg', `❌ Homebrew FFmpeg not found at: ${brewPath}`);
             resolve(null);
           }
         } else {
-          this.debug(3, 'FFmpeg', `❌ Homebrew not found or failed (exit code: ${code})`);
           resolve(null);
         }
       });
-
-      child.on('error', (error) => {
-        this.debug(3, 'FFmpeg', `❌ Homebrew command error: ${error.message}`);
-        resolve(null);
-      });
+      child.on('error', () => resolve(null));
     });
   }
 
-  private async downloadFFmpeg(): Promise<void> {
-    this.debug(2, 'FFmpeg', 'Attempting to use ffmpeg-static fallback...');
-
-    let ffmpegStatic: string | null = null;
-    try {
-      ffmpegStatic = require('ffmpeg-static');
-      this.debug(3, 'FFmpeg', `ffmpeg-static returned path: ${ffmpegStatic}`);
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-      console.error(`[FFmpeg] ffmpeg-static module failed to load: ${reason}`);
-      if (reason.includes('Cannot find module')) {
-        console.error('[FFmpeg] ffmpeg-static dependency is missing from the package');
+  private async testFFmpegPath(target: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      // For BtbN shared builds on Linux, the binary needs LD_LIBRARY_PATH
+      // pointing at the directory containing lib*.so. For the bundled case
+      // that's process.resourcesPath; for staged copies we set it to the
+      // parent dir. For a plain system ffmpeg this env is harmless.
+      const env = { ...process.env };
+      const libDir = path.dirname(target);
+      if (process.platform === 'linux') {
+        env.LD_LIBRARY_PATH = [libDir, process.env.LD_LIBRARY_PATH].filter(Boolean).join(':');
       }
+      try {
+        const child = spawn(target, ['-version'], { stdio: 'pipe', env });
+        const timer = setTimeout(() => {
+          try { child.kill(); } catch (_) { /* ignore */ }
+          resolve(false);
+        }, 5000);
+        child.on('close', (code) => {
+          clearTimeout(timer);
+          resolve(code === 0);
+        });
+        child.on('error', () => {
+          clearTimeout(timer);
+          resolve(false);
+        });
+      } catch {
+        resolve(false);
+      }
+    });
+  }
+
+  private applyPath(p: string, source: FFmpegResolution['source']): void {
+    this.ffmpegPath = p;
+    this.resolutionSource = source;
+    ffmpeg.setFfmpegPath(p);
+    this.isInitialized = true;
+    this.debug(1, 'FFmpeg', `✅ FFmpeg ready via ${source}: ${p}`);
+  }
+
+  /** fluent-ffmpeg spawns ffmpeg as a child process. On Linux we need to
+   * make sure LD_LIBRARY_PATH is set for the bundled binary's directory
+   * (and for the staged dir if we're using Layer 4). Set it globally here
+   * so child processes inherit it. */
+  private ensureLibPathForSpawn(): void {
+    if (process.platform !== 'linux') return;
+    if (!this.ffmpegPath) return;
+    const libDir = path.dirname(this.ffmpegPath);
+    const existing = process.env.LD_LIBRARY_PATH || '';
+    if (!existing.split(':').includes(libDir)) {
+      process.env.LD_LIBRARY_PATH = [libDir, existing].filter(Boolean).join(':');
     }
-
-    if (ffmpegStatic) {
-      // When packaged, the binary lives inside app.asar and cannot be executed.
-      // electron-builder unpacks it (via asarUnpack) to app.asar.unpacked.
-      // Translate the asar path to the real on-disk location so spawn works.
-      let realPath = ffmpegStatic;
-      if (realPath.includes('app.asar')) {
-        realPath = realPath.replace(/\bapp\.asar\b/, 'app.asar.unpacked');
-        this.debug(2, 'FFmpeg', `Translated asar path -> unpacked: ${realPath}`);
-      }
-
-      if (fs.existsSync(realPath)) {
-        const isExecutable = await this.testFFmpegPath(realPath);
-        if (isExecutable) {
-          this.ffmpegPath = realPath;
-          this.debug(2, 'FFmpeg', `Using ffmpeg-static binary: ${realPath}`);
-          return;
-        } else {
-          console.error(`[FFmpeg] ffmpeg-static binary exists but is NOT executable: ${realPath}`);
-        }
-      } else if (fs.existsSync(ffmpegStatic)) {
-        // existsSync passed on the asar path (Electron fs shim) but the real
-        // unpacked file is missing — asarUnpack likely not applied to this build.
-        console.error(`[FFmpeg] ffmpeg-static binary is trapped inside app.asar (asarUnpack missing): ${ffmpegStatic}`);
-        console.error(`[FFmpeg] Expected unpacked location: ${realPath}`);
-      } else {
-        console.error(`[FFmpeg] ffmpeg-static binary path does not exist: ${ffmpegStatic}`);
-      }
-    } else if (ffmpegStatic === null) {
-      // require succeeded but returned null (unsupported platform/arch)
-      console.error('[FFmpeg] ffmpeg-static returned null — platform/arch unsupported for bundled binary');
-    }
-
-    // If we reach here, ffmpeg-static failed
-    const errorMsg = 'FFmpeg is required but not available. Please install FFmpeg on your system or check the application logs for details.';
-    console.error(`[FFmpeg] ${errorMsg}`);
-    throw new Error(errorMsg);
   }
 
   isReady(): boolean {
     return this.isInitialized && this.ffmpegPath !== null;
+  }
+
+  getFFmpegPath(): string | null {
+    return this.ffmpegPath;
+  }
+
+  getResolutionSource(): FFmpegResolution['source'] | null {
+    return this.resolutionSource;
   }
 
   async extractAudioFromVideo(
@@ -335,6 +476,7 @@ export class FFmpegManager {
     if (!this.isReady()) {
       throw new Error('FFmpeg is not ready. Call initialize() first.');
     }
+    this.ensureLibPathForSpawn();
 
     const outputFile = outputPath || this.generateOutputPath(inputPath, '.mp3');
 
@@ -345,8 +487,7 @@ export class FFmpegManager {
         .audioChannels(1)
         .audioFrequency(16000)
         .output(outputFile);
-      
-      // Add duration limit if specified (for language detection: first 3 minutes)
+
       if (durationSeconds) {
         command.duration(durationSeconds);
       }
@@ -358,9 +499,7 @@ export class FFmpegManager {
       }
 
       command
-        .on('end', () => {
-          resolve(outputFile);
-        })
+        .on('end', () => { resolve(outputFile); })
         .on('error', (error: any) => {
           reject(new Error(`FFmpeg error: ${error.message}`));
         })
@@ -376,6 +515,7 @@ export class FFmpegManager {
     if (!this.isReady()) {
       throw new Error('FFmpeg is not ready. Call initialize() first.');
     }
+    this.ensureLibPathForSpawn();
 
     const outputFile = outputPath || this.generateOutputPath(inputPath, '.mp3');
 
@@ -394,9 +534,7 @@ export class FFmpegManager {
       }
 
       command
-        .on('end', () => {
-          resolve(outputFile);
-        })
+        .on('end', () => { resolve(outputFile); })
         .on('error', (error: any) => {
           reject(new Error(`FFmpeg error: ${error.message}`));
         })
@@ -413,13 +551,13 @@ export class FFmpegManager {
     if (!this.isReady()) {
       throw new Error('FFmpeg is not ready. Call initialize() first.');
     }
+    this.ensureLibPathForSpawn();
 
     return new Promise((resolve, reject) => {
       ffmpeg.ffprobe(filePath, (error: any, metadata: any) => {
         if (error) {
-          // Provide more user-friendly error messages
           let errorMessage = 'File is not a valid media file';
-          
+
           if (error.message.includes('No such file')) {
             errorMessage = 'File not found or cannot be accessed';
           } else if (error.message.includes('Invalid data found when processing input')) {
@@ -431,12 +569,11 @@ export class FFmpegManager {
           } else if (error.message.includes('ffprobe exited with code')) {
             errorMessage = 'File is not a valid media file';
           }
-          
+
           reject(new Error(errorMessage));
           return;
         }
 
-        // Check if metadata is valid
         if (!metadata || !metadata.streams || metadata.streams.length === 0) {
           reject(new Error('File contains no readable media streams'));
           return;
@@ -445,7 +582,6 @@ export class FFmpegManager {
         const hasAudio = metadata.streams.some((stream: any) => stream.codec_type === 'audio');
         const hasVideo = metadata.streams.some((stream: any) => stream.codec_type === 'video');
 
-        // Additional validation
         if (!hasAudio && !hasVideo) {
           reject(new Error('File does not contain audio or video content'));
           return;
@@ -463,9 +599,7 @@ export class FFmpegManager {
 
   private generateOutputPath(inputPath: string, extension: string): string {
     const parsedPath = path.parse(inputPath);
-    // Use system temp directory instead of input file directory for better cross-platform support
     const tempDir = os.tmpdir();
-    // Generate unique filename with timestamp to prevent conflicts
     const timestamp = Date.now();
     const uniqueName = `${parsedPath.name}_converted_${timestamp}${extension}`;
     return path.join(tempDir, uniqueName);
@@ -473,57 +607,13 @@ export class FFmpegManager {
 
   private logPlatformSpecificError(): void {
     console.error('=== FFmpeg INITIALIZATION FAILED ===');
-    console.error('FFmpeg could not be found or downloaded.');
-    console.error('This will prevent media file processing and language detection.');
+    console.error('FFmpeg could not be located via any of: bundled binary, system PATH,');
+    console.error('or previously-downloaded copy. The user can supply a custom path in');
+    console.error('Preferences, or trigger a one-time download from there.');
     console.error('');
-
-    switch (process.platform) {
-      case 'win32':
-        console.error('🪟 Windows Solutions:');
-        console.error('1. Download FFmpeg from https://ffmpeg.org/download.html#build-windows');
-        console.error('2. Extract to C:\\ffmpeg\\ and add C:\\ffmpeg\\bin to your PATH');
-        console.error('3. Or install via package manager:');
-        console.error('   • Chocolatey: choco install ffmpeg');
-        console.error('   • Winget: winget install FFmpeg');
-        console.error('   • Scoop: scoop install ffmpeg');
-        console.error('4. Alternatively, set a custom FFmpeg path in Preferences');
-        break;
-
-      case 'darwin':
-        console.error('🍎 macOS Solutions:');
-        console.error('1. Install via Homebrew (recommended): brew install ffmpeg');
-        console.error('2. Install via MacPorts: sudo port install ffmpeg');
-        console.error('3. Download binary from https://evermeet.cx/ffmpeg/');
-        console.error('4. Set a custom FFmpeg path in Preferences');
-        console.error('');
-        console.error('💡 Note: If using Homebrew, make sure it\'s properly configured:');
-        console.error('   • Intel Mac: FFmpeg should be in /usr/local/bin/');
-        console.error('   • Apple Silicon Mac: FFmpeg should be in /opt/homebrew/bin/');
-        break;
-
-      case 'linux':
-      default:
-        console.error('🐧 Linux Solutions:');
-        console.error('1. Install via package manager:');
-        console.error('   • Ubuntu/Debian: sudo apt install ffmpeg');
-        console.error('   • RHEL/CentOS/Fedora: sudo dnf install ffmpeg (or yum)');
-        console.error('   • Arch: sudo pacman -S ffmpeg');
-        console.error('   • openSUSE: sudo zypper install ffmpeg');
-        console.error('2. Install via Snap: sudo snap install ffmpeg');
-        console.error('3. Install via Flatpak: flatpak install org.ffmpeg.FFmpeg');
-        console.error('4. Set a custom FFmpeg path in Preferences');
-        break;
-    }
-
-    console.error('');
-    console.error('💡 Troubleshooting:');
-    console.error('• Enable debug logging in Preferences to see detailed detection attempts');
-    console.error('• Check if FFmpeg works in terminal/command prompt: ffmpeg -version');
-    console.error('• Restart the application after installing FFmpeg');
+    console.error(`Platform: ${process.platform} ${process.arch}`);
+    console.error(`Bundled path tried: ${this.getBundledPath()}`);
+    console.error(`Staged path checked: ${this.getStagedPath()}`);
     console.error('=== END FFmpeg ERROR ===');
-  }
-
-  getFFmpegPath(): string | null {
-    return this.ffmpegPath;
   }
 }

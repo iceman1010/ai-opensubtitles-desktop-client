@@ -29,9 +29,11 @@ COMMIT_TYPE=""
 COMMIT_DESC=""
 COMMIT_MESSAGE=""
 SKIP_CONFIRM=false
+QUIET=false
 
 # Helper functions
 log_info() {
+    [ "$QUIET" = true ] && return
     echo -e "${BLUE}[INFO]${NC} $1"
 }
 
@@ -45,6 +47,19 @@ log_warning() {
 
 log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# Download a file with curl (fallback to wget). Uses animated progress bar by
+# default; switches to silent mode (errors only) when QUIET=true, e.g. when
+# invoked with --quiet by an LLM agent or CI pipeline.
+download_file() {
+    local url="$1"
+    local output="$2"
+    if [ "$QUIET" = true ]; then
+        curl -L -sS -o "$output" "$url" || wget -q -O "$output" "$url"
+    else
+        curl -L --progress-bar -o "$output" "$url" || wget --progress=bar:force -O "$output" "$url" 2>&1
+    fi
 }
 
 # Check required tools
@@ -597,7 +612,7 @@ download_files_strategy_api_fallback() {
             # Only download main installer files (skip portable .exe and helper files)
             if [[ "$name" =~ \.(dmg|AppImage)$ ]] || [[ "$name" == *"-Setup.exe" ]]; then
                 log_info "API downloading $name (this may take a few minutes)..."
-                if curl -L --progress-bar -o "$name" "$url" || wget --progress=bar:force -O "$name" "$url" 2>&1; then
+                if download_file "$url" "$name"; then
                     log_success "API downloaded $name ($(du -h "$name" | cut -f1))"
                     downloaded_count=$((downloaded_count + 1))
                 else
@@ -754,7 +769,7 @@ generate_metadata_from_api() {
             # Try to calculate checksum by downloading just the file temporarily
             local temp_file="/tmp/${filename}.checksum"
             log_info "Downloading $filename for checksum calculation..."
-            if curl -L --progress-bar -o "$temp_file" "$download_url" || wget --progress=bar:force -O "$temp_file" "$download_url" 2>&1; then
+            if download_file "$download_url" "$temp_file"; then
                 local checksum_size=$(calculate_checksum_and_size "$temp_file")
                 local sha512="${checksum_size%:*}"
                 rm -f "$temp_file"
@@ -1208,6 +1223,10 @@ while [[ $# -gt 0 ]]; do
             SKIP_CONFIRM=true
             shift
             ;;
+        --quiet)
+            QUIET=true
+            shift
+            ;;
         -h|--help)
             # Let the existing case handler below process it
             break
@@ -1258,6 +1277,7 @@ case "${1:-patch}" in
         echo "  --commit-desc <desc>   Short description for commit message"
         echo "  --message <msg>        Full commit message (overrides --commit-type/--commit-desc)"
         echo "  --yes                  Skip confirmation prompt (non-interactive mode)"
+        echo "  --quiet                Suppress animated progress bars and info logs (for LLM/CI use)"
         echo "  -h, --help             Show this help message"
         echo
         echo "Version types (positional):"

@@ -5,6 +5,10 @@ node_modules/
 dist/
 release/
 
+# Downloaded FFmpeg binaries — fetched at build time by
+# build-scripts/download-ffmpeg.js. Never commit; they're ~80MB per platform.
+ffmpeg/
+
 # Auto-updater metadata files (generated locally, not committed)
 latest-linux.yml
 latest-mac.yml

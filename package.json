@@ -1,6 +1,6 @@
 {
   "name": "ai-opensubtitles-client",
-  "version": "1.14.11",
+  "version": "1.14.12",
   "description": "Cross-platform desktop client for AI.Opensubtitles.com",
   "main": "dist/main/main.js",
   "homepage": "./",
@@ -11,19 +11,21 @@
   },
   "scripts": {
     "dev": "concurrently \"npm run dev:main\" \"npm run dev:renderer\"",
-    "dev:main": "tsc -p main/tsconfig.json && npm run copy:shared && NODE_ENV=development electron dist/main/main.js",
+    "dev:main": "npm run download-ffmpeg && tsc -p main/tsconfig.json && npm run copy:shared && NODE_ENV=development electron dist/main/main.js",
     "dev:renderer": "vite",
-    "build": "npm run build:main && npm run build:renderer && npm run copy:shared",
+    "build": "npm run download-ffmpeg && npm run build:main && npm run build:renderer && npm run copy:shared",
     "build:main": "tsc -p main/tsconfig.json",
     "build:renderer": "vite build",
     "copy:shared": "cp -r shared dist/",
+    "download-ffmpeg": "node build-scripts/download-ffmpeg.js",
+    "download-ffmpeg:all": "node build-scripts/download-ffmpeg.js --all",
     "pack": "npm run generate-file-associations && electron-builder --dir",
     "dist": "npm run dist:stable",
     "dist:stable": "npm run generate-file-associations && electron-builder --linux appimage --publish never",
     "dist:dev": "npm run generate-file-associations && electron-builder --linux deb --publish never",
     "generate-file-associations": "node build-scripts/generate-file-associations.js",
     "generate-update-metadata": "node build-scripts/generate-update-metadata.js",
-    "dist:all": "electron-builder --mac --win --linux --publish never",
+    "dist:all": "npm run download-ffmpeg:all && electron-builder --mac --win --linux --publish never",
     "dist:win": "electron-builder --win --publish never",
     "dist:mac": "electron-builder --mac --publish never",
     "dist:with-metadata": "npm run generate-file-associations && electron-builder --publish always",
@@ -40,9 +42,9 @@
       "dist/**/*",
       "node_modules/**/*"
     ],
-    "asarUnpack": [
-      "node_modules/ffmpeg-static/**"
-    ],
+    "asar": {
+      "smartUnpack": false
+    },
     "extraResources": [],
     "extraMetadata": {
       "description": "Cross-platform desktop client for AI.Opensubtitles.com"
@@ -66,7 +68,17 @@
           ]
         }
       ],
-      "artifactName": "${productName}-${arch}.${ext}"
+      "artifactName": "${productName}-${arch}.${ext}",
+      "extraResources": [
+        {
+          "from": "ffmpeg/darwin-${arch}/lib",
+          "to": ".",
+          "filter": [
+            "ffmpeg",
+            "*.dylib"
+          ]
+        }
+      ]
     },
     "win": {
       "target": [
@@ -80,6 +92,17 @@
           "target": "portable",
           "arch": [
             "x64"
+          ]
+        }
+      ],
+      "extraResources": [
+        {
+          "from": "ffmpeg/win32-${arch}/lib",
+          "to": ".",
+          "filter": [
+            "ffmpeg.exe",
+            "ffprobe.exe",
+            "*.dll"
           ]
         }
       ]
@@ -100,7 +123,19 @@
         }
       ],
       "category": "AudioVideo",
-      "artifactName": "${productName}.${ext}"
+      "artifactName": "${productName}.${ext}",
+      "extraResources": [
+        {
+          "from": "ffmpeg/linux-${arch}/lib",
+          "to": ".",
+          "filter": [
+            "ffmpeg",
+            "ffprobe",
+            "*.so",
+            "*.so.*"
+          ]
+        }
+      ]
     },
     "nsis": {
       "artifactName": "${productName}-Setup.${ext}",
@@ -453,7 +488,6 @@
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.7.1",
     "electron-updater": "^6.3.9",
-    "ffmpeg-static": "^5.2.0",
     "fluent-ffmpeg": "^2.1.3",
     "react": "^18.3.1",
     "react-complex-tree": "^2.6.0",

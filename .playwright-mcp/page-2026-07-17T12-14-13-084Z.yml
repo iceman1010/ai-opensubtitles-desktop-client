@@ -1,0 +1,2285 @@
+- generic [active] [ref=f4e1]:
+  - generic [ref=f4e2]:
+    - generic [ref=f4e3]:
+      - link "Skip to content" [ref=f4e4] [cursor=pointer]:
+        - /url: "#start-of-content"
+      - banner [ref=f4e6]:
+        - heading "Navigation Menu" [level=2] [ref=f4e7]
+        - generic [ref=f4e9]:
+          - button "Toggle navigation" [ref=f4e11] [cursor=pointer]
+          - link "Homepage" [ref=f4e17] [cursor=pointer]:
+            - /url: /
+            - img [ref=f4e18]
+          - generic [ref=f4e20]:
+            - link "Sign in" [ref=f4e21] [cursor=pointer]:
+              - /url: /login?return_to=https%3A%2F%2Fgithub.com%2Fmifi%2Flossless-cut%2Fblob%2Fmaster%2Fpackage.json
+            - button "Appearance settings" [ref=f4e24] [cursor=pointer]:
+              - img
+    - main [ref=f4e28]:
+      - generic [ref=f4e29]:
+        - generic [ref=f4e30]:
+          - generic [ref=f4e32]:
+            - img [ref=f4e33]
+            - link "mifi" [ref=f4e36] [cursor=pointer]:
+              - /url: /mifi
+            - generic [ref=f4e37]: /
+            - strong [ref=f4e38]:
+              - link "lossless-cut" [ref=f4e39] [cursor=pointer]:
+                - /url: /mifi/lossless-cut
+            - generic [ref=f4e40]: Public
+          - generic [ref=f4e41]:
+            - list:
+              - listitem [ref=f4e42]:
+                - button "Sponsor mifi/lossless-cut" [ref=f4e44] [cursor=pointer]:
+                  - generic [ref=f4e46]:
+                    - img [ref=f4e47]
+                    - text: Sponsor
+              - listitem [ref=f4e49]:
+                - link "You must be signed in to change notification settings" [ref=f4e50] [cursor=pointer]:
+                  - /url: /login?return_to=%2Fmifi%2Flossless-cut
+                  - img [ref=f4e51]
+                  - text: Notifications
+              - listitem [ref=f4e53]:
+                - link "Fork 2.1k" [ref=f4e54] [cursor=pointer]:
+                  - /url: /login?return_to=%2Fmifi%2Flossless-cut
+                  - img [ref=f4e55]
+                  - text: Fork
+                  - generic "2,075" [ref=f4e57]: 2.1k
+              - listitem [ref=f4e58]:
+                - link "You must be signed in to star a repository" [ref=f4e60] [cursor=pointer]:
+                  - /url: /login?return_to=%2Fmifi%2Flossless-cut
+                  - img [ref=f4e61]
+                  - text: Star
+                  - generic "42140 users starred this repository" [ref=f4e63]: 42.1k
+        - navigation "Repository" [ref=f4e64]:
+          - list [ref=f4e65]:
+            - listitem [ref=f4e66]:
+              - link "Code" [ref=f4e67] [cursor=pointer]:
+                - /url: /mifi/lossless-cut
+                - img [ref=f4e68]
+                - generic [ref=f4e70]: Code
+            - listitem [ref=f4e71]:
+              - link "Issues 266" [ref=f4e72] [cursor=pointer]:
+                - /url: /mifi/lossless-cut/issues
+                - img [ref=f4e73]
+                - generic [ref=f4e76]: Issues
+                - generic "266" [ref=f4e77]
+            - listitem [ref=f4e78]:
+              - link "Pull requests 6" [ref=f4e79] [cursor=pointer]:
+                - /url: /mifi/lossless-cut/pulls
+                - img [ref=f4e80]
+                - generic [ref=f4e82]: Pull requests
+                - generic "6" [ref=f4e83]
+            - listitem [ref=f4e84]:
+              - link "Discussions" [ref=f4e85] [cursor=pointer]:
+                - /url: /mifi/lossless-cut/discussions
+                - img [ref=f4e86]
+                - generic [ref=f4e88]: Discussions
+            - listitem [ref=f4e89]:
+              - link "Actions" [ref=f4e90] [cursor=pointer]:
+                - /url: /mifi/lossless-cut/actions
+                - img [ref=f4e91]
+                - generic [ref=f4e93]: Actions
+            - listitem [ref=f4e94]:
+              - link "Projects" [ref=f4e95] [cursor=pointer]:
+                - /url: /mifi/lossless-cut/projects
+                - img [ref=f4e96]
+                - generic [ref=f4e98]: Projects
+            - listitem [ref=f4e99]
+            - listitem [ref=f4e100]
+          - button "Additional navigation options" [ref=f4e104] [cursor=pointer]:
+            - img
+      - generic [ref=f4e115]:
+        - generic [ref=f4e119]:
+          - generic [ref=f4e120]:
+            - heading "Expand file tree" [level=2] [ref=f4e122]:
+              - button "Expand file tree" [ref=f4e123] [cursor=pointer]:
+                - img [ref=f4e124]
+            - button "master branch" [ref=f4e128] [cursor=pointer]:
+              - generic [ref=f4e129]:
+                - generic [ref=f4e131]:
+                  - img [ref=f4e133]
+                  - generic [ref=f4e136]: master
+                - generic:
+                  - img
+            - generic [ref=f4e138]:
+              - navigation "Breadcrumbs" [ref=f4e139]:
+                - heading "Breadcrumbs" [level=2] [ref=f4e140]
+                - list [ref=f4e141]:
+                  - listitem [ref=f4e142]:
+                    - link "lossless-cut" [ref=f4e143] [cursor=pointer]:
+                      - /url: /mifi/lossless-cut/tree/master
+              - generic [ref=f4e144]:
+                - text: /
+                - heading "package.json" [level=1] [ref=f4e145]
+              - button "Copy path" [ref=f4e146] [cursor=pointer]:
+                - img [ref=f4e147]
+          - generic [ref=f4e152]:
+            - generic [ref=f4e155]:
+              - img [ref=f4e157]
+              - combobox "Go to file" [ref=f4e159]
+            - button "More file actions" [ref=f4e160] [cursor=pointer]:
+              - img [ref=f4e161]
+        - generic [ref=f4e163]:
+          - generic [ref=f4e165]:
+            - heading "Latest commit" [level=2] [ref=f4e166]
+            - generic [ref=f4e167]:
+              - generic [ref=f4e168]:
+                - generic [ref=f4e170]:
+                  - img "dependabot[bot]" [ref=f4e171]
+                  - img "mifi" [ref=f4e172]
+                - link "commits by dependabot[bot]" [ref=f4e174] [cursor=pointer]:
+                  - /url: /mifi/lossless-cut/commits?author=dependabot%5Bbot%5D
+                  - text: dependabot[bot]
+                - generic [ref=f4e175]: and
+                - link "commits by mifi" [ref=f4e177] [cursor=pointer]:
+                  - /url: /mifi/lossless-cut/commits?author=mifi
+                  - text: mifi
+              - generic [ref=f4e178]:
+                - link "Bump morgan from 1.10.1 to 1.11.0" [ref=f4e181] [cursor=pointer]:
+                  - /url: /mifi/lossless-cut/commit/2deed8806ab8c65bf09908350d4cd929f07a7171
+                - button "Open commit details" [ref=f4e182] [cursor=pointer]:
+                  - img [ref=f4e183]
+                - button "failure" [ref=f4e185] [cursor=pointer]:
+                  - img [ref=f4e186]
+            - generic [ref=f4e188]:
+              - generic [ref=f4e190]:
+                - link "Commit 2deed88" [ref=f4e191] [cursor=pointer]:
+                  - /url: /mifi/lossless-cut/commit/2deed8806ab8c65bf09908350d4cd929f07a7171
+                  - text: 2deed88
+                - text: ·
+                - generic "Jul 14, 2026, 4:21 PM GMT+2" [ref=f4e192]: Jul 14, 20263 days ago
+              - generic [ref=f4e193]:
+                - heading "History" [level=2] [ref=f4e194]
+                - link "View commit history for this file." [ref=f4e196] [cursor=pointer]:
+                  - /url: /mifi/lossless-cut/commits/master/package.json
+                  - generic [ref=f4e197]:
+                    - generic:
+                      - img
+          - generic [ref=f4e199]:
+            - generic [ref=f4e201]:
+              - heading "File metadata and controls" [level=2] [ref=f4e202]
+              - generic [ref=f4e203]:
+                - list "File view" [ref=f4e204]:
+                  - listitem [ref=f4e205]:
+                    - button "Code" [ref=f4e206] [cursor=pointer]:
+                      - generic [ref=f4e208]: Code
+                  - listitem [ref=f4e209]:
+                    - button "Blame" [ref=f4e210] [cursor=pointer]:
+                      - generic [ref=f4e212]: Blame
+                - generic "14.2 KB" [ref=f4e215]: 496 lines (496 loc) · 14.2 KB
+              - generic [ref=f4e216]:
+                - generic [ref=f4e218]:
+                  - link "Raw" [ref=f4e220] [cursor=pointer]:
+                    - /url: https://github.com/mifi/lossless-cut/raw/refs/heads/master/package.json
+                    - generic [ref=f4e222]: Raw
+                  - button "Copy raw file" [ref=f4e224] [cursor=pointer]:
+                    - img [ref=f4e225]
+                  - button "Download raw file" [ref=f4e229] [cursor=pointer]:
+                    - img [ref=f4e230]
+                - button "Open symbols panel" [ref=f4e233] [cursor=pointer]:
+                  - img [ref=f4e234]
+            - region [ref=f4e237]:
+              - generic [ref=f4e241]:
+                - textbox "file content" [ref=f4e246]: "{ \"name\": \"lossless-cut\", \"productName\": \"LosslessCut\", \"description\": \"The swiss army knife of lossless video/audio editing\", \"copyright\": \"Copyright © 2026 ${author}\", \"version\": \"3.69.0\", \"main\": \"./out/main/index.js\", \"homepage\": \"./\", \"type\": \"module\", \"scripts\": { \"clean\": \"rimraf dist out common-ts-dist main-ts-dist build-resources icon-build\", \"start\": \"electron-vite preview\", \"dev\": \"electron-vite dev -w\", \"download-ffmpeg-darwin-x64\": \"mkdirp ffmpeg/darwin-x64 && cd ffmpeg/darwin-x64 && wget https://github.com/mifi/ffmpeg-build-script/releases/download/8.0-1/ffmpeg-macos-X64 -O ffmpeg && wget https://github.com/mifi/ffmpeg-build-script/releases/download/8.0-1/ffprobe-macos-X64 -O ffprobe && chmod +x ffmpeg && chmod +x ffprobe\", \"download-ffmpeg-darwin-arm64\": \"mkdirp ffmpeg/darwin-arm64 && cd ffmpeg/darwin-arm64 && wget https://github.com/mifi/ffmpeg-build-script/releases/download/8.0-1/ffmpeg-macos-ARM64 -O ffmpeg && wget https://github.com/mifi/ffmpeg-build-script/releases/download/8.0-1/ffprobe-macos-ARM64 -O ffprobe && chmod +x ffmpeg && chmod +x ffprobe\", \"download-ffmpeg-linux-x64\": \"mkdirp ffmpeg/linux-x64 && cd ffmpeg/linux-x64 && wget https://github.com/mifi/ffmpeg-builds/releases/download/8.0-1/ffmpeg-n8.0-latest-linux64-gpl-shared-8.0.tar.xz -O ffmpeg-ffprobe.xz && tar -xv -f ffmpeg-ffprobe.xz && mv ffmpeg-n8.0-latest-linux64-gpl-shared-8.0 extracted && mkdirp lib && mv extracted/bin/ffmpeg extracted/bin/ffprobe extracted/lib/lib*.so* lib\", \"download-ffmpeg-win32-x64\": \"mkdirp ffmpeg/win32-x64 && cd ffmpeg/win32-x64 && npx download-cli https://github.com/mifi/ffmpeg-builds/releases/download/8.0-1/ffmpeg-n8.0-latest-win64-gpl-shared-8.0.zip --out . --filename ffmpeg-ffprobe.zip && 7z x ffmpeg-ffprobe.zip && mkdirp lib && cd ffmpeg-n8.0-latest-win64-gpl-shared-8.0/bin && npx shx mv ffmpeg.exe ffprobe.exe *.dll ../../lib\", \"download-ffmpeg-win32-arm64\": \"mkdirp ffmpeg/win32-arm64 && cd ffmpeg/win32-arm64 && npx download-cli https://github.com/mifi/ffmpeg-builds/releases/download/8.0-1/ffmpeg-n8.0.1-76-gfa4ee7ab3c-winarm64-gpl-shared-8.0.zip --out . --filename ffmpeg-ffprobe.zip && 7z x ffmpeg-ffprobe.zip && mkdirp lib && cd ffmpeg-n8.0.1-76-gfa4ee7ab3c-winarm64-gpl-shared-8.0/bin && npx shx mv ffmpeg.exe ffprobe.exe *.dll ../../lib\", \"build\": \"yarn generate-icon && electron-vite build\", \"tsc\": \"tsc --build\", \"test\": \"vitest\", \"lint\": \"eslint --ext .js,.ts,.jsx,.tsx,.mjs,.mts .\", \"check\": \"yarn tsc && yarn lint && yarn test run && yarn build && yarn check-licenses && yarn scan-i18n && yarn dedupe --check && yarn generate-docs\", \"pack-mac\": \"yarn build && electron-builder --mac dmg\", \"pack-mas-dev\": \"yarn build && electron-builder --mac mas-dev -c.mas.provisioningProfile=LosslessCut_Dev.provisionprofile -c.mas.identity='Mikael Finstad (JH4PH8B3C8)'\", \"pack-win\": \"yarn build && electron-builder --win zip --x64\", \"postinstall\": \"electron-builder install-app-deps\", \"version\": \"node script/postversion.ts && git add no.mifi.losslesscut.appdata.xml\", \"pack-linux\": \"yarn build && electron-builder --linux\", \"scan-i18n\": \"i18next-cli -c i18next.config.scan.ts extract\", \"generate-icon\": \"mkdirp icon-build build-resources/appx && node script/generateIcon.ts\", \"generate-licenses\": \"yarn licenses generate-disclaimer -R > licenses.txt && echo '\\n\\nffmpeg is licensed under GPL v2+:\\n\\nhttp://www.gnu.org/licenses/old-licenses/gpl-2.0.html' >> licenses.txt\", \"generate-docs\": \"node script/generateDocs.ts\", \"check-licenses\": \"node script/checkLicenses.ts\", \"upload-artifacts\": \"node script/uploadArtifacts.ts\" }, \"author\": { \"name\": \"Mikael Finstad\", \"email\": \"finstaden@gmail.com\", \"url\": \"https://mifi.no/\" }, \"repository\": { \"type\": \"git\", \"url\": \"https://github.com/mifi/lossless-cut.git\" }, \"license\": \"GPL-2.0-only\", \"devDependencies\": { \"@actions/artifact\": \"^6.2.1\", \"@adamscybot/react-leaflet-component-marker\": \"^2.0.3\", \"@dnd-kit/core\": \"^6.3.1\", \"@dnd-kit/modifiers\": \"^9.0.0\", \"@dnd-kit/sortable\": \"^10.0.0\", \"@fontsource/open-sans\": \"^5.2.7\", \"@radix-ui/colors\": \"^3.0.0\", \"@radix-ui/react-alert-dialog\": \"^1.1.15\", \"@radix-ui/react-checkbox\": \"^1.3.3\", \"@radix-ui/react-dialog\": \"^1.1.15\", \"@radix-ui/react-dropdown-menu\": \"^2.1.16\", \"@radix-ui/react-switch\": \"^1.2.6\", \"@radix-ui/themes\": \"^3.3.0\", \"@tanstack/react-virtual\": \"3.13.26\", \"@tsconfig/node22\": \"^22.0.5\", \"@tsconfig/strictest\": \"^2.0.8\", \"@tsconfig/vite-react\": \"^8.0.6\", \"@types/canvas-confetti\": \"^1.9.0\", \"@types/color\": \"^4.2.1\", \"@types/css-modules\": \"^1.0.5\", \"@types/eslint\": \"^8.56.12\", \"@types/express\": \"^5.0.6\", \"@types/leaflet\": \"^1.9.21\", \"@types/lodash\": \"^4.17.24\", \"@types/lodash.debounce\": \"^4.0.9\", \"@types/luxon\": \"^3.7.1\", \"@types/mime-types\": \"^3.0.1\", \"@types/morgan\": \"^1.9.10\", \"@types/node\": \"22.19.19\", \"@types/react\": \"^19.2.15\", \"@types/react-dom\": \"^19.2.3\", \"@types/react-syntax-highlighter\": \"^15.5.13\", \"@types/semver\": \"^7.7.1\", \"@types/smpte-timecode\": \"^1.2.5\", \"@types/yargs\": \"^17.0.35\", \"@types/yargs-parser\": \"^21.0.3\", \"@typescript-eslint/eslint-plugin\": \"^8.60.0\", \"@typescript-eslint/parser\": \"^8.60.0\", \"@uidotdev/usehooks\": \"^2.4.1\", \"@vitejs/plugin-react\": \"^5.2.0\", \"canvas-confetti\": \"^1.9.4\", \"color\": \"^5.0.3\", \"csv-parse\": \"^6.2.1\", \"csv-stringify\": \"^6.7.0\", \"data-uri-to-buffer\": \"^8.0.0\", \"electron\": \"^42.3.0\", \"electron-builder\": \"26.15.2\", \"electron-vite\": \"^5.0.0\", \"eslint\": \"^8.57.1\", \"eslint-config-mifi\": \"^0.1.1\", \"eslint-plugin-import\": \"^2.32.0\", \"eslint-plugin-jsx-a11y\": \"^6.10.2\", \"eslint-plugin-react\": \"^7.37.5\", \"eslint-plugin-react-hooks\": \"^7.1.1\", \"eslint-plugin-unicorn\": \"56.0.1\", \"fast-xml-parser\": \"^5.8.0\", \"i18next-cli\": \"^1.58.1\", \"icon-gen\": \"^5.0.0\", \"immer\": \"^11.1.8\", \"ky\": \"^2.0.2\", \"leaflet\": \"^1.9.4\", \"lodash\": \"^4.18.1\", \"luxon\": \"^3.7.2\", \"mkdirp\": \"^3.0.1\", \"motion\": \"^12.40.0\", \"nanoid\": \"^5.1.11\", \"p-map\": \"^7.0.4\", \"p-retry\": \"^8.0.0\", \"pretty-bytes\": \"^7.1.0\", \"react\": \"^19.2.6\", \"react-dom\": \"^19.2.6\", \"react-i18next\": \"^17.0.8\", \"react-icons\": \"^5.6.0\", \"react-leaflet\": \"^5.0.0\", \"react-lottie-player\": \"^2.1.0\", \"react-markdown\": \"^10.1.0\", \"react-syntax-highlighter\": \"^16.1.1\", \"react-use\": \"^17.6.0\", \"sass\": \"^1.100.0\", \"screenfull\": \"^6.0.2\", \"sharp\": \"^0.34.5\", \"smpte-timecode\": \"^1.3.6\", \"sweetalert2\": \"^11.26.17\", \"sweetalert2-react-content\": \"^5.1.1\", \"tiny-invariant\": \"^1.3.3\", \"ts-morph\": \"^28.0.0\", \"type-fest\": \"^5.7.0\", \"typescript\": \"~6.0.3\", \"use-debounce\": \"^10.1.1\", \"use-trace-update\": \"^1.3.3\", \"vite\": \"7.3.5\", \"vitest\": \"^4.1.8\", \"yargs\": \"^18.0.0\" }, \"dependencies\": { \"@electron/remote\": \"^2.1.3\", \"@octokit/core\": \"7.0.6\", \"cue-parser\": \"^0.3.0\", \"electron-devtools-installer\": \"^4.0.0\", \"electron-store\": \"5.1.1\", \"electron-unhandled\": \"^5.0.0\", \"execa\": \"^9.6.1\", \"express\": \"^5.2.1\", \"express-async-handler\": \"^1.2.0\", \"file-type\": \"^22.0.1\", \"i18next\": \"^26.3.0\", \"i18next-fs-backend\": \"^2.6.6\", \"json5\": \"^2.2.3\", \"lodash.debounce\": \"^4.0.8\", \"mime-types\": \"^3.0.2\", \"mitt\": \"patch:mitt@npm%3A3.0.1#~/.yarn/patches/mitt-npm-3.0.1-ce290ffa77.patch\", \"morgan\": \"^1.11.0\", \"semver\": \"^7.8.1\", \"string-to-stream\": \"^3.0.1\", \"winston\": \"^3.19.0\", \"yargs-parser\": \"^22.0.0\", \"zod\": \"^4.4.3\" }, \"build\": { \"directories\": { \"buildResources\": \"build-resources\" }, \"files\": [ \"out/**/*\" ], \"asar\": { \"smartUnpack\": false }, \"appId\": \"no.mifi.losslesscut\", \"artifactName\": \"${productName}-${os}-${arch}.${ext}\", \"extraResources\": [ { \"from\": \"locales\", \"to\": \"locales\" } ], \"mac\": { \"hardenedRuntime\": true, \"notarize\": true, \"appId\": \"no.mifi.losslesscut-mac\", \"category\": \"public.app-category.productivity\", \"target\": [ { \"target\": \"mas\", \"arch\": \"universal\" }, { \"target\": \"dmg\", \"arch\": [ \"x64\", \"arm64\" ] } ], \"electronLanguages\": [ \"en\" ], \"extraResources\": [ { \"from\": \"ffmpeg/darwin-${arch}\", \"to\": \".\" } ], \"icon\": \"icon-build/app.icns\", \"fileAssociations\": [ { \"ext\": [ \"webm\", \"mkv\", \"flv\", \"vob\", \"ogv\", \"drc\", \"gif\", \"gifv\", \"mng\", \"avi\", \"mts\", \"m2ts\", \"ts\", \"mov\", \"qt\", \"wmv\", \"yuv\", \"rm\", \"rmvb\", \"asf\", \"amv\", \"mp4\", \"m4v\", \"mpg\", \"mp2\", \"mpeg\", \"mpe\", \"mpv\", \"m2v\", \"svi\", \"3gp\", \"3g2\", \"mxf\", \"roq\", \"nsv\", \"f4v\", \"f4p\", \"f4a\", \"f4b\" ], \"name\": \"Video\", \"description\": \"Video files\", \"role\": \"Viewer\" }, { \"ext\": [ \"aa\", \"aac\", \"aax\", \"act\", \"aiff\", \"alac\", \"amr\", \"ape\", \"au\", \"awb\", \"dct\", \"dss\", \"dvf\", \"flac\", \"gsm\", \"iklax\", \"ivs\", \"m4a\", \"m4b\", \"m4p\", \"mmf\", \"mp3\", \"mpc\", \"msv\", \"nmf\", \"nsf\", \"ogg\", \"oga\", \"mogg\", \"opus\", \"ra\", \"rf64\", \"sln\", \"tta\", \"voc\", \"vox\", \"wav\", \"wma\", \"wv\", \"8svx\", \"cda\" ], \"name\": \"Audio\", \"description\": \"Audio files\", \"role\": \"Viewer\" } ] }, \"mas\": { \"artifactName\": \"${productName}-${os}-${arch}-DONT-USE-THIS-FILE.${ext}\", \"hardenedRuntime\": false, \"notarize\": false, \"entitlements\": \"entitlements.mas.plist\", \"entitlementsInherit\": \"entitlements.mas.inherit.plist\", \"provisioningProfile\": \"LosslessCut_Mac_App_Store_provisioning_profile.provisionprofile\", \"binaries\": [ \"Contents/Resources/ffmpeg\", \"Contents/Resources/ffprobe\" ] }, \"win\": { \"target\": [ { \"arch\": \"x64\", \"target\": \"7z\" }, { \"arch\": \"x64\", \"target\": \"appx\" }, { \"arch\": \"arm64\", \"target\": \"7z\" }, { \"arch\": \"arm64\", \"target\": \"appx\" } ], \"extraResources\": [ { \"from\": \"ffmpeg/win32-${arch}/lib\", \"to\": \".\" } ], \"icon\": \"icon-build/app.ico\", \"fileAssociations\": [ { \"ext\": [ \"webm\", \"mkv\", \"flv\", \"vob\", \"ogv\", \"drc\", \"gif\", \"gifv\", \"mng\", \"avi\", \"mts\", \"m2ts\", \"ts\", \"mov\", \"qt\", \"wmv\", \"yuv\", \"rm\", \"rmvb\", \"asf\", \"amv\", \"mp4\", \"m4v\", \"mpg\", \"mp2\", \"mpeg\", \"mpe\", \"mpv\", \"m2v\", \"svi\", \"3gp\", \"3g2\", \"mxf\", \"roq\", \"nsv\", \"f4v\", \"f4p\", \"f4a\", \"f4b\" ], \"name\": \"Video\", \"description\": \"Video files\", \"role\": \"Viewer\" }, { \"ext\": [ \"aa\", \"aac\", \"aax\", \"act\", \"aiff\", \"alac\", \"amr\", \"ape\", \"au\", \"awb\", \"dct\", \"dss\", \"dvf\", \"flac\", \"gsm\", \"iklax\", \"ivs\", \"m4a\", \"m4b\", \"m4p\", \"mmf\", \"mp3\", \"mpc\", \"msv\", \"nmf\", \"nsf\", \"ogg\", \"oga\", \"mogg\", \"opus\", \"ra\", \"rf64\", \"sln\", \"tta\", \"voc\", \"vox\", \"wav\", \"wma\", \"wv\", \"8svx\", \"cda\" ], \"name\": \"Audio\", \"description\": \"Audio files\", \"role\": \"Viewer\" } ] }, \"appx\": { \"artifactName\": \"${productName}-${os}-${arch}-DONT-USE-THIS-FILE.${ext}\", \"applicationId\": \"LosslessCut\", \"identityName\": \"57275mifi.no.LosslessCut\", \"publisher\": \"CN=2C479316-22A8-4D63-BC38-F0FB9AB0B974\", \"publisherDisplayName\": \"mifi.no\" }, \"linux\": { \"executableName\": \"losslesscut\", \"extraResources\": [ { \"from\": \"ffmpeg/linux-${arch}/lib\", \"to\": \".\" } ], \"category\": \"AudioVideo\", \"icon\": \"icon-build/app-512.png\", \"target\": [ { \"arch\": \"x64\", \"target\": \"tar.bz2\" }, { \"arch\": \"x64\", \"target\": \"AppImage\" }, { \"arch\": \"x64\", \"target\": \"snap\" }, { \"arch\": \"arm64\", \"target\": \"tar.bz2\" }, { \"arch\": \"armv7l\", \"target\": \"tar.bz2\" } ] }, \"snap\": { \"base\": \"core22\", \"plugs\": [ \"default\", \"removable-media\" ] } }, \"resolutions\": { \"icon-gen/sharp\": \"^0.34.5\" }, \"packageManager\": \"yarn@4.11.0\" }"
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic [ref=f4e247]:
+                        - generic [ref=f4e248] [cursor=pointer]: "1"
+                        - generic [ref=f4e249] [cursor=pointer]: "2"
+                        - generic [ref=f4e250] [cursor=pointer]: "3"
+                        - generic [ref=f4e251] [cursor=pointer]: "4"
+                        - generic [ref=f4e252] [cursor=pointer]: "5"
+                        - generic [ref=f4e253] [cursor=pointer]: "6"
+                        - generic [ref=f4e254] [cursor=pointer]: "7"
+                        - generic [ref=f4e255] [cursor=pointer]: "8"
+                        - generic [ref=f4e256] [cursor=pointer]: "9"
+                        - generic [ref=f4e257] [cursor=pointer]: "10"
+                        - generic [ref=f4e258] [cursor=pointer]: "11"
+                        - generic [ref=f4e259] [cursor=pointer]: "12"
+                        - generic [ref=f4e260] [cursor=pointer]: "13"
+                        - generic [ref=f4e261] [cursor=pointer]: "14"
+                        - generic [ref=f4e262] [cursor=pointer]: "15"
+                        - generic [ref=f4e263] [cursor=pointer]: "16"
+                        - generic [ref=f4e264] [cursor=pointer]: "17"
+                        - generic [ref=f4e265] [cursor=pointer]: "18"
+                        - generic [ref=f4e266] [cursor=pointer]: "19"
+                        - generic [ref=f4e267] [cursor=pointer]: "20"
+                        - generic [ref=f4e268] [cursor=pointer]: "21"
+                        - generic [ref=f4e269] [cursor=pointer]: "22"
+                        - generic [ref=f4e270] [cursor=pointer]: "23"
+                        - generic [ref=f4e271] [cursor=pointer]: "24"
+                        - generic [ref=f4e272] [cursor=pointer]: "25"
+                        - generic [ref=f4e273] [cursor=pointer]: "26"
+                        - generic [ref=f4e274] [cursor=pointer]: "27"
+                        - generic [ref=f4e275] [cursor=pointer]: "28"
+                        - generic [ref=f4e276] [cursor=pointer]: "29"
+                        - generic [ref=f4e277] [cursor=pointer]: "30"
+                        - generic [ref=f4e278] [cursor=pointer]: "31"
+                        - generic [ref=f4e279] [cursor=pointer]: "32"
+                        - generic [ref=f4e280] [cursor=pointer]: "33"
+                        - generic [ref=f4e281] [cursor=pointer]: "34"
+                        - generic [ref=f4e282] [cursor=pointer]: "35"
+                        - generic [ref=f4e283] [cursor=pointer]: "36"
+                        - generic [ref=f4e284] [cursor=pointer]: "37"
+                        - generic [ref=f4e285] [cursor=pointer]: "38"
+                        - generic [ref=f4e286] [cursor=pointer]: "39"
+                        - generic [ref=f4e287] [cursor=pointer]: "40"
+                        - generic [ref=f4e288] [cursor=pointer]: "41"
+                        - generic [ref=f4e289] [cursor=pointer]: "42"
+                        - generic [ref=f4e290] [cursor=pointer]: "43"
+                        - generic [ref=f4e291] [cursor=pointer]: "44"
+                        - generic [ref=f4e292] [cursor=pointer]: "45"
+                        - generic [ref=f4e293] [cursor=pointer]: "46"
+                        - generic [ref=f4e294] [cursor=pointer]: "47"
+                        - generic [ref=f4e295] [cursor=pointer]: "48"
+                        - generic [ref=f4e296] [cursor=pointer]: "49"
+                        - generic [ref=f4e297] [cursor=pointer]: "50"
+                        - generic [ref=f4e298] [cursor=pointer]: "51"
+                        - generic [ref=f4e299] [cursor=pointer]: "52"
+                        - generic [ref=f4e300] [cursor=pointer]: "53"
+                        - generic [ref=f4e301] [cursor=pointer]: "54"
+                        - generic [ref=f4e302] [cursor=pointer]: "55"
+                        - generic [ref=f4e303] [cursor=pointer]: "56"
+                        - generic [ref=f4e304] [cursor=pointer]: "57"
+                        - generic [ref=f4e305] [cursor=pointer]: "58"
+                        - generic [ref=f4e306] [cursor=pointer]: "59"
+                        - generic [ref=f4e307] [cursor=pointer]: "60"
+                        - generic [ref=f4e308] [cursor=pointer]: "61"
+                        - generic [ref=f4e309] [cursor=pointer]: "62"
+                        - generic [ref=f4e310] [cursor=pointer]: "63"
+                        - generic [ref=f4e311] [cursor=pointer]: "64"
+                        - generic [ref=f4e312] [cursor=pointer]: "65"
+                        - generic [ref=f4e313] [cursor=pointer]: "66"
+                        - generic [ref=f4e314] [cursor=pointer]: "67"
+                        - generic [ref=f4e315] [cursor=pointer]: "68"
+                        - generic [ref=f4e316] [cursor=pointer]: "69"
+                        - generic [ref=f4e317] [cursor=pointer]: "70"
+                        - generic [ref=f4e318] [cursor=pointer]: "71"
+                        - generic [ref=f4e319] [cursor=pointer]: "72"
+                        - generic [ref=f4e320] [cursor=pointer]: "73"
+                        - generic [ref=f4e321] [cursor=pointer]: "74"
+                        - generic [ref=f4e322] [cursor=pointer]: "75"
+                        - generic [ref=f4e323] [cursor=pointer]: "76"
+                        - generic [ref=f4e324] [cursor=pointer]: "77"
+                        - generic [ref=f4e325] [cursor=pointer]: "78"
+                        - generic [ref=f4e326] [cursor=pointer]: "79"
+                        - generic [ref=f4e327] [cursor=pointer]: "80"
+                        - generic [ref=f4e328] [cursor=pointer]: "81"
+                        - generic [ref=f4e329] [cursor=pointer]: "82"
+                        - generic [ref=f4e330] [cursor=pointer]: "83"
+                        - generic [ref=f4e331] [cursor=pointer]: "84"
+                        - generic [ref=f4e332] [cursor=pointer]: "85"
+                        - generic [ref=f4e333] [cursor=pointer]: "86"
+                        - generic [ref=f4e334] [cursor=pointer]: "87"
+                        - generic [ref=f4e335] [cursor=pointer]: "88"
+                        - generic [ref=f4e336] [cursor=pointer]: "89"
+                        - generic [ref=f4e337] [cursor=pointer]: "90"
+                        - generic [ref=f4e338] [cursor=pointer]: "91"
+                        - generic [ref=f4e339] [cursor=pointer]: "92"
+                        - generic [ref=f4e340] [cursor=pointer]: "93"
+                        - generic [ref=f4e341] [cursor=pointer]: "94"
+                        - generic [ref=f4e342] [cursor=pointer]: "95"
+                        - generic [ref=f4e343] [cursor=pointer]: "96"
+                        - generic [ref=f4e344] [cursor=pointer]: "97"
+                        - generic [ref=f4e345] [cursor=pointer]: "98"
+                        - generic [ref=f4e346] [cursor=pointer]: "99"
+                        - generic [ref=f4e347] [cursor=pointer]: "100"
+                        - generic [ref=f4e348] [cursor=pointer]: "101"
+                        - generic [ref=f4e349] [cursor=pointer]: "102"
+                        - generic [ref=f4e350] [cursor=pointer]: "103"
+                        - generic [ref=f4e351] [cursor=pointer]: "104"
+                        - generic [ref=f4e352] [cursor=pointer]: "105"
+                        - generic [ref=f4e353] [cursor=pointer]: "106"
+                        - generic [ref=f4e354] [cursor=pointer]: "107"
+                        - generic [ref=f4e355] [cursor=pointer]: "108"
+                        - generic [ref=f4e356] [cursor=pointer]: "109"
+                        - generic [ref=f4e357] [cursor=pointer]: "110"
+                        - generic [ref=f4e358] [cursor=pointer]: "111"
+                        - generic [ref=f4e359] [cursor=pointer]: "112"
+                        - generic [ref=f4e360] [cursor=pointer]: "113"
+                        - generic [ref=f4e361] [cursor=pointer]: "114"
+                        - generic [ref=f4e362] [cursor=pointer]: "115"
+                        - generic [ref=f4e363] [cursor=pointer]: "116"
+                        - generic [ref=f4e364] [cursor=pointer]: "117"
+                        - generic [ref=f4e365] [cursor=pointer]: "118"
+                        - generic [ref=f4e366] [cursor=pointer]: "119"
+                        - generic [ref=f4e367] [cursor=pointer]: "120"
+                        - generic [ref=f4e368] [cursor=pointer]: "121"
+                        - generic [ref=f4e369] [cursor=pointer]: "122"
+                        - generic [ref=f4e370] [cursor=pointer]: "123"
+                        - generic [ref=f4e371] [cursor=pointer]: "124"
+                        - generic [ref=f4e372] [cursor=pointer]: "125"
+                        - generic [ref=f4e373] [cursor=pointer]: "126"
+                        - generic [ref=f4e374] [cursor=pointer]: "127"
+                        - generic [ref=f4e375] [cursor=pointer]: "128"
+                        - generic [ref=f4e376] [cursor=pointer]: "129"
+                        - generic [ref=f4e377] [cursor=pointer]: "130"
+                        - generic [ref=f4e378] [cursor=pointer]: "131"
+                        - generic [ref=f4e379] [cursor=pointer]: "132"
+                        - generic [ref=f4e380] [cursor=pointer]: "133"
+                        - generic [ref=f4e381] [cursor=pointer]: "134"
+                        - generic [ref=f4e382] [cursor=pointer]: "135"
+                        - generic [ref=f4e383] [cursor=pointer]: "136"
+                        - generic [ref=f4e384] [cursor=pointer]: "137"
+                        - generic [ref=f4e385] [cursor=pointer]: "138"
+                        - generic [ref=f4e386] [cursor=pointer]: "139"
+                        - generic [ref=f4e387] [cursor=pointer]: "140"
+                        - generic [ref=f4e388] [cursor=pointer]: "141"
+                        - generic [ref=f4e389] [cursor=pointer]: "142"
+                        - generic [ref=f4e390] [cursor=pointer]: "143"
+                        - generic [ref=f4e391] [cursor=pointer]: "144"
+                        - generic [ref=f4e392] [cursor=pointer]: "145"
+                        - generic [ref=f4e393] [cursor=pointer]: "423"
+                        - generic [ref=f4e394] [cursor=pointer]: "424"
+                        - generic [ref=f4e395] [cursor=pointer]: "425"
+                        - generic [ref=f4e396] [cursor=pointer]: "426"
+                        - generic [ref=f4e397] [cursor=pointer]: "427"
+                        - generic [ref=f4e398] [cursor=pointer]: "428"
+                        - generic [ref=f4e399] [cursor=pointer]: "429"
+                        - generic [ref=f4e400] [cursor=pointer]: "430"
+                        - generic [ref=f4e401] [cursor=pointer]: "431"
+                        - generic [ref=f4e402] [cursor=pointer]: "432"
+                        - generic [ref=f4e403] [cursor=pointer]: "433"
+                        - generic [ref=f4e404] [cursor=pointer]: "434"
+                        - generic [ref=f4e405] [cursor=pointer]: "435"
+                        - generic [ref=f4e406] [cursor=pointer]: "436"
+                        - generic [ref=f4e407] [cursor=pointer]: "437"
+                        - generic [ref=f4e408] [cursor=pointer]: "438"
+                        - generic [ref=f4e409] [cursor=pointer]: "439"
+                        - generic [ref=f4e410] [cursor=pointer]: "440"
+                        - generic [ref=f4e411] [cursor=pointer]: "441"
+                        - generic [ref=f4e412] [cursor=pointer]: "442"
+                        - generic [ref=f4e413] [cursor=pointer]: "443"
+                        - generic [ref=f4e414] [cursor=pointer]: "444"
+                        - generic [ref=f4e415] [cursor=pointer]: "445"
+                        - generic [ref=f4e416] [cursor=pointer]: "446"
+                        - generic [ref=f4e417] [cursor=pointer]: "447"
+                        - generic [ref=f4e418] [cursor=pointer]: "448"
+                        - generic [ref=f4e419] [cursor=pointer]: "449"
+                        - generic [ref=f4e420] [cursor=pointer]: "450"
+                        - generic [ref=f4e421] [cursor=pointer]: "451"
+                        - generic [ref=f4e422] [cursor=pointer]: "452"
+                        - generic [ref=f4e423] [cursor=pointer]: "453"
+                        - generic [ref=f4e424] [cursor=pointer]: "454"
+                        - generic [ref=f4e425] [cursor=pointer]: "455"
+                        - generic [ref=f4e426] [cursor=pointer]: "456"
+                        - generic [ref=f4e427] [cursor=pointer]: "457"
+                        - generic [ref=f4e428] [cursor=pointer]: "458"
+                        - generic [ref=f4e429] [cursor=pointer]: "459"
+                        - generic [ref=f4e430] [cursor=pointer]: "460"
+                        - generic [ref=f4e431] [cursor=pointer]: "461"
+                        - generic [ref=f4e432] [cursor=pointer]: "462"
+                        - generic [ref=f4e433] [cursor=pointer]: "463"
+                        - generic [ref=f4e434] [cursor=pointer]: "464"
+                        - generic [ref=f4e435] [cursor=pointer]: "465"
+                        - generic [ref=f4e436] [cursor=pointer]: "466"
+                        - generic [ref=f4e437] [cursor=pointer]: "467"
+                        - generic [ref=f4e438] [cursor=pointer]: "468"
+                        - generic [ref=f4e439] [cursor=pointer]: "469"
+                        - generic [ref=f4e440] [cursor=pointer]: "470"
+                        - generic [ref=f4e441] [cursor=pointer]: "471"
+                        - generic [ref=f4e442] [cursor=pointer]: "472"
+                        - generic [ref=f4e443] [cursor=pointer]: "473"
+                        - generic [ref=f4e444] [cursor=pointer]: "474"
+                        - generic [ref=f4e445] [cursor=pointer]: "475"
+                        - generic [ref=f4e446] [cursor=pointer]: "476"
+                        - generic [ref=f4e447] [cursor=pointer]: "477"
+                        - generic [ref=f4e448] [cursor=pointer]: "478"
+                        - generic [ref=f4e449] [cursor=pointer]: "479"
+                        - generic [ref=f4e450] [cursor=pointer]: "480"
+                        - generic [ref=f4e451] [cursor=pointer]: "481"
+                        - generic [ref=f4e452] [cursor=pointer]: "482"
+                        - generic [ref=f4e453] [cursor=pointer]: "483"
+                        - generic [ref=f4e454] [cursor=pointer]: "484"
+                        - generic [ref=f4e455] [cursor=pointer]: "485"
+                        - generic [ref=f4e456] [cursor=pointer]: "486"
+                        - generic [ref=f4e457] [cursor=pointer]: "487"
+                        - generic [ref=f4e458] [cursor=pointer]: "488"
+                        - generic [ref=f4e459] [cursor=pointer]: "489"
+                        - generic [ref=f4e460] [cursor=pointer]: "490"
+                        - generic [ref=f4e461] [cursor=pointer]: "491"
+                        - generic [ref=f4e462] [cursor=pointer]: "492"
+                        - generic [ref=f4e463] [cursor=pointer]: "493"
+                        - generic [ref=f4e464] [cursor=pointer]: "494"
+                        - generic [ref=f4e465] [cursor=pointer]: "495"
+                        - generic [ref=f4e466] [cursor=pointer]: "496"
+                      - generic:
+                        - generic:
+                          - generic:
+                            - generic: "{"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"name\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: lossless-cut
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"productName\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: LosslessCut
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"description\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: The swiss army knife of lossless video/audio editing
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"copyright\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: "Copyright © 2026 ${author}"
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"version\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: 3.69.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"main\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ./out/main/index.js
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"homepage\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ./
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"type\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: module
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"scripts\""
+                              - text: ": {"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"clean\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: rimraf dist out common-ts-dist main-ts-dist build-resources icon-build
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"start\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: electron-vite preview
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"dev\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: electron-vite dev -w
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"download-ffmpeg-darwin-x64\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: mkdirp ffmpeg/darwin-x64 && cd ffmpeg/darwin-x64 && wget https://github.com/mifi/ffmpeg-build-script/releases/download/8.0-1/ffmpeg-macos-X64 -O ffmpeg && wget https://github.com/mifi/ffmpeg-build-script/releases/download/8.0-1/ffprobe-macos-X64 -O ffprobe && chmod +x ffmpeg && chmod +x ffprobe
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"download-ffmpeg-darwin-arm64\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: mkdirp ffmpeg/darwin-arm64 && cd ffmpeg/darwin-arm64 && wget https://github.com/mifi/ffmpeg-build-script/releases/download/8.0-1/ffmpeg-macos-ARM64 -O ffmpeg && wget https://github.com/mifi/ffmpeg-build-script/releases/download/8.0-1/ffprobe-macos-ARM64 -O ffprobe && chmod +x ffmpeg && chmod +x ffprobe
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"download-ffmpeg-linux-x64\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: mkdirp ffmpeg/linux-x64 && cd ffmpeg/linux-x64 && wget https://github.com/mifi/ffmpeg-builds/releases/download/8.0-1/ffmpeg-n8.0-latest-linux64-gpl-shared-8.0.tar.xz -O ffmpeg-ffprobe.xz && tar -xv -f ffmpeg-ffprobe.xz && mv ffmpeg-n8.0-latest-linux64-gpl-shared-8.0 extracted && mkdirp lib && mv extracted/bin/ffmpeg extracted/bin/ffprobe extracted/lib/lib*.so* lib
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"download-ffmpeg-win32-x64\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: mkdirp ffmpeg/win32-x64 && cd ffmpeg/win32-x64 && npx download-cli https://github.com/mifi/ffmpeg-builds/releases/download/8.0-1/ffmpeg-n8.0-latest-win64-gpl-shared-8.0.zip --out . --filename ffmpeg-ffprobe.zip && 7z x ffmpeg-ffprobe.zip && mkdirp lib && cd ffmpeg-n8.0-latest-win64-gpl-shared-8.0/bin && npx shx mv ffmpeg.exe ffprobe.exe *.dll ../../lib
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"download-ffmpeg-win32-arm64\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: mkdirp ffmpeg/win32-arm64 && cd ffmpeg/win32-arm64 && npx download-cli https://github.com/mifi/ffmpeg-builds/releases/download/8.0-1/ffmpeg-n8.0.1-76-gfa4ee7ab3c-winarm64-gpl-shared-8.0.zip --out . --filename ffmpeg-ffprobe.zip && 7z x ffmpeg-ffprobe.zip && mkdirp lib && cd ffmpeg-n8.0.1-76-gfa4ee7ab3c-winarm64-gpl-shared-8.0/bin && npx shx mv ffmpeg.exe ffprobe.exe *.dll ../../lib
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"build\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: yarn generate-icon && electron-vite build
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"tsc\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: tsc --build
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"test\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: vitest
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"lint\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: eslint --ext .js,.ts,.jsx,.tsx,.mjs,.mts .
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"check\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: yarn tsc && yarn lint && yarn test run && yarn build && yarn check-licenses && yarn scan-i18n && yarn dedupe --check && yarn generate-docs
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"pack-mac\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: yarn build && electron-builder --mac dmg
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"pack-mas-dev\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: yarn build && electron-builder --mac mas-dev -c.mas.provisioningProfile=LosslessCut_Dev.provisionprofile -c.mas.identity='Mikael Finstad (JH4PH8B3C8)'
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"pack-win\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: yarn build && electron-builder --win zip --x64
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"postinstall\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: electron-builder install-app-deps
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"version\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: node script/postversion.ts && git add no.mifi.losslesscut.appdata.xml
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"pack-linux\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: yarn build && electron-builder --linux
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"scan-i18n\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: i18next-cli -c i18next.config.scan.ts extract
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"generate-icon\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: mkdirp icon-build build-resources/appx && node script/generateIcon.ts
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"generate-licenses\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: yarn licenses generate-disclaimer -R > licenses.txt && echo '
+                                - generic: \n\n
+                                - text: "ffmpeg is licensed under GPL v2+:"
+                                - generic: \n\n
+                                - text: http://www.gnu.org/licenses/old-licenses/gpl-2.0.html' >> licenses.txt
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"generate-docs\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: node script/generateDocs.ts
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"check-licenses\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: node script/checkLicenses.ts
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"upload-artifacts\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: node script/uploadArtifacts.ts
+                                - generic: "\""
+                        - generic:
+                          - generic:
+                            - generic: "},"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"author\""
+                              - text: ": {"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"name\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: Mikael Finstad
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"email\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: finstaden@gmail.com
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"url\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: https://mifi.no/
+                                - generic: "\""
+                        - generic:
+                          - generic:
+                            - generic: "},"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"repository\""
+                              - text: ": {"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"type\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: git
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"url\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: https://github.com/mifi/lossless-cut.git
+                                - generic: "\""
+                        - generic:
+                          - generic:
+                            - generic: "},"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"license\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: GPL-2.0-only
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"devDependencies\""
+                              - text: ": {"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@actions/artifact\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^6.2.1
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@adamscybot/react-leaflet-component-marker\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^2.0.3
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@dnd-kit/core\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^6.3.1
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@dnd-kit/modifiers\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^9.0.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@dnd-kit/sortable\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^10.0.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@fontsource/open-sans\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^5.2.7
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@radix-ui/colors\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^3.0.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@radix-ui/react-alert-dialog\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^1.1.15
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@radix-ui/react-checkbox\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^1.3.3
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@radix-ui/react-dialog\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^1.1.15
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@radix-ui/react-dropdown-menu\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^2.1.16
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@radix-ui/react-switch\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^1.2.6
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@radix-ui/themes\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^3.3.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@tanstack/react-virtual\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: 3.13.26
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@tsconfig/node22\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^22.0.5
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@tsconfig/strictest\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^2.0.8
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@tsconfig/vite-react\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^8.0.6
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@types/canvas-confetti\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^1.9.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@types/color\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^4.2.1
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@types/css-modules\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^1.0.5
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@types/eslint\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^8.56.12
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@types/express\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^5.0.6
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@types/leaflet\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^1.9.21
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@types/lodash\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^4.17.24
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@types/lodash.debounce\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^4.0.9
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@types/luxon\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^3.7.1
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@types/mime-types\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^3.0.1
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@types/morgan\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^1.9.10
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@types/node\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: 22.19.19
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@types/react\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^19.2.15
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@types/react-dom\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^19.2.3
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@types/react-syntax-highlighter\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^15.5.13
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@types/semver\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^7.7.1
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@types/smpte-timecode\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^1.2.5
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@types/yargs\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^17.0.35
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@types/yargs-parser\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^21.0.3
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@typescript-eslint/eslint-plugin\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^8.60.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@typescript-eslint/parser\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^8.60.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@uidotdev/usehooks\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^2.4.1
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@vitejs/plugin-react\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^5.2.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"canvas-confetti\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^1.9.4
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"color\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^5.0.3
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"csv-parse\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^6.2.1
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"csv-stringify\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^6.7.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"data-uri-to-buffer\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^8.0.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"electron\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^42.3.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"electron-builder\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: 26.15.2
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"electron-vite\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^5.0.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"eslint\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^8.57.1
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"eslint-config-mifi\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^0.1.1
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"eslint-plugin-import\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^2.32.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"eslint-plugin-jsx-a11y\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^6.10.2
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"eslint-plugin-react\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^7.37.5
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"eslint-plugin-react-hooks\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^7.1.1
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"eslint-plugin-unicorn\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: 56.0.1
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"fast-xml-parser\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^5.8.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"i18next-cli\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^1.58.1
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"icon-gen\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^5.0.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"immer\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^11.1.8
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"ky\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^2.0.2
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"leaflet\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^1.9.4
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"lodash\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^4.18.1
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"luxon\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^3.7.2
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"mkdirp\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^3.0.1
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"motion\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^12.40.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"nanoid\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^5.1.11
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"p-map\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^7.0.4
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"p-retry\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^8.0.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"pretty-bytes\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^7.1.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"react\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^19.2.6
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"react-dom\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^19.2.6
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"react-i18next\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^17.0.8
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"react-icons\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^5.6.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"react-leaflet\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^5.0.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"react-lottie-player\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^2.1.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"react-markdown\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^10.1.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"react-syntax-highlighter\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^16.1.1
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"react-use\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^17.6.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"sass\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^1.100.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"screenfull\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^6.0.2
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"sharp\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^0.34.5
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"smpte-timecode\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^1.3.6
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"sweetalert2\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^11.26.17
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"sweetalert2-react-content\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^5.1.1
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"tiny-invariant\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^1.3.3
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"ts-morph\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^28.0.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"type-fest\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^5.7.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"typescript\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ~6.0.3
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"use-debounce\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^10.1.1
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"use-trace-update\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^1.3.3
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"vite\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: 7.3.5
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"vitest\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^4.1.8
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"yargs\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^18.0.0
+                                - generic: "\""
+                        - generic:
+                          - generic:
+                            - generic: "},"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"dependencies\""
+                              - text: ": {"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@electron/remote\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^2.1.3
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"@octokit/core\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: 7.0.6
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"cue-parser\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^0.3.0
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic: "\""
+                                - text: oga
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic: "\""
+                                - text: mogg
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic: "\""
+                                - text: opus
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic: "\""
+                                - text: ra
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic: "\""
+                                - text: rf64
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic: "\""
+                                - text: sln
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic: "\""
+                                - text: tta
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic: "\""
+                                - text: voc
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic: "\""
+                                - text: vox
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic: "\""
+                                - text: wav
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic: "\""
+                                - text: wma
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic: "\""
+                                - text: wv
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic: "\""
+                                - text: 8svx
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic: "\""
+                                - text: cda
+                                - generic: "\""
+                        - generic:
+                          - generic:
+                            - generic: "],"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"name\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: Audio
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"description\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: Audio files
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"role\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: Viewer
+                                - generic: "\""
+                        - generic:
+                          - generic:
+                            - generic: "}"
+                        - generic:
+                          - generic:
+                            - generic: "]"
+                        - generic:
+                          - generic:
+                            - generic: "},"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"appx\""
+                              - text: ": {"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"artifactName\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: "${productName}-${os}-${arch}-DONT-USE-THIS-FILE.${ext}"
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"applicationId\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: LosslessCut
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"identityName\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: 57275mifi.no.LosslessCut
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"publisher\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: CN=2C479316-22A8-4D63-BC38-F0FB9AB0B974
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"publisherDisplayName\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: mifi.no
+                                - generic: "\""
+                        - generic:
+                          - generic:
+                            - generic: "},"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"linux\""
+                              - text: ": {"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"executableName\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: losslesscut
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"extraResources\""
+                              - text: ": ["
+                        - generic:
+                          - generic:
+                            - generic: "{"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"from\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: "ffmpeg/linux-${arch}/lib"
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"to\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: .
+                                - generic: "\""
+                        - generic:
+                          - generic:
+                            - generic: "}"
+                        - generic:
+                          - generic:
+                            - generic: "],"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"category\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: AudioVideo
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"icon\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: icon-build/app-512.png
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"target\""
+                              - text: ": ["
+                        - generic:
+                          - generic:
+                            - generic: "{"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"arch\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: x64
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"target\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: tar.bz2
+                                - generic: "\""
+                        - generic:
+                          - generic:
+                            - generic: "},"
+                        - generic:
+                          - generic:
+                            - generic: "{"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"arch\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: x64
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"target\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: AppImage
+                                - generic: "\""
+                        - generic:
+                          - generic:
+                            - generic: "},"
+                        - generic:
+                          - generic:
+                            - generic: "{"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"arch\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: x64
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"target\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: snap
+                                - generic: "\""
+                        - generic:
+                          - generic:
+                            - generic: "},"
+                        - generic:
+                          - generic:
+                            - generic: "{"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"arch\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: arm64
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"target\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: tar.bz2
+                                - generic: "\""
+                        - generic:
+                          - generic:
+                            - generic: "},"
+                        - generic:
+                          - generic:
+                            - generic: "{"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"arch\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: armv7l
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"target\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: tar.bz2
+                                - generic: "\""
+                        - generic:
+                          - generic:
+                            - generic: "}"
+                        - generic:
+                          - generic:
+                            - generic: "]"
+                        - generic:
+                          - generic:
+                            - generic: "},"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"snap\""
+                              - text: ": {"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"base\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: core22
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"plugs\""
+                              - text: ": ["
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic: "\""
+                                - text: default
+                                - generic: "\""
+                              - text: ","
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic: "\""
+                                - text: removable-media
+                                - generic: "\""
+                        - generic:
+                          - generic:
+                            - generic: "]"
+                        - generic:
+                          - generic:
+                            - generic: "}"
+                        - generic:
+                          - generic:
+                            - generic: "},"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"resolutions\""
+                              - text: ": {"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"icon-gen/sharp\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: ^0.34.5
+                                - generic: "\""
+                        - generic:
+                          - generic:
+                            - generic: "},"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "\"packageManager\""
+                              - text: ":"
+                              - generic:
+                                - generic: "\""
+                                - text: yarn@4.11.0
+                                - generic: "\""
+                        - generic:
+                          - generic:
+                            - generic: "}"
+  - alert [ref=f4e472]

@@ -1,0 +1,2518 @@
+- generic [ref=f2e2]:
+  - region "Skip to main content":
+    - link "Skip to main content" [ref=f2e3] [cursor=pointer]:
+      - /url: "#__docusaurus_skipToContent_fallback"
+  - navigation "Main" [ref=f2e4]:
+    - generic [ref=f2e6]:
+      - button "Toggle navigation bar" [ref=f2e7] [cursor=pointer]:
+        - img [ref=f2e8]
+      - link "electron-builder" [ref=f2e10] [cursor=pointer]:
+        - /url: /
+        - generic [ref=f2e11]: electron-builder
+  - main [ref=f2e15]:
+    - generic [ref=f2e19]:
+      - article [ref=f2e20]:
+        - navigation "Breadcrumbs" [ref=f2e21]:
+          - list [ref=f2e22]:
+            - listitem [ref=f2e23]:
+              - link "Home page" [ref=f2e24] [cursor=pointer]:
+                - /url: /
+                - img [ref=f2e25]
+            - listitem [ref=f2e27]:
+              - generic [ref=f2e28]: Overview
+        - button "On this page" [ref=f2e30] [cursor=pointer]
+        - generic [ref=f2e31]:
+          - heading "Configuration" [level=1] [ref=f2e33]
+          - paragraph [ref=f2e34]: electron-builder configuration can be defined
+          - list [ref=f2e35]:
+            - listitem [ref=f2e36]:
+              - paragraph [ref=f2e37]:
+                - text: in the
+                - code [ref=f2e38]: package.json
+                - text: file of your project using the
+                - code [ref=f2e39]: build
+                - text: "key on the top level:"
+              - code [ref=f2e43]:
+                - generic [ref=f2e44]: "\"build\": {"
+                - generic [ref=f2e45]: "\"appId\": \"com.example.app\""
+                - generic [ref=f2e46]: "}"
+            - listitem [ref=f2e47]:
+              - paragraph [ref=f2e48]:
+                - text: or through the
+                - code [ref=f2e49]: "--config <path/to/yml-or-json5-or-toml-or-js>"
+                - text: option. Defaults to
+                - code [ref=f2e50]: electron-builder.yml
+                - text: .
+              - code [ref=f2e54]:
+                - generic [ref=f2e55]: "appId: \"com.example.app\""
+              - paragraph [ref=f2e56]:
+                - code [ref=f2e57]: json
+                - text: ","
+                - link "json5" [ref=f2e58] [cursor=pointer]:
+                  - /url: http://json5.org
+                - text: ","
+                - link "toml" [ref=f2e59] [cursor=pointer]:
+                  - /url: https://github.com/toml-lang/toml
+                - text: or
+                - code [ref=f2e60]: js
+                - text: /
+                - code [ref=f2e61]: ts
+                - text: (exported configuration or function that produces configuration) formats are also supported.
+              - generic [ref=f2e62]:
+                - generic [ref=f2e63]:
+                  - img [ref=f2e65]
+                  - text: tip
+                - paragraph [ref=f2e68]:
+                  - text: If you want to use a
+                  - code [ref=f2e69]: js
+                  - text: file, do not name it
+                  - code [ref=f2e70]: electron-builder.js
+                  - text: . It will
+                  - link "conflict" [ref=f2e71] [cursor=pointer]:
+                    - /url: https://github.com/electron-userland/electron-builder/issues/6227
+                  - text: with the
+                  - code [ref=f2e72]: electron-builder
+                  - text: package name.
+              - generic [ref=f2e73]:
+                - generic [ref=f2e74]:
+                  - img [ref=f2e76]
+                  - text: tip
+                - paragraph [ref=f2e79]:
+                  - text: If you want to use
+                  - link "toml" [ref=f2e80] [cursor=pointer]:
+                    - /url: https://en.wikipedia.org/wiki/TOML
+                  - text: ", install it with"
+                  - code [ref=f2e81]: npm install toml --save-dev
+                  - text: .
+          - paragraph [ref=f2e82]:
+            - text: Most of the options accept
+            - code [ref=f2e83]: "null"
+            - text: — for example, to explicitly set that DMG icon must be default volume icon from the OS and default rules must be not applied (i.e. use application icon as DMG icon), set
+            - code [ref=f2e84]: dmg.icon
+            - text: to
+            - code [ref=f2e85]: "null"
+            - text: .
+          - heading "Artifact File Name TemplateDirect link to Artifact File Name Template" [level=2] [ref=f2e86]:
+            - text: Artifact File Name Template
+            - link "Direct link to Artifact File Name Template" [ref=f2e87] [cursor=pointer]:
+              - /url: "#artifact-file-name-template"
+              - text: "#"
+          - paragraph [ref=f2e88]:
+            - code [ref=f2e89]: "${ext}"
+            - text: macro is supported in addition to
+            - link "file macros" [ref=f2e90] [cursor=pointer]:
+              - /url: /docs/file-patterns#file-macros
+            - text: .
+          - heading "Environment Variables from FileDirect link to Environment Variables from File" [level=2] [ref=f2e91]:
+            - text: Environment Variables from File
+            - link "Direct link to Environment Variables from File" [ref=f2e92] [cursor=pointer]:
+              - /url: "#environment-variables-from-file"
+              - text: "#"
+          - paragraph [ref=f2e93]:
+            - text: Env file
+            - code [ref=f2e94]: electron-builder.env
+            - text: in the current dir (
+            - link "example" [ref=f2e95] [cursor=pointer]:
+              - /url: https://github.com/motdotla/dotenv-expand/blob/1cc80d02e1f8aa749253a04a2061c0fecb9bdb69/tests/.env
+            - text: ). Supported only for CLI usage.
+          - heading "How to Read DocsDirect link to How to Read Docs" [level=2] [ref=f2e96]:
+            - text: How to Read Docs
+            - link "Direct link to How to Read Docs" [ref=f2e97] [cursor=pointer]:
+              - /url: "#how-to-read-docs"
+              - text: "#"
+          - list [ref=f2e98]:
+            - listitem [ref=f2e99]:
+              - text: Name of optional property is normal,
+              - strong [ref=f2e100]: required
+              - text: is bold.
+            - listitem [ref=f2e101]:
+              - text: "Type is specified after property name:"
+              - code [ref=f2e102]: Array<String> | String
+              - text: . Union like this means that you can specify or string (
+              - code [ref=f2e103]: "**/*"
+              - text: ), or array of strings (
+              - code [ref=f2e104]: "[\"**/*\", \"!foo.js\"]"
+              - text: ).
+          - heading "Common ConfigurationDirect link to Common Configuration" [level=3] [ref=f2e105]:
+            - text: Common Configuration
+            - link "Direct link to Common Configuration" [ref=f2e106] [cursor=pointer]:
+              - /url: "#common-configuration"
+              - text: "#"
+          - 'heading "Interface: CommonConfiguration" [level=1] [ref=f2e107]'
+          - paragraph [ref=f2e108]: Configuration Options
+          - heading "Extended byDirect link to Extended by" [level=2] [ref=f2e109]:
+            - text: Extended by
+            - link "Direct link to Extended by" [ref=f2e110] [cursor=pointer]:
+              - /url: "#extended-by"
+              - text: "#"
+          - list [ref=f2e111]:
+            - listitem [ref=f2e112]:
+              - link "Configuration" [ref=f2e113] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.Configuration
+                - code [ref=f2e114]: Configuration
+            - listitem [ref=f2e115]:
+              - link "Configuration" [ref=f2e116] [cursor=pointer]:
+                - /url: /docs/api/electron-builder.Interface.Configuration
+                - code [ref=f2e117]: Configuration
+          - heading "PropertiesDirect link to Properties" [level=2] [ref=f2e118]:
+            - text: Properties
+            - link "Direct link to Properties" [ref=f2e119] [cursor=pointer]:
+              - /url: "#properties"
+              - text: "#"
+          - heading "apk?Direct link to apk?" [level=3] [ref=f2e120]:
+            - text: apk?
+            - link "Direct link to apk?" [ref=f2e121] [cursor=pointer]:
+              - /url: "#apk"
+              - text: "#"
+          - blockquote [ref=f2e122]:
+            - paragraph [ref=f2e123]:
+              - code [ref=f2e124]: readonly
+              - code [ref=f2e125]: optional
+              - strong [ref=f2e126]: apk?
+              - text: ":"
+              - link "LinuxTargetSpecificOptions" [ref=f2e127] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.LinuxTargetSpecificOptions
+                - code [ref=f2e128]: LinuxTargetSpecificOptions
+              - text: "|"
+              - code [ref=f2e129]: "null"
+          - paragraph [ref=f2e130]:
+            - text: Alpine Linux APK package options. Produces an
+            - code [ref=f2e131]: .apk
+            - text: archive installable via
+            - code [ref=f2e132]: apk add
+            - text: .
+          - separator [ref=f2e133]
+          - heading "appId?Direct link to appId?" [level=3] [ref=f2e134]:
+            - text: appId?
+            - link "Direct link to appId?" [ref=f2e135] [cursor=pointer]:
+              - /url: "#appid"
+              - text: "#"
+          - blockquote [ref=f2e136]:
+            - paragraph [ref=f2e137]:
+              - code [ref=f2e138]: readonly
+              - code [ref=f2e139]: optional
+              - strong [ref=f2e140]: appId?
+              - text: ":"
+              - code [ref=f2e141]: string
+              - text: "|"
+              - code [ref=f2e142]: "null"
+          - paragraph [ref=f2e143]:
+            - text: The application id. Used as
+            - link "CFBundleIdentifier" [ref=f2e144] [cursor=pointer]:
+              - /url: https://developer.apple.com/library/ios/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html#//apple_ref/doc/uid/20001431-102070
+            - text: for MacOS and as
+            - link "Application User Model ID" [ref=f2e145] [cursor=pointer]:
+              - /url: https://msdn.microsoft.com/en-us/library/windows/desktop/dd378459(v=vs.85).aspx
+            - text: for Windows (NSIS target only, Squirrel.Windows not supported). It is strongly recommended that an explicit ID is set.
+          - heading "DefaultDirect link to Default" [level=4] [ref=f2e146]:
+            - text: Default
+            - link "Direct link to Default" [ref=f2e147] [cursor=pointer]:
+              - /url: "#default"
+              - text: "#"
+          - code [ref=f2e151]:
+            - generic [ref=f2e152]: "com.electron.${name}"
+          - separator [ref=f2e153]
+          - heading "appImage?Direct link to appImage?" [level=3] [ref=f2e154]:
+            - text: appImage?
+            - link "Direct link to appImage?" [ref=f2e155] [cursor=pointer]:
+              - /url: "#appimage"
+              - text: "#"
+          - blockquote [ref=f2e156]:
+            - paragraph [ref=f2e157]:
+              - code [ref=f2e158]: readonly
+              - code [ref=f2e159]: optional
+              - strong [ref=f2e160]: appImage?
+              - text: ":"
+              - link "AppImageOptions" [ref=f2e161] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.AppImageOptions
+                - code [ref=f2e162]: AppImageOptions
+              - text: "|"
+              - code [ref=f2e163]: "null"
+          - paragraph [ref=f2e164]: AppImage options. AppImage is a portable application format that bundles the app and its dependencies into a single self-contained executable that runs on most Linux distributions without installation.
+          - separator [ref=f2e165]
+          - heading "appx?Direct link to appx?" [level=3] [ref=f2e166]:
+            - text: appx?
+            - link "Direct link to appx?" [ref=f2e167] [cursor=pointer]:
+              - /url: "#appx"
+              - text: "#"
+          - blockquote [ref=f2e168]:
+            - paragraph [ref=f2e169]:
+              - code [ref=f2e170]: readonly
+              - code [ref=f2e171]: optional
+              - strong [ref=f2e172]: appx?
+              - text: ":"
+              - link "AppXOptions" [ref=f2e173] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.AppXOptions
+                - code [ref=f2e174]: AppXOptions
+              - text: "|"
+              - code [ref=f2e175]: "null"
+          - paragraph [ref=f2e176]: Windows Store (AppX) package options.
+          - separator [ref=f2e177]
+          - heading "buildDependenciesFromSource?Direct link to buildDependenciesFromSource?" [level=3] [ref=f2e178]:
+            - text: buildDependenciesFromSource?
+            - link "Direct link to buildDependenciesFromSource?" [ref=f2e179] [cursor=pointer]:
+              - /url: "#builddependenciesfromsource"
+              - text: "#"
+          - blockquote [ref=f2e180]:
+            - paragraph [ref=f2e181]:
+              - code [ref=f2e182]: optional
+              - strong [ref=f2e183]: buildDependenciesFromSource?
+              - text: ":"
+              - code [ref=f2e184]: boolean
+          - paragraph [ref=f2e185]: Whether to build the application native dependencies from source.
+          - heading "DefaultDirect link to Default" [level=4] [ref=f2e186]:
+            - text: Default
+            - link "Direct link to Default" [ref=f2e187] [cursor=pointer]:
+              - /url: "#default-1"
+              - text: "#"
+          - code [ref=f2e191]:
+            - generic [ref=f2e192]: "false"
+          - separator [ref=f2e193]
+          - heading "buildNumber?Direct link to buildNumber?" [level=3] [ref=f2e194]:
+            - text: buildNumber?
+            - link "Direct link to buildNumber?" [ref=f2e195] [cursor=pointer]:
+              - /url: "#buildnumber"
+              - text: "#"
+          - blockquote [ref=f2e196]:
+            - paragraph [ref=f2e197]:
+              - code [ref=f2e198]: readonly
+              - code [ref=f2e199]: optional
+              - strong [ref=f2e200]: buildNumber?
+              - text: ":"
+              - code [ref=f2e201]: string
+              - text: "|"
+              - code [ref=f2e202]: "null"
+          - paragraph [ref=f2e203]:
+            - text: The build number. Maps to the
+            - code [ref=f2e204]: "--iteration"
+            - text: flag for builds using FPM on Linux. If not defined, then it will fallback to
+            - code [ref=f2e205]: BUILD_NUMBER
+            - text: or
+            - code [ref=f2e206]: TRAVIS_BUILD_NUMBER
+            - text: or
+            - code [ref=f2e207]: APPVEYOR_BUILD_NUMBER
+            - text: or
+            - code [ref=f2e208]: CIRCLE_BUILD_NUM
+            - text: or
+            - code [ref=f2e209]: BUILD_BUILDNUMBER
+            - text: or
+            - code [ref=f2e210]: CI_PIPELINE_IID
+            - text: env.
+          - separator [ref=f2e211]
+          - heading "buildVersion?Direct link to buildVersion?" [level=3] [ref=f2e212]:
+            - text: buildVersion?
+            - link "Direct link to buildVersion?" [ref=f2e213] [cursor=pointer]:
+              - /url: "#buildversion"
+              - text: "#"
+          - blockquote [ref=f2e214]:
+            - paragraph [ref=f2e215]:
+              - code [ref=f2e216]: readonly
+              - code [ref=f2e217]: optional
+              - strong [ref=f2e218]: buildVersion?
+              - text: ":"
+              - code [ref=f2e219]: string
+              - text: "|"
+              - code [ref=f2e220]: "null"
+          - paragraph [ref=f2e221]:
+            - text: The build version. Maps to the
+            - code [ref=f2e222]: CFBundleVersion
+            - text: on macOS, and
+            - code [ref=f2e223]: FileVersion
+            - text: metadata property on Windows. Defaults to the
+            - code [ref=f2e224]: version
+            - text: . If
+            - code [ref=f2e225]: buildVersion
+            - text: is not defined and
+            - code [ref=f2e226]: buildNumber
+            - text: (or one of the
+            - code [ref=f2e227]: buildNumber
+            - text: envs) is defined, it will be used as a build version (
+            - code [ref=f2e228]: version.buildNumber
+            - text: ).
+          - separator [ref=f2e229]
+          - heading "concurrency?Direct link to concurrency?" [level=3] [ref=f2e230]:
+            - text: concurrency?
+            - link "Direct link to concurrency?" [ref=f2e231] [cursor=pointer]:
+              - /url: "#concurrency"
+              - text: "#"
+          - blockquote [ref=f2e232]:
+            - paragraph [ref=f2e233]:
+              - code [ref=f2e234]: readonly
+              - code [ref=f2e235]: optional
+              - strong [ref=f2e236]: concurrency?
+              - text: ":"
+              - code [ref=f2e237]: Concurrency
+              - text: "|"
+              - code [ref=f2e238]: "null"
+          - paragraph [ref=f2e239]: "[Experimental] Configuration for concurrent builds."
+          - separator [ref=f2e240]
+          - heading "copyright?Direct link to copyright?" [level=3] [ref=f2e241]:
+            - text: copyright?
+            - link "Direct link to copyright?" [ref=f2e242] [cursor=pointer]:
+              - /url: "#copyright"
+              - text: "#"
+          - blockquote [ref=f2e243]:
+            - paragraph [ref=f2e244]:
+              - code [ref=f2e245]: readonly
+              - code [ref=f2e246]: optional
+              - strong [ref=f2e247]: copyright?
+              - text: ":"
+              - code [ref=f2e248]: string
+              - text: "|"
+              - code [ref=f2e249]: "null"
+          - paragraph [ref=f2e250]: The human-readable copyright line for the app.
+          - heading "DefaultDirect link to Default" [level=4] [ref=f2e251]:
+            - text: Default
+            - link "Direct link to Default" [ref=f2e252] [cursor=pointer]:
+              - /url: "#default-2"
+              - text: "#"
+          - code [ref=f2e256]:
+            - generic [ref=f2e257]: "Copyright © year ${author}"
+          - separator [ref=f2e258]
+          - heading "deb?Direct link to deb?" [level=3] [ref=f2e259]:
+            - text: deb?
+            - link "Direct link to deb?" [ref=f2e260] [cursor=pointer]:
+              - /url: "#deb"
+              - text: "#"
+          - blockquote [ref=f2e261]:
+            - paragraph [ref=f2e262]:
+              - code [ref=f2e263]: readonly
+              - code [ref=f2e264]: optional
+              - strong [ref=f2e265]: deb?
+              - text: ":"
+              - link "DebOptions" [ref=f2e266] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.DebOptions
+                - code [ref=f2e267]: DebOptions
+              - text: "|"
+              - code [ref=f2e268]: "null"
+          - paragraph [ref=f2e269]:
+            - text: Debian package options. Targets Debian, Ubuntu, and Debian-based distributions. Produces a
+            - code [ref=f2e270]: .deb
+            - text: archive installable via
+            - code [ref=f2e271]: dpkg -i
+            - text: or
+            - code [ref=f2e272]: apt install
+            - text: .
+          - separator [ref=f2e273]
+          - heading "directories?Direct link to directories?" [level=3] [ref=f2e274]:
+            - text: directories?
+            - link "Direct link to directories?" [ref=f2e275] [cursor=pointer]:
+              - /url: "#directories"
+              - text: "#"
+          - blockquote [ref=f2e276]:
+            - paragraph [ref=f2e277]:
+              - code [ref=f2e278]: readonly
+              - code [ref=f2e279]: optional
+              - strong [ref=f2e280]: directories?
+              - text: ":"
+              - link "MetadataDirectories" [ref=f2e281] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.MetadataDirectories
+                - code [ref=f2e282]: MetadataDirectories
+              - text: "|"
+              - code [ref=f2e283]: "null"
+          - paragraph [ref=f2e284]: Directories for build resources
+          - separator [ref=f2e285]
+          - heading "dmg?Direct link to dmg?" [level=3] [ref=f2e286]:
+            - text: dmg?
+            - link "Direct link to dmg?" [ref=f2e287] [cursor=pointer]:
+              - /url: "#dmg"
+              - text: "#"
+          - blockquote [ref=f2e288]:
+            - paragraph [ref=f2e289]:
+              - code [ref=f2e290]: readonly
+              - code [ref=f2e291]: optional
+              - strong [ref=f2e292]: dmg?
+              - text: ":"
+              - link "DmgOptions" [ref=f2e293] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.DmgOptions
+                - code [ref=f2e294]: DmgOptions
+              - text: "|"
+              - code [ref=f2e295]: "null"
+          - paragraph [ref=f2e296]: macOS DMG options.
+          - separator [ref=f2e297]
+          - heading "downloadAlternateFFmpeg?Direct link to downloadAlternateFFmpeg?" [level=3] [ref=f2e298]:
+            - text: downloadAlternateFFmpeg?
+            - link "Direct link to downloadAlternateFFmpeg?" [ref=f2e299] [cursor=pointer]:
+              - /url: "#downloadalternateffmpeg"
+              - text: "#"
+          - blockquote [ref=f2e300]:
+            - paragraph [ref=f2e301]:
+              - code [ref=f2e302]: readonly
+              - code [ref=f2e303]: optional
+              - strong [ref=f2e304]: downloadAlternateFFmpeg?
+              - text: ":"
+              - code [ref=f2e305]: boolean
+          - paragraph [ref=f2e306]: Whether to download the alternate FFmpeg library from Electron's release assets and replace the default FFmpeg library prior to signing
+          - separator [ref=f2e307]
+          - heading "electronFuses?Direct link to electronFuses?" [level=3] [ref=f2e308]:
+            - text: electronFuses?
+            - link "Direct link to electronFuses?" [ref=f2e309] [cursor=pointer]:
+              - /url: "#electronfuses"
+              - text: "#"
+          - blockquote [ref=f2e310]:
+            - paragraph [ref=f2e311]:
+              - code [ref=f2e312]: readonly
+              - code [ref=f2e313]: optional
+              - strong [ref=f2e314]: electronFuses?
+              - text: ":"
+              - link "FuseOptionsV1" [ref=f2e315] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.FuseOptionsV1
+                - code [ref=f2e316]: FuseOptionsV1
+              - text: "|"
+              - code [ref=f2e317]: "null"
+          - paragraph [ref=f2e318]:
+            - text: Options to pass to
+            - code [ref=f2e319]: "@electron/fuses"
+            - text: "Ref: https://github.com/electron/fuses"
+          - separator [ref=f2e320]
+          - heading "extraMetadata?Direct link to extraMetadata?" [level=3] [ref=f2e321]:
+            - text: extraMetadata?
+            - link "Direct link to extraMetadata?" [ref=f2e322] [cursor=pointer]:
+              - /url: "#extrametadata"
+              - text: "#"
+          - blockquote [ref=f2e323]:
+            - paragraph [ref=f2e324]:
+              - code [ref=f2e325]: readonly
+              - code [ref=f2e326]: optional
+              - strong [ref=f2e327]: extraMetadata?
+              - text: ":"
+              - code [ref=f2e328]: any
+          - paragraph [ref=f2e329]:
+            - text: Inject properties to
+            - code [ref=f2e330]: package.json
+            - text: .
+          - separator [ref=f2e331]
+          - heading "flatpak?Direct link to flatpak?" [level=3] [ref=f2e332]:
+            - text: flatpak?
+            - link "Direct link to flatpak?" [ref=f2e333] [cursor=pointer]:
+              - /url: "#flatpak"
+              - text: "#"
+          - blockquote [ref=f2e334]:
+            - paragraph [ref=f2e335]:
+              - code [ref=f2e336]: readonly
+              - code [ref=f2e337]: optional
+              - strong [ref=f2e338]: flatpak?
+              - text: ":"
+              - link "FlatpakOptions" [ref=f2e339] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.FlatpakOptions
+                - code [ref=f2e340]: FlatpakOptions
+              - text: "|"
+              - code [ref=f2e341]: "null"
+          - paragraph [ref=f2e342]:
+            - text: Flatpak options. Flatpak is a sandboxed application distribution format for Linux that runs in a controlled environment and is distributed via
+            - link "Flathub" [ref=f2e343] [cursor=pointer]:
+              - /url: https://flathub.org/
+            - text: or other Flatpak repositories.
+          - separator [ref=f2e344]
+          - heading "forceCodeSigning?Direct link to forceCodeSigning?" [level=3] [ref=f2e345]:
+            - text: forceCodeSigning?
+            - link "Direct link to forceCodeSigning?" [ref=f2e346] [cursor=pointer]:
+              - /url: "#forcecodesigning"
+              - text: "#"
+          - blockquote [ref=f2e347]:
+            - paragraph [ref=f2e348]:
+              - code [ref=f2e349]: readonly
+              - code [ref=f2e350]: optional
+              - strong [ref=f2e351]: forceCodeSigning?
+              - text: ":"
+              - code [ref=f2e352]: boolean
+          - paragraph [ref=f2e353]: Whether to fail if the application is not signed (to prevent unsigned app if code signing configuration is not correct).
+          - heading "DefaultDirect link to Default" [level=4] [ref=f2e354]:
+            - text: Default
+            - link "Direct link to Default" [ref=f2e355] [cursor=pointer]:
+              - /url: "#default-3"
+              - text: "#"
+          - code [ref=f2e359]:
+            - generic [ref=f2e360]: "false"
+          - separator [ref=f2e361]
+          - heading "freebsd?Direct link to freebsd?" [level=3] [ref=f2e362]:
+            - text: freebsd?
+            - link "Direct link to freebsd?" [ref=f2e363] [cursor=pointer]:
+              - /url: "#freebsd"
+              - text: "#"
+          - blockquote [ref=f2e364]:
+            - paragraph [ref=f2e365]:
+              - code [ref=f2e366]: readonly
+              - code [ref=f2e367]: optional
+              - strong [ref=f2e368]: freebsd?
+              - text: ":"
+              - link "LinuxTargetSpecificOptions" [ref=f2e369] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.LinuxTargetSpecificOptions
+                - code [ref=f2e370]: LinuxTargetSpecificOptions
+              - text: "|"
+              - code [ref=f2e371]: "null"
+          - paragraph [ref=f2e372]:
+            - text: FreeBSD package options. Produces a
+            - code [ref=f2e373]: .pkg
+            - text: archive for the FreeBSD
+            - code [ref=f2e374]: pkg
+            - text: package manager.
+          - separator [ref=f2e375]
+          - heading "includePdb?Direct link to includePdb?" [level=3] [ref=f2e376]:
+            - text: includePdb?
+            - link "Direct link to includePdb?" [ref=f2e377] [cursor=pointer]:
+              - /url: "#includepdb"
+              - text: "#"
+          - blockquote [ref=f2e378]:
+            - paragraph [ref=f2e379]:
+              - code [ref=f2e380]: readonly
+              - code [ref=f2e381]: optional
+              - strong [ref=f2e382]: includePdb?
+              - text: ":"
+              - code [ref=f2e383]: boolean
+          - paragraph [ref=f2e384]: Whether to include PDB files.
+          - heading "DefaultDirect link to Default" [level=4] [ref=f2e385]:
+            - text: Default
+            - link "Direct link to Default" [ref=f2e386] [cursor=pointer]:
+              - /url: "#default-4"
+              - text: "#"
+          - code [ref=f2e390]:
+            - generic [ref=f2e391]: "false"
+          - separator [ref=f2e392]
+          - heading "linux?Direct link to linux?" [level=3] [ref=f2e393]:
+            - text: linux?
+            - link "Direct link to linux?" [ref=f2e394] [cursor=pointer]:
+              - /url: "#linux"
+              - text: "#"
+          - blockquote [ref=f2e395]:
+            - paragraph [ref=f2e396]:
+              - code [ref=f2e397]: readonly
+              - code [ref=f2e398]: optional
+              - strong [ref=f2e399]: linux?
+              - text: ":"
+              - link "LinuxConfiguration" [ref=f2e400] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.LinuxConfiguration
+                - code [ref=f2e401]: LinuxConfiguration
+              - text: "|"
+              - code [ref=f2e402]: "null"
+          - paragraph [ref=f2e403]:
+            - text: General Linux build options shared across all Linux targets (icon, category, desktop entry, executable name, etc.). Target-specific compression and packaging options live in the per-format interfaces (
+            - code [ref=f2e404]: DebOptions
+            - text: ","
+            - code [ref=f2e405]: RpmOptions
+            - text: ","
+            - code [ref=f2e406]: PacmanOptions
+            - text: ", etc.)."
+          - separator [ref=f2e407]
+          - heading "mac?Direct link to mac?" [level=3] [ref=f2e408]:
+            - text: mac?
+            - link "Direct link to mac?" [ref=f2e409] [cursor=pointer]:
+              - /url: "#mac"
+              - text: "#"
+          - blockquote [ref=f2e410]:
+            - paragraph [ref=f2e411]:
+              - code [ref=f2e412]: readonly
+              - code [ref=f2e413]: optional
+              - strong [ref=f2e414]: mac?
+              - text: ":"
+              - link "MacConfiguration" [ref=f2e415] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.MacConfiguration
+                - code [ref=f2e416]: MacConfiguration
+              - text: "|"
+              - code [ref=f2e417]: "null"
+          - paragraph [ref=f2e418]: Options related to how build macOS targets.
+          - separator [ref=f2e419]
+          - heading "mas?Direct link to mas?" [level=3] [ref=f2e420]:
+            - text: mas?
+            - link "Direct link to mas?" [ref=f2e421] [cursor=pointer]:
+              - /url: "#mas"
+              - text: "#"
+          - blockquote [ref=f2e422]:
+            - paragraph [ref=f2e423]:
+              - code [ref=f2e424]: readonly
+              - code [ref=f2e425]: optional
+              - strong [ref=f2e426]: mas?
+              - text: ":"
+              - link "MasConfiguration" [ref=f2e427] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.MasConfiguration
+                - code [ref=f2e428]: MasConfiguration
+              - text: "|"
+              - code [ref=f2e429]: "null"
+          - paragraph [ref=f2e430]: MAS (Mac Application Store) options.
+          - separator [ref=f2e431]
+          - heading "masDev?Direct link to masDev?" [level=3] [ref=f2e432]:
+            - text: masDev?
+            - link "Direct link to masDev?" [ref=f2e433] [cursor=pointer]:
+              - /url: "#masdev"
+              - text: "#"
+          - blockquote [ref=f2e434]:
+            - paragraph [ref=f2e435]:
+              - code [ref=f2e436]: readonly
+              - code [ref=f2e437]: optional
+              - strong [ref=f2e438]: masDev?
+              - text: ":"
+              - link "MasConfiguration" [ref=f2e439] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.MasConfiguration
+                - code [ref=f2e440]: MasConfiguration
+              - text: "|"
+              - code [ref=f2e441]: "null"
+          - paragraph [ref=f2e442]:
+            - text: MAS (Mac Application Store) development options (
+            - code [ref=f2e443]: mas-dev
+            - text: target).
+          - separator [ref=f2e444]
+          - heading "msi?Direct link to msi?" [level=3] [ref=f2e445]:
+            - text: msi?
+            - link "Direct link to msi?" [ref=f2e446] [cursor=pointer]:
+              - /url: "#msi"
+              - text: "#"
+          - blockquote [ref=f2e447]:
+            - paragraph [ref=f2e448]:
+              - code [ref=f2e449]: readonly
+              - code [ref=f2e450]: optional
+              - strong [ref=f2e451]: msi?
+              - text: ":"
+              - link "MsiOptions" [ref=f2e452] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.MsiOptions
+                - code [ref=f2e453]: MsiOptions
+              - text: "|"
+              - code [ref=f2e454]: "null"
+          - paragraph [ref=f2e455]: MSI package options.
+          - separator [ref=f2e456]
+          - heading "msiWrapped?Direct link to msiWrapped?" [level=3] [ref=f2e457]:
+            - text: msiWrapped?
+            - link "Direct link to msiWrapped?" [ref=f2e458] [cursor=pointer]:
+              - /url: "#msiwrapped"
+              - text: "#"
+          - blockquote [ref=f2e459]:
+            - paragraph [ref=f2e460]:
+              - code [ref=f2e461]: readonly
+              - code [ref=f2e462]: optional
+              - strong [ref=f2e463]: msiWrapped?
+              - text: ":"
+              - link "MsiWrappedOptions" [ref=f2e464] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.MsiWrappedOptions
+                - code [ref=f2e465]: MsiWrappedOptions
+              - text: "|"
+              - code [ref=f2e466]: "null"
+          - paragraph [ref=f2e467]: MSI-wrapped installer options.
+          - separator [ref=f2e468]
+          - heading "nativeRebuilder?Direct link to nativeRebuilder?" [level=3] [ref=f2e469]:
+            - text: nativeRebuilder?
+            - link "Direct link to nativeRebuilder?" [ref=f2e470] [cursor=pointer]:
+              - /url: "#nativerebuilder"
+              - text: "#"
+          - blockquote [ref=f2e471]:
+            - paragraph [ref=f2e472]:
+              - code [ref=f2e473]: readonly
+              - code [ref=f2e474]: optional
+              - strong [ref=f2e475]: nativeRebuilder?
+              - text: ":"
+              - code [ref=f2e476]: "\"legacy\""
+              - text: "|"
+              - code [ref=f2e477]: "\"sequential\""
+              - text: "|"
+              - code [ref=f2e478]: "\"parallel\""
+              - text: "|"
+              - code [ref=f2e479]: "null"
+          - paragraph [ref=f2e480]:
+            - text: Use
+            - code [ref=f2e481]: legacy
+            - text: app-builder binary for installing native dependencies, or
+            - code [ref=f2e482]: "@electron/rebuild"
+            - text: in
+            - code [ref=f2e483]: sequential
+            - text: or
+            - code [ref=f2e484]: parallel
+            - text: compilation modes.
+          - heading "DefaultDirect link to Default" [level=4] [ref=f2e485]:
+            - text: Default
+            - link "Direct link to Default" [ref=f2e486] [cursor=pointer]:
+              - /url: "#default-5"
+              - text: "#"
+          - code [ref=f2e490]:
+            - generic [ref=f2e491]: sequential
+          - separator [ref=f2e492]
+          - heading "nodeGypRebuild?Direct link to nodeGypRebuild?" [level=3] [ref=f2e493]:
+            - text: nodeGypRebuild?
+            - link "Direct link to nodeGypRebuild?" [ref=f2e494] [cursor=pointer]:
+              - /url: "#nodegyprebuild"
+              - text: "#"
+          - blockquote [ref=f2e495]:
+            - paragraph [ref=f2e496]:
+              - code [ref=f2e497]: readonly
+              - code [ref=f2e498]: optional
+              - strong [ref=f2e499]: nodeGypRebuild?
+              - text: ":"
+              - code [ref=f2e500]: boolean
+          - paragraph [ref=f2e501]:
+            - text: Whether to execute
+            - code [ref=f2e502]: node-gyp rebuild
+            - text: before starting to package the app.
+          - paragraph [ref=f2e503]:
+            - text: Don't
+            - link "use" [ref=f2e504] [cursor=pointer]:
+              - /url: https://github.com/electron-userland/electron-builder/issues/683#issuecomment-241214075
+            - link "npm" [ref=f2e505] [cursor=pointer]:
+              - /url: http://electron.atom.io/docs/tutorial/using-native-node-modules/#using-npm
+            - text: (neither
+            - code [ref=f2e506]: .npmrc
+            - text: ) for configuring electron headers. Use
+            - code [ref=f2e507]: electron-builder node-gyp-rebuild
+            - text: instead.
+          - heading "DefaultDirect link to Default" [level=4] [ref=f2e508]:
+            - text: Default
+            - link "Direct link to Default" [ref=f2e509] [cursor=pointer]:
+              - /url: "#default-6"
+              - text: "#"
+          - code [ref=f2e513]:
+            - generic [ref=f2e514]: "false"
+          - separator [ref=f2e515]
+          - heading "npmArgs?Direct link to npmArgs?" [level=3] [ref=f2e516]:
+            - text: npmArgs?
+            - link "Direct link to npmArgs?" [ref=f2e517] [cursor=pointer]:
+              - /url: "#npmargs"
+              - text: "#"
+          - blockquote [ref=f2e518]:
+            - paragraph [ref=f2e519]:
+              - code [ref=f2e520]: readonly
+              - code [ref=f2e521]: optional
+              - strong [ref=f2e522]: npmArgs?
+              - text: ":"
+              - code [ref=f2e523]: string
+              - text: "|"
+              - code [ref=f2e524]: string
+              - text: "[] |"
+              - code [ref=f2e525]: "null"
+          - paragraph [ref=f2e526]: Additional command line arguments to use when installing app native deps.
+          - separator [ref=f2e527]
+          - heading "npmRebuild?Direct link to npmRebuild?" [level=3] [ref=f2e528]:
+            - text: npmRebuild?
+            - link "Direct link to npmRebuild?" [ref=f2e529] [cursor=pointer]:
+              - /url: "#npmrebuild"
+              - text: "#"
+          - blockquote [ref=f2e530]:
+            - paragraph [ref=f2e531]:
+              - code [ref=f2e532]: readonly
+              - code [ref=f2e533]: optional
+              - strong [ref=f2e534]: npmRebuild?
+              - text: ":"
+              - code [ref=f2e535]: boolean
+          - paragraph [ref=f2e536]:
+            - text: Whether to
+            - link "rebuild" [ref=f2e537] [cursor=pointer]:
+              - /url: https://docs.npmjs.com/cli/rebuild
+            - text: native dependencies before starting to package the app.
+          - heading "DefaultDirect link to Default" [level=4] [ref=f2e538]:
+            - text: Default
+            - link "Direct link to Default" [ref=f2e539] [cursor=pointer]:
+              - /url: "#default-7"
+              - text: "#"
+          - code [ref=f2e543]:
+            - generic [ref=f2e544]: "true"
+          - separator [ref=f2e545]
+          - heading "nsis?Direct link to nsis?" [level=3] [ref=f2e546]:
+            - text: nsis?
+            - link "Direct link to nsis?" [ref=f2e547] [cursor=pointer]:
+              - /url: "#nsis"
+              - text: "#"
+          - blockquote [ref=f2e548]:
+            - paragraph [ref=f2e549]:
+              - code [ref=f2e550]: readonly
+              - code [ref=f2e551]: optional
+              - strong [ref=f2e552]: nsis?
+              - text: ":"
+              - link "NsisOptions" [ref=f2e553] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.NsisOptions
+                - code [ref=f2e554]: NsisOptions
+              - text: "|"
+              - code [ref=f2e555]: "null"
+          - paragraph [ref=f2e556]: NSIS installer options.
+          - separator [ref=f2e557]
+          - heading "nsisWeb?Direct link to nsisWeb?" [level=3] [ref=f2e558]:
+            - text: nsisWeb?
+            - link "Direct link to nsisWeb?" [ref=f2e559] [cursor=pointer]:
+              - /url: "#nsisweb"
+              - text: "#"
+          - blockquote [ref=f2e560]:
+            - paragraph [ref=f2e561]:
+              - code [ref=f2e562]: readonly
+              - code [ref=f2e563]: optional
+              - strong [ref=f2e564]: nsisWeb?
+              - text: ":"
+              - link "NsisWebOptions" [ref=f2e565] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.NsisWebOptions
+                - code [ref=f2e566]: NsisWebOptions
+              - text: "|"
+              - code [ref=f2e567]: "null"
+          - paragraph [ref=f2e568]: NSIS web installer options (downloads app package at install time).
+          - separator [ref=f2e569]
+          - heading "p5p?Direct link to p5p?" [level=3] [ref=f2e570]:
+            - text: p5p?
+            - link "Direct link to p5p?" [ref=f2e571] [cursor=pointer]:
+              - /url: "#p5p"
+              - text: "#"
+          - blockquote [ref=f2e572]:
+            - paragraph [ref=f2e573]:
+              - code [ref=f2e574]: readonly
+              - code [ref=f2e575]: optional
+              - strong [ref=f2e576]: p5p?
+              - text: ":"
+              - link "LinuxTargetSpecificOptions" [ref=f2e577] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.LinuxTargetSpecificOptions
+                - code [ref=f2e578]: LinuxTargetSpecificOptions
+              - text: "|"
+              - code [ref=f2e579]: "null"
+          - paragraph [ref=f2e580]:
+            - text: Solaris IPS package options. Produces a
+            - code [ref=f2e581]: .p5p
+            - text: archive for the Solaris Image Packaging System (
+            - code [ref=f2e582]: pkg
+            - text: ).
+          - separator [ref=f2e583]
+          - heading "pacman?Direct link to pacman?" [level=3] [ref=f2e584]:
+            - text: pacman?
+            - link "Direct link to pacman?" [ref=f2e585] [cursor=pointer]:
+              - /url: "#pacman"
+              - text: "#"
+          - blockquote [ref=f2e586]:
+            - paragraph [ref=f2e587]:
+              - code [ref=f2e588]: readonly
+              - code [ref=f2e589]: optional
+              - strong [ref=f2e590]: pacman?
+              - text: ":"
+              - link "PacmanOptions" [ref=f2e591] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.PacmanOptions
+                - code [ref=f2e592]: PacmanOptions
+              - text: "|"
+              - code [ref=f2e593]: "null"
+          - paragraph [ref=f2e594]:
+            - text: Pacman package options. Targets Arch Linux and Arch-based distributions (Manjaro, EndeavourOS, etc.). Produces a
+            - code [ref=f2e595]: .pacman
+            - text: archive installable via
+            - code [ref=f2e596]: pacman -U
+            - text: .
+          - separator [ref=f2e597]
+          - heading "pkg?Direct link to pkg?" [level=3] [ref=f2e598]:
+            - text: pkg?
+            - link "Direct link to pkg?" [ref=f2e599] [cursor=pointer]:
+              - /url: "#pkg"
+              - text: "#"
+          - blockquote [ref=f2e600]:
+            - paragraph [ref=f2e601]:
+              - code [ref=f2e602]: readonly
+              - code [ref=f2e603]: optional
+              - strong [ref=f2e604]: pkg?
+              - text: ":"
+              - link "PkgOptions" [ref=f2e605] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.PkgOptions
+                - code [ref=f2e606]: PkgOptions
+              - text: "|"
+              - code [ref=f2e607]: "null"
+          - paragraph [ref=f2e608]: macOS PKG options.
+          - separator [ref=f2e609]
+          - heading "portable?Direct link to portable?" [level=3] [ref=f2e610]:
+            - text: portable?
+            - link "Direct link to portable?" [ref=f2e611] [cursor=pointer]:
+              - /url: "#portable"
+              - text: "#"
+          - blockquote [ref=f2e612]:
+            - paragraph [ref=f2e613]:
+              - code [ref=f2e614]: readonly
+              - code [ref=f2e615]: optional
+              - strong [ref=f2e616]: portable?
+              - text: ":"
+              - link "PortableOptions" [ref=f2e617] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.PortableOptions
+                - code [ref=f2e618]: PortableOptions
+              - text: "|"
+              - code [ref=f2e619]: "null"
+          - paragraph [ref=f2e620]: Portable executable options (no installation required).
+          - separator [ref=f2e621]
+          - heading "productName?Direct link to productName?" [level=3] [ref=f2e622]:
+            - text: productName?
+            - link "Direct link to productName?" [ref=f2e623] [cursor=pointer]:
+              - /url: "#productname"
+              - text: "#"
+          - blockquote [ref=f2e624]:
+            - paragraph [ref=f2e625]:
+              - code [ref=f2e626]: readonly
+              - code [ref=f2e627]: optional
+              - strong [ref=f2e628]: productName?
+              - text: ":"
+              - code [ref=f2e629]: string
+              - text: "|"
+              - code [ref=f2e630]: "null"
+          - paragraph [ref=f2e631]:
+            - text: As name, but allows you to specify a product name for your executable which contains spaces and other special characters not allowed in the
+            - link "name property" [ref=f2e632] [cursor=pointer]:
+              - /url: https://docs.npmjs.com/files/package.json#name
+            - text: . If not specified inside of the
+            - code [ref=f2e633]: build
+            - text: configuration,
+            - code [ref=f2e634]: productName
+            - text: property defined at the top level of
+            - code [ref=f2e635]: package.json
+            - text: is used. If not specified at the top level of
+            - code [ref=f2e636]: package.json
+            - text: ","
+            - link "name property" [ref=f2e637] [cursor=pointer]:
+              - /url: https://docs.npmjs.com/files/package.json#name
+            - text: is used.
+          - separator [ref=f2e638]
+          - heading "removePackageKeywords?Direct link to removePackageKeywords?" [level=3] [ref=f2e639]:
+            - text: removePackageKeywords?
+            - link "Direct link to removePackageKeywords?" [ref=f2e640] [cursor=pointer]:
+              - /url: "#removepackagekeywords"
+              - text: "#"
+          - blockquote [ref=f2e641]:
+            - paragraph [ref=f2e642]:
+              - code [ref=f2e643]: readonly
+              - code [ref=f2e644]: optional
+              - strong [ref=f2e645]: removePackageKeywords?
+              - text: ":"
+              - code [ref=f2e646]: boolean
+          - paragraph [ref=f2e647]:
+            - text: Whether to remove
+            - code [ref=f2e648]: keywords
+            - text: field from
+            - code [ref=f2e649]: package.json
+            - text: files.
+          - heading "DefaultDirect link to Default" [level=4] [ref=f2e650]:
+            - text: Default
+            - link "Direct link to Default" [ref=f2e651] [cursor=pointer]:
+              - /url: "#default-8"
+              - text: "#"
+          - code [ref=f2e655]:
+            - generic [ref=f2e656]: "true"
+          - separator [ref=f2e657]
+          - heading "removePackageScripts?Direct link to removePackageScripts?" [level=3] [ref=f2e658]:
+            - text: removePackageScripts?
+            - link "Direct link to removePackageScripts?" [ref=f2e659] [cursor=pointer]:
+              - /url: "#removepackagescripts"
+              - text: "#"
+          - blockquote [ref=f2e660]:
+            - paragraph [ref=f2e661]:
+              - code [ref=f2e662]: readonly
+              - code [ref=f2e663]: optional
+              - strong [ref=f2e664]: removePackageScripts?
+              - text: ":"
+              - code [ref=f2e665]: boolean
+          - paragraph [ref=f2e666]:
+            - text: Whether to remove
+            - code [ref=f2e667]: scripts
+            - text: field from
+            - code [ref=f2e668]: package.json
+            - text: files.
+          - heading "DefaultDirect link to Default" [level=4] [ref=f2e669]:
+            - text: Default
+            - link "Direct link to Default" [ref=f2e670] [cursor=pointer]:
+              - /url: "#default-9"
+              - text: "#"
+          - code [ref=f2e674]:
+            - generic [ref=f2e675]: "true"
+          - separator [ref=f2e676]
+          - heading "rpm?Direct link to rpm?" [level=3] [ref=f2e677]:
+            - text: rpm?
+            - link "Direct link to rpm?" [ref=f2e678] [cursor=pointer]:
+              - /url: "#rpm"
+              - text: "#"
+          - blockquote [ref=f2e679]:
+            - paragraph [ref=f2e680]:
+              - code [ref=f2e681]: readonly
+              - code [ref=f2e682]: optional
+              - strong [ref=f2e683]: rpm?
+              - text: ":"
+              - link "RpmOptions" [ref=f2e684] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.RpmOptions
+                - code [ref=f2e685]: RpmOptions
+              - text: "|"
+              - code [ref=f2e686]: "null"
+          - paragraph [ref=f2e687]:
+            - text: RPM package options. Targets Fedora, Red Hat Enterprise Linux, SUSE, and related distributions. Produces a
+            - code [ref=f2e688]: .rpm
+            - text: archive installable via
+            - code [ref=f2e689]: rpm
+            - text: or
+            - code [ref=f2e690]: dnf
+            - text: .
+          - separator [ref=f2e691]
+          - heading "~~snap?~~Direct link to ~~snap?~~" [level=3] [ref=f2e692]:
+            - text: ~~snap?~~
+            - link "Direct link to ~~snap?~~" [ref=f2e693] [cursor=pointer]:
+              - /url: "#snap"
+              - text: "#"
+          - blockquote [ref=f2e694]:
+            - paragraph [ref=f2e695]:
+              - code [ref=f2e696]: readonly
+              - code [ref=f2e697]: optional
+              - strong [ref=f2e698]: snap?
+              - text: ":"
+              - link "SnapOptions" [ref=f2e699] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.SnapOptions
+                - code [ref=f2e700]: SnapOptions
+              - text: "|"
+              - code [ref=f2e701]: "null"
+          - paragraph [ref=f2e702]: Flat snap configuration targeting core22 and older snap bases.
+          - heading "DeprecatedDirect link to Deprecated" [level=4] [ref=f2e703]:
+            - text: Deprecated
+            - link "Direct link to Deprecated" [ref=f2e704] [cursor=pointer]:
+              - /url: "#deprecated"
+              - text: "#"
+          - paragraph [ref=f2e705]:
+            - text: Use
+            - code [ref=f2e706]: snapcraft
+            - text: instead — it supersedes
+            - code [ref=f2e707]: snap
+            - text: when both are present and supports all snap bases including core24.
+            - code [ref=f2e708]: snap
+            - text: will be removed in a future major release. See
+            - link "SnapOptions" [ref=f2e709] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.SnapOptions
+            - text: for available properties.
+          - separator [ref=f2e710]
+          - heading "snapcraft?Direct link to snapcraft?" [level=3] [ref=f2e711]:
+            - text: snapcraft?
+            - link "Direct link to snapcraft?" [ref=f2e712] [cursor=pointer]:
+              - /url: "#snapcraft"
+              - text: "#"
+          - blockquote [ref=f2e713]:
+            - paragraph [ref=f2e714]:
+              - code [ref=f2e715]: readonly
+              - code [ref=f2e716]: optional
+              - strong [ref=f2e717]: snapcraft?
+              - text: ":"
+              - link "SnapcraftOptions" [ref=f2e718] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.SnapcraftOptions
+                - code [ref=f2e719]: SnapcraftOptions
+              - text: "|"
+              - code [ref=f2e720]: "null"
+          - paragraph [ref=f2e721]:
+            - text: Snapcraft configuration. Prefer this over the deprecated
+            - code [ref=f2e722]: snap
+            - text: field.
+          - paragraph [ref=f2e723]: "Selects the snapcraft base and provides per-core options:"
+          - list [ref=f2e724]:
+            - listitem [ref=f2e725]:
+              - code [ref=f2e726]: "base: \"core18\" | \"core20\" | \"core22\""
+              - text: — legacy builds; accepts the same options as
+              - code [ref=f2e727]: snap
+            - listitem [ref=f2e728]:
+              - code [ref=f2e729]: "base: \"core24\""
+              - text: — modern builds with the GNOME extension (recommended for new apps, requires Electron 25+)
+            - listitem [ref=f2e730]:
+              - code [ref=f2e731]: "base: \"custom\""
+              - text: — pass an existing
+              - code [ref=f2e732]: snapcraft.yaml
+              - text: through unchanged; no plugs, extensions, or desktop files are injected
+          - paragraph [ref=f2e733]:
+            - text: When both
+            - code [ref=f2e734]: snapcraft
+            - text: and
+            - code [ref=f2e735]: snap
+            - text: are set,
+            - code [ref=f2e736]: snapcraft
+            - text: takes precedence.
+          - heading "ExampleDirect link to Example" [level=4] [ref=f2e737]:
+            - text: Example
+            - link "Direct link to Example" [ref=f2e738] [cursor=pointer]:
+              - /url: "#example"
+              - text: "#"
+          - code [ref=f2e742]:
+            - generic [ref=f2e743]: "{ \"snapcraft\": { \"base\": \"core24\", \"core24\": { \"useLXD\": true } } }"
+          - paragraph [ref=f2e744]:
+            - text: See
+            - link "SnapcraftOptions" [ref=f2e745] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.SnapcraftOptions
+            - text: for all available properties.
+          - separator [ref=f2e746]
+          - heading "squirrelWindows?Direct link to squirrelWindows?" [level=3] [ref=f2e747]:
+            - text: squirrelWindows?
+            - link "Direct link to squirrelWindows?" [ref=f2e748] [cursor=pointer]:
+              - /url: "#squirrelwindows"
+              - text: "#"
+          - blockquote [ref=f2e749]:
+            - paragraph [ref=f2e750]:
+              - code [ref=f2e751]: readonly
+              - code [ref=f2e752]: optional
+              - strong [ref=f2e753]: squirrelWindows?
+              - text: ":"
+              - link "SquirrelWindowsOptions" [ref=f2e754] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.SquirrelWindowsOptions
+                - code [ref=f2e755]: SquirrelWindowsOptions
+              - text: "|"
+              - code [ref=f2e756]: "null"
+          - paragraph [ref=f2e757]:
+            - text: Squirrel.Windows installer options. Requires the
+            - code [ref=f2e758]: electron-builder-squirrel-windows
+            - text: dependency.
+          - separator [ref=f2e759]
+          - heading "toolsets?Direct link to toolsets?" [level=3] [ref=f2e760]:
+            - text: toolsets?
+            - link "Direct link to toolsets?" [ref=f2e761] [cursor=pointer]:
+              - /url: "#toolsets"
+              - text: "#"
+          - blockquote [ref=f2e762]:
+            - paragraph [ref=f2e763]:
+              - code [ref=f2e764]: readonly
+              - code [ref=f2e765]: optional
+              - strong [ref=f2e766]: toolsets?
+              - text: ":"
+              - link "ToolsetConfig" [ref=f2e767] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.ToolsetConfig
+                - code [ref=f2e768]: ToolsetConfig
+              - text: "|"
+              - code [ref=f2e769]: "null"
+          - paragraph [ref=f2e770]: Configuration of toolsets utilized by electron-builder
+          - separator [ref=f2e771]
+          - heading "win?Direct link to win?" [level=3] [ref=f2e772]:
+            - text: win?
+            - link "Direct link to win?" [ref=f2e773] [cursor=pointer]:
+              - /url: "#win"
+              - text: "#"
+          - blockquote [ref=f2e774]:
+            - paragraph [ref=f2e775]:
+              - code [ref=f2e776]: readonly
+              - code [ref=f2e777]: optional
+              - strong [ref=f2e778]: win?
+              - text: ":"
+              - link "WindowsConfiguration" [ref=f2e779] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.WindowsConfiguration
+                - code [ref=f2e780]: WindowsConfiguration
+              - text: "|"
+              - code [ref=f2e781]: "null"
+          - paragraph [ref=f2e782]: Options related to how build Windows targets.
+          - separator [ref=f2e783]
+          - heading "Overridable per Platform OptionsDirect link to Overridable per Platform Options" [level=2] [ref=f2e784]:
+            - text: Overridable per Platform Options
+            - link "Direct link to Overridable per Platform Options" [ref=f2e785] [cursor=pointer]:
+              - /url: "#overridable-per-platform-options"
+              - text: "#"
+          - paragraph [ref=f2e786]:
+            - text: Following options can be set also per platform (top-level keys
+            - link "mac" [ref=f2e787] [cursor=pointer]:
+              - /url: /docs/mac
+            - text: ","
+            - link "linux" [ref=f2e788] [cursor=pointer]:
+              - /url: /docs/linux
+            - text: and
+            - link "win" [ref=f2e789] [cursor=pointer]:
+              - /url: /docs/win
+            - text: ) if need.
+          - heading "Base ConfigurationDirect link to Base Configuration" [level=2] [ref=f2e790]:
+            - text: Base Configuration
+            - link "Direct link to Base Configuration" [ref=f2e791] [cursor=pointer]:
+              - /url: "#base-configuration"
+              - text: "#"
+          - 'heading "Interface: PlatformSpecificBuildOptions" [level=1] [ref=f2e792]'
+          - heading "ExtendsDirect link to Extends" [level=2] [ref=f2e793]:
+            - text: Extends
+            - link "Direct link to Extends" [ref=f2e794] [cursor=pointer]:
+              - /url: "#extends"
+              - text: "#"
+          - list [ref=f2e795]:
+            - listitem [ref=f2e796]:
+              - link "TargetSpecificOptions" [ref=f2e797] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.TargetSpecificOptions
+                - code [ref=f2e798]: TargetSpecificOptions
+              - text: .
+              - link "FilesBuildOptions" [ref=f2e799] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.FilesBuildOptions
+                - code [ref=f2e800]: FilesBuildOptions
+          - heading "Extended byDirect link to Extended by" [level=2] [ref=f2e801]:
+            - text: Extended by
+            - link "Direct link to Extended by" [ref=f2e802] [cursor=pointer]:
+              - /url: "#extended-by-1"
+              - text: "#"
+          - list [ref=f2e803]:
+            - listitem [ref=f2e804]:
+              - link "Configuration" [ref=f2e805] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.Configuration
+                - code [ref=f2e806]: Configuration
+            - listitem [ref=f2e807]:
+              - link "LinuxConfiguration" [ref=f2e808] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.LinuxConfiguration
+                - code [ref=f2e809]: LinuxConfiguration
+            - listitem [ref=f2e810]:
+              - link "MacConfiguration" [ref=f2e811] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.MacConfiguration
+                - code [ref=f2e812]: MacConfiguration
+            - listitem [ref=f2e813]:
+              - link "WindowsConfiguration" [ref=f2e814] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.WindowsConfiguration
+                - code [ref=f2e815]: WindowsConfiguration
+          - heading "PropertiesDirect link to Properties" [level=2] [ref=f2e816]:
+            - text: Properties
+            - link "Direct link to Properties" [ref=f2e817] [cursor=pointer]:
+              - /url: "#properties-1"
+              - text: "#"
+          - heading "appId?Direct link to appId?" [level=3] [ref=f2e818]:
+            - text: appId?
+            - link "Direct link to appId?" [ref=f2e819] [cursor=pointer]:
+              - /url: "#appid-1"
+              - text: "#"
+          - blockquote [ref=f2e820]:
+            - paragraph [ref=f2e821]:
+              - code [ref=f2e822]: readonly
+              - code [ref=f2e823]: optional
+              - strong [ref=f2e824]: appId?
+              - text: ":"
+              - code [ref=f2e825]: string
+              - text: "|"
+              - code [ref=f2e826]: "null"
+          - paragraph [ref=f2e827]:
+            - text: The application id. Used as
+            - link "CFBundleIdentifier" [ref=f2e828] [cursor=pointer]:
+              - /url: https://developer.apple.com/library/ios/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html#//apple_ref/doc/uid/20001431-102070
+            - text: for MacOS and as
+            - link "Application User Model ID" [ref=f2e829] [cursor=pointer]:
+              - /url: https://msdn.microsoft.com/en-us/library/windows/desktop/dd378459(v=vs.85).aspx
+            - text: for Windows (NSIS target only, Squirrel.Windows not supported). It is strongly recommended that an explicit ID is set.
+          - heading "DefaultDirect link to Default" [level=4] [ref=f2e830]:
+            - text: Default
+            - link "Direct link to Default" [ref=f2e831] [cursor=pointer]:
+              - /url: "#default-10"
+              - text: "#"
+          - code [ref=f2e835]:
+            - generic [ref=f2e836]: "com.electron.${name}"
+          - separator [ref=f2e837]
+          - heading "artifactName?Direct link to artifactName?" [level=3] [ref=f2e838]:
+            - text: artifactName?
+            - link "Direct link to artifactName?" [ref=f2e839] [cursor=pointer]:
+              - /url: "#artifactname"
+              - text: "#"
+          - blockquote [ref=f2e840]:
+            - paragraph [ref=f2e841]:
+              - code [ref=f2e842]: readonly
+              - code [ref=f2e843]: optional
+              - strong [ref=f2e844]: artifactName?
+              - text: ":"
+              - code [ref=f2e845]: string
+              - text: "|"
+              - code [ref=f2e846]: "null"
+          - paragraph [ref=f2e847]:
+            - text: The
+            - link "artifact file name template" [ref=f2e848] [cursor=pointer]:
+              - /url: https://www.electron.build/configuration#artifact-file-name-template
+            - text: . Defaults to
+            - code [ref=f2e849]: "${productName}-${version}.${ext}"
+            - text: (some target can have other defaults, see corresponding options).
+          - heading "OverridesDirect link to Overrides" [level=4] [ref=f2e850]:
+            - text: Overrides
+            - link "Direct link to Overrides" [ref=f2e851] [cursor=pointer]:
+              - /url: "#overrides"
+              - text: "#"
+          - paragraph [ref=f2e852]:
+            - link "TargetSpecificOptions" [ref=f2e853] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.TargetSpecificOptions
+              - code [ref=f2e854]: TargetSpecificOptions
+            - text: .
+            - link "artifactName" [ref=f2e855] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.TargetSpecificOptions#artifactname
+              - code [ref=f2e856]: artifactName
+          - separator [ref=f2e857]
+          - heading "asar?Direct link to asar?" [level=3] [ref=f2e858]:
+            - text: asar?
+            - link "Direct link to asar?" [ref=f2e859] [cursor=pointer]:
+              - /url: "#asar"
+              - text: "#"
+          - blockquote [ref=f2e860]:
+            - paragraph [ref=f2e861]:
+              - code [ref=f2e862]: readonly
+              - code [ref=f2e863]: optional
+              - strong [ref=f2e864]: asar?
+              - text: ":"
+              - code [ref=f2e865]: boolean
+              - text: "|"
+              - link "AsarOptions" [ref=f2e866] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.AsarOptions
+                - code [ref=f2e867]: AsarOptions
+              - text: "|"
+              - code [ref=f2e868]: "null"
+          - paragraph [ref=f2e869]:
+            - text: Whether to package the application's source code into an archive, using
+            - link "Electron's archive format" [ref=f2e870] [cursor=pointer]:
+              - /url: http://electron.atom.io/docs/tutorial/application-packaging/
+            - text: .
+          - paragraph [ref=f2e871]:
+            - text: Node modules, that must be unpacked, will be detected automatically, you don't need to explicitly set
+            - link "asarUnpack" [ref=f2e872] [cursor=pointer]:
+              - /url: "#asarunpack"
+            - text: "- please file an issue if this doesn't work."
+          - heading "DefaultDirect link to Default" [level=4] [ref=f2e873]:
+            - text: Default
+            - link "Direct link to Default" [ref=f2e874] [cursor=pointer]:
+              - /url: "#default-1-1"
+              - text: "#"
+          - code [ref=f2e878]:
+            - generic [ref=f2e879]: "true"
+          - separator [ref=f2e880]
+          - heading "asarUnpack?Direct link to asarUnpack?" [level=3] [ref=f2e881]:
+            - text: asarUnpack?
+            - link "Direct link to asarUnpack?" [ref=f2e882] [cursor=pointer]:
+              - /url: "#asarunpack"
+              - text: "#"
+          - blockquote [ref=f2e883]:
+            - paragraph [ref=f2e884]:
+              - code [ref=f2e885]: readonly
+              - code [ref=f2e886]: optional
+              - strong [ref=f2e887]: asarUnpack?
+              - text: ":"
+              - code [ref=f2e888]: string
+              - text: "|"
+              - code [ref=f2e889]: string
+              - text: "[] |"
+              - code [ref=f2e890]: "null"
+          - paragraph [ref=f2e891]:
+            - text: A
+            - link "glob patterns" [ref=f2e892] [cursor=pointer]:
+              - /url: https://www.electron.build/file-patterns
+            - text: relative to the app directory, which specifies which files to unpack when creating the
+            - link "asar" [ref=f2e893] [cursor=pointer]:
+              - /url: http://electron.atom.io/docs/tutorial/application-packaging/
+            - text: archive.
+          - separator [ref=f2e894]
+          - heading "compression?Direct link to compression?" [level=3] [ref=f2e895]:
+            - text: compression?
+            - link "Direct link to compression?" [ref=f2e896] [cursor=pointer]:
+              - /url: "#compression"
+              - text: "#"
+          - blockquote [ref=f2e897]:
+            - paragraph [ref=f2e898]:
+              - code [ref=f2e899]: readonly
+              - code [ref=f2e900]: optional
+              - strong [ref=f2e901]: compression?
+              - text: ":"
+              - link "CompressionLevel" [ref=f2e902] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.TypeAlias.CompressionLevel
+                - code [ref=f2e903]: CompressionLevel
+              - text: "|"
+              - code [ref=f2e904]: "null"
+          - paragraph [ref=f2e905]:
+            - text: The compression level. If you want to rapidly test build,
+            - code [ref=f2e906]: store
+            - text: can reduce build time significantly.
+            - code [ref=f2e907]: maximum
+            - text: doesn't lead to noticeable size difference, but increase build time.
+          - heading "DefaultDirect link to Default" [level=4] [ref=f2e908]:
+            - text: Default
+            - link "Direct link to Default" [ref=f2e909] [cursor=pointer]:
+              - /url: "#default-2-1"
+              - text: "#"
+          - code [ref=f2e913]:
+            - generic [ref=f2e914]: normal
+          - separator [ref=f2e915]
+          - heading "defaultArch?Direct link to defaultArch?" [level=3] [ref=f2e916]:
+            - text: defaultArch?
+            - link "Direct link to defaultArch?" [ref=f2e917] [cursor=pointer]:
+              - /url: "#defaultarch"
+              - text: "#"
+          - blockquote [ref=f2e918]:
+            - paragraph [ref=f2e919]:
+              - code [ref=f2e920]: readonly
+              - code [ref=f2e921]: optional
+              - strong [ref=f2e922]: defaultArch?
+              - text: ":"
+              - code [ref=f2e923]: string
+          - paragraph [ref=f2e924]:
+            - text: The default architecture to build for when no
+            - code [ref=f2e925]: "--arch"
+            - text: flag is specified. Defaults to the current machine's architecture.
+          - separator [ref=f2e926]
+          - heading "detectUpdateChannel?Direct link to detectUpdateChannel?" [level=3] [ref=f2e927]:
+            - text: detectUpdateChannel?
+            - link "Direct link to detectUpdateChannel?" [ref=f2e928] [cursor=pointer]:
+              - /url: "#detectupdatechannel"
+              - text: "#"
+          - blockquote [ref=f2e929]:
+            - paragraph [ref=f2e930]:
+              - code [ref=f2e931]: readonly
+              - code [ref=f2e932]: optional
+              - strong [ref=f2e933]: detectUpdateChannel?
+              - text: ":"
+              - code [ref=f2e934]: boolean
+          - paragraph [ref=f2e935]:
+            - text: Whether to infer update channel from application version pre-release components. e.g. if version
+            - code [ref=f2e936]: 0.12.1-alpha.1
+            - text: ", channel will be set to"
+            - code [ref=f2e937]: alpha
+            - text: . Otherwise to
+            - code [ref=f2e938]: latest
+            - text: . This does
+            - emphasis [ref=f2e939]: not
+            - text: apply to github publishing, which will
+            - link "never auto-detect the update channel" [ref=f2e940] [cursor=pointer]:
+              - /url: https://github.com/electron-userland/electron-builder/issues/8589
+            - text: .
+          - heading "DefaultDirect link to Default" [level=4] [ref=f2e941]:
+            - text: Default
+            - link "Direct link to Default" [ref=f2e942] [cursor=pointer]:
+              - /url: "#default-3-1"
+              - text: "#"
+          - code [ref=f2e946]:
+            - generic [ref=f2e947]: "true"
+          - separator [ref=f2e948]
+          - heading "disableDefaultIgnoredFiles?Direct link to disableDefaultIgnoredFiles?" [level=3] [ref=f2e949]:
+            - text: disableDefaultIgnoredFiles?
+            - link "Direct link to disableDefaultIgnoredFiles?" [ref=f2e950] [cursor=pointer]:
+              - /url: "#disabledefaultignoredfiles"
+              - text: "#"
+          - blockquote [ref=f2e951]:
+            - paragraph [ref=f2e952]:
+              - code [ref=f2e953]: optional
+              - strong [ref=f2e954]: disableDefaultIgnoredFiles?
+              - text: ":"
+              - code [ref=f2e955]: boolean
+              - text: "|"
+              - code [ref=f2e956]: "null"
+          - paragraph [ref=f2e957]:
+            - text: Whether to exclude all default ignored files(https://www.electron.build/contents#files) and options. Defaults to
+            - code [ref=f2e958]: "false"
+            - text: .
+          - heading "DefaultDirect link to Default" [level=4] [ref=f2e959]:
+            - text: Default
+            - link "Direct link to Default" [ref=f2e960] [cursor=pointer]:
+              - /url: "#default-4-1"
+              - text: "#"
+          - code [ref=f2e964]:
+            - generic [ref=f2e965]: "false"
+          - separator [ref=f2e966]
+          - heading "electronLanguages?Direct link to electronLanguages?" [level=3] [ref=f2e967]:
+            - text: electronLanguages?
+            - link "Direct link to electronLanguages?" [ref=f2e968] [cursor=pointer]:
+              - /url: "#electronlanguages"
+              - text: "#"
+          - blockquote [ref=f2e969]:
+            - paragraph [ref=f2e970]:
+              - code [ref=f2e971]: readonly
+              - code [ref=f2e972]: optional
+              - strong [ref=f2e973]: electronLanguages?
+              - text: ":"
+              - code [ref=f2e974]: string
+              - text: "|"
+              - code [ref=f2e975]: string
+              - text: "[]"
+          - paragraph [ref=f2e976]: The electron locales to keep. By default, all Electron locales used as-is.
+          - separator [ref=f2e977]
+          - heading "electronUpdaterCompatibility?Direct link to electronUpdaterCompatibility?" [level=3] [ref=f2e978]:
+            - text: electronUpdaterCompatibility?
+            - link "Direct link to electronUpdaterCompatibility?" [ref=f2e979] [cursor=pointer]:
+              - /url: "#electronupdatercompatibility"
+              - text: "#"
+          - blockquote [ref=f2e980]:
+            - paragraph [ref=f2e981]:
+              - code [ref=f2e982]: readonly
+              - code [ref=f2e983]: optional
+              - strong [ref=f2e984]: electronUpdaterCompatibility?
+              - text: ":"
+              - code [ref=f2e985]: string
+              - text: "|"
+              - code [ref=f2e986]: "null"
+          - paragraph [ref=f2e987]:
+            - text: The
+            - link "electron-updater compatibility" [ref=f2e988] [cursor=pointer]:
+              - /url: https://www.electron.build/auto-update#compatibility
+            - text: semver range.
+          - separator [ref=f2e989]
+          - heading "executableName?Direct link to executableName?" [level=3] [ref=f2e990]:
+            - text: executableName?
+            - link "Direct link to executableName?" [ref=f2e991] [cursor=pointer]:
+              - /url: "#executablename"
+              - text: "#"
+          - blockquote [ref=f2e992]:
+            - paragraph [ref=f2e993]:
+              - code [ref=f2e994]: readonly
+              - code [ref=f2e995]: optional
+              - strong [ref=f2e996]: executableName?
+              - text: ":"
+              - code [ref=f2e997]: string
+              - text: "|"
+              - code [ref=f2e998]: "null"
+          - paragraph [ref=f2e999]:
+            - text: The executable name. Defaults to
+            - code [ref=f2e1000]: productName
+            - text: "Note: Except for Linux, where this would constitute a breaking change in previous behavior and lead to both invalid executable names and Desktop files. Ref comments in: https://github.com/electron-userland/electron-builder/pull/9068"
+          - separator [ref=f2e1001]
+          - heading "extraFiles?Direct link to extraFiles?" [level=3] [ref=f2e1002]:
+            - text: extraFiles?
+            - link "Direct link to extraFiles?" [ref=f2e1003] [cursor=pointer]:
+              - /url: "#extrafiles"
+              - text: "#"
+          - blockquote [ref=f2e1004]:
+            - paragraph [ref=f2e1005]:
+              - code [ref=f2e1006]: optional
+              - strong [ref=f2e1007]: extraFiles?
+              - text: ":"
+              - code [ref=f2e1008]: string
+              - text: "|"
+              - link "FileSet" [ref=f2e1009] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.FileSet
+                - code [ref=f2e1010]: FileSet
+              - text: "| ("
+              - code [ref=f2e1011]: string
+              - text: "|"
+              - link "FileSet" [ref=f2e1012] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.FileSet
+                - code [ref=f2e1013]: FileSet
+              - text: )[] |
+              - code [ref=f2e1014]: "null"
+          - paragraph [ref=f2e1015]:
+            - text: The same as
+            - link "extraResources" [ref=f2e1016] [cursor=pointer]:
+              - /url: "#extraresources"
+            - text: but copy into the app's content directory (
+            - code [ref=f2e1017]: Contents
+            - text: for MacOS, root directory for Linux and Windows).
+          - heading "Inherited fromDirect link to Inherited from" [level=4] [ref=f2e1018]:
+            - text: Inherited from
+            - link "Direct link to Inherited from" [ref=f2e1019] [cursor=pointer]:
+              - /url: "#inherited-from"
+              - text: "#"
+          - paragraph [ref=f2e1020]:
+            - link "FilesBuildOptions" [ref=f2e1021] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.FilesBuildOptions
+              - code [ref=f2e1022]: FilesBuildOptions
+            - text: .
+            - link "extraFiles" [ref=f2e1023] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.FilesBuildOptions#extrafiles
+              - code [ref=f2e1024]: extraFiles
+          - separator [ref=f2e1025]
+          - heading "extraResources?Direct link to extraResources?" [level=3] [ref=f2e1026]:
+            - text: extraResources?
+            - link "Direct link to extraResources?" [ref=f2e1027] [cursor=pointer]:
+              - /url: "#extraresources"
+              - text: "#"
+          - blockquote [ref=f2e1028]:
+            - paragraph [ref=f2e1029]:
+              - code [ref=f2e1030]: optional
+              - strong [ref=f2e1031]: extraResources?
+              - text: ":"
+              - code [ref=f2e1032]: string
+              - text: "|"
+              - link "FileSet" [ref=f2e1033] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.FileSet
+                - code [ref=f2e1034]: FileSet
+              - text: "| ("
+              - code [ref=f2e1035]: string
+              - text: "|"
+              - link "FileSet" [ref=f2e1036] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.FileSet
+                - code [ref=f2e1037]: FileSet
+              - text: )[] |
+              - code [ref=f2e1038]: "null"
+          - paragraph [ref=f2e1039]:
+            - text: A
+            - link "glob patterns" [ref=f2e1040] [cursor=pointer]:
+              - /url: https://www.electron.build/file-patterns
+            - text: relative to the project directory, when specified, copy the file or directory with matching names directly into the app's resources directory (
+            - code [ref=f2e1041]: Contents/Resources
+            - text: for MacOS,
+            - code [ref=f2e1042]: resources
+            - text: for Linux and Windows).
+          - paragraph [ref=f2e1043]:
+            - text: File patterns (and support for
+            - code [ref=f2e1044]: from
+            - text: and
+            - code [ref=f2e1045]: to
+            - text: fields) the same as for
+            - link "files" [ref=f2e1046] [cursor=pointer]:
+              - /url: "#files"
+            - text: .
+          - heading "Inherited fromDirect link to Inherited from" [level=4] [ref=f2e1047]:
+            - text: Inherited from
+            - link "Direct link to Inherited from" [ref=f2e1048] [cursor=pointer]:
+              - /url: "#inherited-from-1"
+              - text: "#"
+          - paragraph [ref=f2e1049]:
+            - link "FilesBuildOptions" [ref=f2e1050] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.FilesBuildOptions
+              - code [ref=f2e1051]: FilesBuildOptions
+            - text: .
+            - link "extraResources" [ref=f2e1052] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.FilesBuildOptions#extraresources
+              - code [ref=f2e1053]: extraResources
+          - separator [ref=f2e1054]
+          - heading "fileAssociations?Direct link to fileAssociations?" [level=3] [ref=f2e1055]:
+            - text: fileAssociations?
+            - link "Direct link to fileAssociations?" [ref=f2e1056] [cursor=pointer]:
+              - /url: "#fileassociations"
+              - text: "#"
+          - blockquote [ref=f2e1057]:
+            - paragraph [ref=f2e1058]:
+              - code [ref=f2e1059]: readonly
+              - code [ref=f2e1060]: optional
+              - strong [ref=f2e1061]: fileAssociations?
+              - text: ":"
+              - link "FileAssociation" [ref=f2e1062] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.FileAssociation
+                - code [ref=f2e1063]: FileAssociation
+              - text: "|"
+              - link "FileAssociation" [ref=f2e1064] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.FileAssociation
+                - code [ref=f2e1065]: FileAssociation
+              - text: "[]"
+          - paragraph [ref=f2e1066]: The file associations.
+          - separator [ref=f2e1067]
+          - heading "files?Direct link to files?" [level=3] [ref=f2e1068]:
+            - text: files?
+            - link "Direct link to files?" [ref=f2e1069] [cursor=pointer]:
+              - /url: "#files"
+              - text: "#"
+          - blockquote [ref=f2e1070]:
+            - paragraph [ref=f2e1071]:
+              - code [ref=f2e1072]: optional
+              - strong [ref=f2e1073]: files?
+              - text: ":"
+              - code [ref=f2e1074]: string
+              - text: "|"
+              - link "FileSet" [ref=f2e1075] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.FileSet
+                - code [ref=f2e1076]: FileSet
+              - text: "| ("
+              - code [ref=f2e1077]: string
+              - text: "|"
+              - link "FileSet" [ref=f2e1078] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.FileSet
+                - code [ref=f2e1079]: FileSet
+              - text: )[] |
+              - code [ref=f2e1080]: "null"
+          - paragraph [ref=f2e1081]:
+            - text: A
+            - link "glob patterns" [ref=f2e1082] [cursor=pointer]:
+              - /url: https://www.electron.build/file-patterns
+            - text: relative to the
+            - link "app directory" [ref=f2e1083] [cursor=pointer]:
+              - /url: https://www.electron.build/configuration#directories
+            - text: ", which specifies which files to include when copying files to create the package."
+          - paragraph [ref=f2e1084]: "Defaults to:"
+          - code [ref=f2e1088]:
+            - generic [ref=f2e1089]: "["
+            - generic [ref=f2e1090]: "\"**/*\","
+            - generic [ref=f2e1091]: "\"!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}\","
+            - generic [ref=f2e1092]: "\"!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}\","
+            - generic [ref=f2e1093]: "\"!**/node_modules/*.d.ts\","
+            - generic [ref=f2e1094]: "\"!**/node_modules/.bin\","
+            - generic [ref=f2e1095]: "\"!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}\","
+            - generic [ref=f2e1096]: "\"!.editorconfig\","
+            - generic [ref=f2e1097]: "\"!**/._*\","
+            - generic [ref=f2e1098]: "\"!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}\","
+            - generic [ref=f2e1099]: "\"!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}\","
+            - generic [ref=f2e1100]: "\"!**/{appveyor.yml,.travis.yml,circle.yml}\","
+            - generic [ref=f2e1101]: "\"!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}\""
+            - generic [ref=f2e1102]: "]"
+          - paragraph [ref=f2e1103]: Development dependencies are never copied in any case. You don't need to ignore it explicitly. Hidden files are not ignored by default, but all files that should be ignored, are ignored by default.
+          - paragraph [ref=f2e1104]:
+            - text: Default pattern
+            - code [ref=f2e1105]: "**/*"
+            - strong [ref=f2e1106]: is not added to your custom
+            - text: if some of your patterns is not ignore (i.e. not starts with
+            - code [ref=f2e1107]: "!"
+            - text: ).
+            - code [ref=f2e1108]: package.json
+            - text: and
+            - code [ref=f2e1109]: "**/node_modules/**/*"
+            - text: (only production dependencies will be copied) is added to your custom in any case. All default ignores are added in any case — you don't need to repeat it if you configure own patterns.
+          - paragraph [ref=f2e1110]:
+            - text: May be specified in the platform options (e.g. in the
+            - link "mac" [ref=f2e1111] [cursor=pointer]:
+              - /url: https://www.electron.build/mac
+            - text: ).
+          - paragraph [ref=f2e1112]:
+            - text: You may also specify custom source and destination directories by using
+            - code [ref=f2e1113]: FileSet
+            - text: objects instead of simple glob patterns.
+          - code [ref=f2e1117]:
+            - generic [ref=f2e1118]: "["
+            - generic [ref=f2e1119]: "{"
+            - generic [ref=f2e1120]: "\"from\": \"path/to/source\","
+            - generic [ref=f2e1121]: "\"to\": \"path/to/destination\","
+            - generic [ref=f2e1122]: "\"filter\": [\"**/*\", \"!foo/*.js\"]"
+            - generic [ref=f2e1123]: "}"
+            - generic [ref=f2e1124]: "]"
+          - paragraph [ref=f2e1125]:
+            - text: You can use
+            - link "file macros" [ref=f2e1126] [cursor=pointer]:
+              - /url: https://www.electron.build/file-patterns#file-macros
+            - text: in the
+            - code [ref=f2e1127]: from
+            - text: and
+            - code [ref=f2e1128]: to
+            - text: fields as well.
+            - code [ref=f2e1129]: from
+            - text: and
+            - code [ref=f2e1130]: to
+            - text: can be files and you can use this to
+            - link "rename" [ref=f2e1131] [cursor=pointer]:
+              - /url: https://github.com/electron-userland/electron-builder/issues/1119
+            - text: a file while packaging.
+          - heading "Inherited fromDirect link to Inherited from" [level=4] [ref=f2e1132]:
+            - text: Inherited from
+            - link "Direct link to Inherited from" [ref=f2e1133] [cursor=pointer]:
+              - /url: "#inherited-from-2"
+              - text: "#"
+          - paragraph [ref=f2e1134]:
+            - link "FilesBuildOptions" [ref=f2e1135] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.FilesBuildOptions
+              - code [ref=f2e1136]: FilesBuildOptions
+            - text: .
+            - link "files" [ref=f2e1137] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.FilesBuildOptions#files
+              - code [ref=f2e1138]: files
+          - separator [ref=f2e1139]
+          - heading "forceCodeSigning?Direct link to forceCodeSigning?" [level=3] [ref=f2e1140]:
+            - text: forceCodeSigning?
+            - link "Direct link to forceCodeSigning?" [ref=f2e1141] [cursor=pointer]:
+              - /url: "#forcecodesigning-1"
+              - text: "#"
+          - blockquote [ref=f2e1142]:
+            - paragraph [ref=f2e1143]:
+              - code [ref=f2e1144]: readonly
+              - code [ref=f2e1145]: optional
+              - strong [ref=f2e1146]: forceCodeSigning?
+              - text: ":"
+              - code [ref=f2e1147]: boolean
+          - paragraph [ref=f2e1148]: Whether to fail if app will be not code signed.
+          - heading "DefaultDirect link to Default" [level=4] [ref=f2e1149]:
+            - text: Default
+            - link "Direct link to Default" [ref=f2e1150] [cursor=pointer]:
+              - /url: "#default-5-1"
+              - text: "#"
+          - code [ref=f2e1154]:
+            - generic [ref=f2e1155]: "false"
+          - separator [ref=f2e1156]
+          - heading "generateUpdatesFilesForAllChannels?Direct link to generateUpdatesFilesForAllChannels?" [level=3] [ref=f2e1157]:
+            - text: generateUpdatesFilesForAllChannels?
+            - link "Direct link to generateUpdatesFilesForAllChannels?" [ref=f2e1158] [cursor=pointer]:
+              - /url: "#generateupdatesfilesforallchannels"
+              - text: "#"
+          - blockquote [ref=f2e1159]:
+            - paragraph [ref=f2e1160]:
+              - code [ref=f2e1161]: readonly
+              - code [ref=f2e1162]: optional
+              - strong [ref=f2e1163]: generateUpdatesFilesForAllChannels?
+              - text: ":"
+              - code [ref=f2e1164]: boolean
+          - paragraph [ref=f2e1165]:
+            - text: Please see
+            - link "Building and Releasing using Channels" [ref=f2e1166] [cursor=pointer]:
+              - /url: https://github.com/electron-userland/electron-builder/issues/1182#issuecomment-324947139
+            - text: .
+          - heading "DefaultDirect link to Default" [level=4] [ref=f2e1167]:
+            - text: Default
+            - link "Direct link to Default" [ref=f2e1168] [cursor=pointer]:
+              - /url: "#default-6-1"
+              - text: "#"
+          - code [ref=f2e1172]:
+            - generic [ref=f2e1173]: "false"
+          - separator [ref=f2e1174]
+          - heading "protocols?Direct link to protocols?" [level=3] [ref=f2e1175]:
+            - text: protocols?
+            - link "Direct link to protocols?" [ref=f2e1176] [cursor=pointer]:
+              - /url: "#protocols"
+              - text: "#"
+          - blockquote [ref=f2e1177]:
+            - paragraph [ref=f2e1178]:
+              - code [ref=f2e1179]: readonly
+              - code [ref=f2e1180]: optional
+              - strong [ref=f2e1181]: protocols?
+              - text: ":"
+              - link "Protocol" [ref=f2e1182] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.Protocol
+                - code [ref=f2e1183]: Protocol
+              - text: "|"
+              - link "Protocol" [ref=f2e1184] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.Protocol
+                - code [ref=f2e1185]: Protocol
+              - text: "[]"
+          - paragraph [ref=f2e1186]: The URL protocol schemes.
+          - separator [ref=f2e1187]
+          - heading "publish?Direct link to publish?" [level=3] [ref=f2e1188]:
+            - text: publish?
+            - link "Direct link to publish?" [ref=f2e1189] [cursor=pointer]:
+              - /url: "#publish"
+              - text: "#"
+          - blockquote [ref=f2e1190]:
+            - paragraph [ref=f2e1191]:
+              - code [ref=f2e1192]: optional
+              - strong [ref=f2e1193]: publish?
+              - text: ":"
+              - code [ref=f2e1194]: Publish
+          - paragraph [ref=f2e1195]:
+            - text: Publisher configuration. See
+            - link "Auto Update" [ref=f2e1196] [cursor=pointer]:
+              - /url: https://www.electron.build/publish
+            - text: for more information.
+          - heading "OverridesDirect link to Overrides" [level=4] [ref=f2e1197]:
+            - text: Overrides
+            - link "Direct link to Overrides" [ref=f2e1198] [cursor=pointer]:
+              - /url: "#overrides-1"
+              - text: "#"
+          - paragraph [ref=f2e1199]:
+            - link "TargetSpecificOptions" [ref=f2e1200] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.TargetSpecificOptions
+              - code [ref=f2e1201]: TargetSpecificOptions
+            - text: .
+            - link "publish" [ref=f2e1202] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.TargetSpecificOptions#publish
+              - code [ref=f2e1203]: publish
+          - separator [ref=f2e1204]
+          - heading "releaseInfo?Direct link to releaseInfo?" [level=3] [ref=f2e1205]:
+            - text: releaseInfo?
+            - link "Direct link to releaseInfo?" [ref=f2e1206] [cursor=pointer]:
+              - /url: "#releaseinfo"
+              - text: "#"
+          - blockquote [ref=f2e1207]:
+            - paragraph [ref=f2e1208]:
+              - code [ref=f2e1209]: readonly
+              - code [ref=f2e1210]: optional
+              - strong [ref=f2e1211]: releaseInfo?
+              - text: ":"
+              - link "ReleaseInfo" [ref=f2e1212] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.ReleaseInfo
+                - code [ref=f2e1213]: ReleaseInfo
+          - paragraph [ref=f2e1214]: "The release info. Intended for command line usage:"
+          - code [ref=f2e1218]:
+            - generic [ref=f2e1219]: "-c.releaseInfo.releaseNotes=\"new features\""
+          - separator [ref=f2e1220]
+          - heading "target?Direct link to target?" [level=3] [ref=f2e1221]:
+            - text: target?
+            - link "Direct link to target?" [ref=f2e1222] [cursor=pointer]:
+              - /url: "#target"
+              - text: "#"
+          - blockquote [ref=f2e1223]:
+            - paragraph [ref=f2e1224]:
+              - code [ref=f2e1225]: readonly
+              - code [ref=f2e1226]: optional
+              - strong [ref=f2e1227]: target?
+              - text: ":"
+              - code [ref=f2e1228]: string
+              - text: "|"
+              - link "TargetConfiguration" [ref=f2e1229] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.TargetConfiguration
+                - code [ref=f2e1230]: TargetConfiguration
+              - text: "| ("
+              - code [ref=f2e1231]: string
+              - text: "|"
+              - link "TargetConfiguration" [ref=f2e1232] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.TargetConfiguration
+                - code [ref=f2e1233]: TargetConfiguration
+              - text: )[] |
+              - code [ref=f2e1234]: "null"
+          - paragraph [ref=f2e1235]:
+            - text: The build target(s) for this platform. Can be a target name string, a
+            - link "TargetConfiguration" [ref=f2e1236] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.TargetConfiguration
+            - text: object, or an array of either. Available targets depend on the platform — see platform-specific options (e.g.
+            - link "MacConfiguration.target" [ref=f2e1237] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.MacConfiguration#target
+            - text: ","
+            - link "WindowsConfiguration.target" [ref=f2e1238] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.WindowsConfiguration#target
+            - text: ","
+            - link "LinuxConfiguration.target" [ref=f2e1239] [cursor=pointer]:
+              - /url: /docs/api/app-builder-lib.Interface.LinuxConfiguration#target
+            - text: ).
+          - heading "MetadataDirect link to Metadata" [level=2] [ref=f2e1240]:
+            - text: Metadata
+            - link "Direct link to Metadata" [ref=f2e1241] [cursor=pointer]:
+              - /url: "#metadata"
+              - text: "#"
+          - paragraph [ref=f2e1242]:
+            - text: Some standard fields should be defined in the
+            - code [ref=f2e1243]: package.json
+            - text: .
+          - 'heading "Interface: Metadata" [level=1] [ref=f2e1244]'
+          - heading "PropertiesDirect link to Properties" [level=2] [ref=f2e1245]:
+            - text: Properties
+            - link "Direct link to Properties" [ref=f2e1246] [cursor=pointer]:
+              - /url: "#properties-2"
+              - text: "#"
+          - heading "author?Direct link to author?" [level=3] [ref=f2e1247]:
+            - text: author?
+            - link "Direct link to author?" [ref=f2e1248] [cursor=pointer]:
+              - /url: "#author"
+              - text: "#"
+          - blockquote [ref=f2e1249]:
+            - paragraph [ref=f2e1250]:
+              - code [ref=f2e1251]: readonly
+              - code [ref=f2e1252]: optional
+              - strong [ref=f2e1253]: author?
+              - text: ":"
+              - link "AuthorMetadata" [ref=f2e1254] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.AuthorMetadata
+                - code [ref=f2e1255]: AuthorMetadata
+              - text: "|"
+              - code [ref=f2e1256]: "null"
+          - separator [ref=f2e1257]
+          - heading "build?Direct link to build?" [level=3] [ref=f2e1258]:
+            - text: build?
+            - link "Direct link to build?" [ref=f2e1259] [cursor=pointer]:
+              - /url: "#build"
+              - text: "#"
+          - blockquote [ref=f2e1260]:
+            - paragraph [ref=f2e1261]:
+              - code [ref=f2e1262]: readonly
+              - code [ref=f2e1263]: optional
+              - strong [ref=f2e1264]: build?
+              - text: ":"
+              - link "Configuration" [ref=f2e1265] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.Configuration
+                - code [ref=f2e1266]: Configuration
+          - paragraph [ref=f2e1267]: The electron-builder configuration.
+          - separator [ref=f2e1268]
+          - heading "description?Direct link to description?" [level=3] [ref=f2e1269]:
+            - text: description?
+            - link "Direct link to description?" [ref=f2e1270] [cursor=pointer]:
+              - /url: "#description"
+              - text: "#"
+          - blockquote [ref=f2e1271]:
+            - paragraph [ref=f2e1272]:
+              - code [ref=f2e1273]: readonly
+              - code [ref=f2e1274]: optional
+              - strong [ref=f2e1275]: description?
+              - text: ":"
+              - code [ref=f2e1276]: string
+          - paragraph [ref=f2e1277]: The application description.
+          - separator [ref=f2e1278]
+          - heading "homepage?Direct link to homepage?" [level=3] [ref=f2e1279]:
+            - text: homepage?
+            - link "Direct link to homepage?" [ref=f2e1280] [cursor=pointer]:
+              - /url: "#homepage"
+              - text: "#"
+          - blockquote [ref=f2e1281]:
+            - paragraph [ref=f2e1282]:
+              - code [ref=f2e1283]: readonly
+              - code [ref=f2e1284]: optional
+              - strong [ref=f2e1285]: homepage?
+              - text: ":"
+              - code [ref=f2e1286]: string
+              - text: "|"
+              - code [ref=f2e1287]: "null"
+          - paragraph [ref=f2e1288]:
+            - text: The url to the project
+            - link "homepage" [ref=f2e1289] [cursor=pointer]:
+              - /url: https://docs.npmjs.com/files/package.json#homepage
+            - text: (NuGet Package
+            - code [ref=f2e1290]: projectUrl
+            - text: (optional) or Linux Package URL (required)).
+          - paragraph [ref=f2e1291]:
+            - text: If not specified and your project repository is public on GitHub, it will be
+            - code [ref=f2e1292]: "https://github.com/${user}/${project}"
+            - text: by default.
+          - separator [ref=f2e1293]
+          - heading "license?Direct link to license?" [level=3] [ref=f2e1294]:
+            - text: license?
+            - link "Direct link to license?" [ref=f2e1295] [cursor=pointer]:
+              - /url: "#license"
+              - text: "#"
+          - blockquote [ref=f2e1296]:
+            - paragraph [ref=f2e1297]:
+              - code [ref=f2e1298]: readonly
+              - code [ref=f2e1299]: optional
+              - strong [ref=f2e1300]: license?
+              - text: ":"
+              - code [ref=f2e1301]: string
+              - text: "|"
+              - code [ref=f2e1302]: "null"
+          - paragraph [ref=f2e1303]:
+            - emphasis [ref=f2e1304]: linux-only.
+            - text: The
+            - link "license" [ref=f2e1305] [cursor=pointer]:
+              - /url: https://docs.npmjs.com/files/package.json#license
+            - text: name.
+          - separator [ref=f2e1306]
+          - heading "name?Direct link to name?" [level=3] [ref=f2e1307]:
+            - text: name?
+            - link "Direct link to name?" [ref=f2e1308] [cursor=pointer]:
+              - /url: "#name"
+              - text: "#"
+          - blockquote [ref=f2e1309]:
+            - paragraph [ref=f2e1310]:
+              - code [ref=f2e1311]: readonly
+              - code [ref=f2e1312]: optional
+              - strong [ref=f2e1313]: name?
+              - text: ":"
+              - code [ref=f2e1314]: string
+          - paragraph [ref=f2e1315]: The application name. Required.
+          - separator [ref=f2e1316]
+          - heading "repository?Direct link to repository?" [level=3] [ref=f2e1317]:
+            - text: repository?
+            - link "Direct link to repository?" [ref=f2e1318] [cursor=pointer]:
+              - /url: "#repository"
+              - text: "#"
+          - blockquote [ref=f2e1319]:
+            - paragraph [ref=f2e1320]:
+              - code [ref=f2e1321]: readonly
+              - code [ref=f2e1322]: optional
+              - strong [ref=f2e1323]: repository?
+              - text: ":"
+              - code [ref=f2e1324]: string
+              - text: "|"
+              - link "RepositoryInfo" [ref=f2e1325] [cursor=pointer]:
+                - /url: /docs/api/app-builder-lib.Interface.RepositoryInfo
+                - code [ref=f2e1326]: RepositoryInfo
+              - text: "|"
+              - code [ref=f2e1327]: "null"
+          - paragraph [ref=f2e1328]:
+            - text: The
+            - link "repository" [ref=f2e1329] [cursor=pointer]:
+              - /url: https://docs.npmjs.com/files/package.json#repository
+            - text: .
+          - heading "Proton NativeDirect link to Proton Native" [level=2] [ref=f2e1330]:
+            - text: Proton Native
+            - link "Direct link to Proton Native" [ref=f2e1331] [cursor=pointer]:
+              - /url: "#proton-native"
+              - text: "#"
+          - paragraph [ref=f2e1332]:
+            - text: To package
+            - link "Proton Native" [ref=f2e1333] [cursor=pointer]:
+              - /url: https://proton-native.js.org/
+            - text: app, set
+            - code [ref=f2e1334]: protonNodeVersion
+            - text: option to
+            - code [ref=f2e1335]: current
+            - text: or specific NodeJS version that you are packaging for. Currently, only macOS and Linux are supported.
+          - heading "Build Version ManagementDirect link to Build Version Management" [level=2] [ref=f2e1336]:
+            - text: Build Version Management
+            - link "Direct link to Build Version Management" [ref=f2e1337] [cursor=pointer]:
+              - /url: "#build-version-management"
+              - text: "#"
+          - paragraph [ref=f2e1338]:
+            - code [ref=f2e1339]: CFBundleVersion
+            - text: (macOS) and
+            - code [ref=f2e1340]: FileVersion
+            - text: (Windows) will be set automatically to
+            - code [ref=f2e1341]: version.build_number
+            - text: on CI server (Travis, AppVeyor, CircleCI and Bamboo supported).
+          - heading "Build HooksDirect link to Build Hooks" [level=2] [ref=f2e1342]:
+            - text: Build Hooks
+            - link "Direct link to Build Hooks" [ref=f2e1343] [cursor=pointer]:
+              - /url: "#build-hooks"
+              - text: "#"
+          - heading "Build HooksDirect link to Build Hooks" [level=2] [ref=f2e1344]:
+            - text: Build Hooks
+            - link "Direct link to Build Hooks" [ref=f2e1345] [cursor=pointer]:
+              - /url: "#build-hooks-1"
+              - text: "#"
+          - paragraph [ref=f2e1346]: Build hooks let you run custom code at specific points in the electron-builder build lifecycle. Use them to modify the app bundle, perform additional signing, upload symbols, or integrate with external services.
+          - heading "Build LifecycleDirect link to Build Lifecycle" [level=2] [ref=f2e1347]:
+            - text: Build Lifecycle
+            - link "Direct link to Build Lifecycle" [ref=f2e1348] [cursor=pointer]:
+              - /url: "#build-lifecycle"
+              - text: "#"
+          - paragraph [ref=f2e1349]: Hooks fire in this order during every build. Pick the hook that runs at the right stage for your task — modifying app files before signing, triggering external tools after all artifacts are ready, etc.
+          - paragraph [ref=f2e1350]:
+            - text: "| Hook | When it fires | Common use | |---|---|---| |"
+            - code [ref=f2e1351]: beforeBuild
+            - text: "| Before native deps are installed/rebuilt | Skip or customize native module rebuild | |"
+            - code [ref=f2e1352]: beforePack
+            - text: "| Before files are copied into the app bundle | Inject generated files, modify source before pack | |"
+            - code [ref=f2e1353]: afterExtract
+            - text: "| After Electron binary is extracted | Modify the Electron binary or its resources | |"
+            - code [ref=f2e1354]: afterPack
+            - text: "| After files are packaged,"
+            - strong [ref=f2e1355]: before signing
+            - text: "| Modify app bundle structure, add unpacked files | |"
+            - code [ref=f2e1356]: afterSign
+            - text: "| After signing,"
+            - strong [ref=f2e1357]: before distributable is created
+            - text: "| Custom post-sign steps, extra notarization workflows | |"
+            - code [ref=f2e1358]: artifactBuildStarted
+            - text: "| When each installer/image starts building | Per-artifact logging or tracking | |"
+            - code [ref=f2e1359]: artifactBuildCompleted
+            - text: "| When each installer/image finishes | Checksum capture, per-artifact upload | |"
+            - code [ref=f2e1360]: afterAllArtifactBuild
+            - text: "| After"
+            - strong [ref=f2e1361]: all
+            - text: artifacts are done | Upload debug symbols, generate changelogs, return extra publish paths |
+          - paragraph [ref=f2e1362]: Hook execution is serial within each platform/arch combination. Async hooks are awaited before the build proceeds.
+          - paragraph [ref=f2e1363]:
+            - strong [ref=f2e1364]: Target-specific hooks
+            - text: "(only fire for their respective target):"
+          - list [ref=f2e1365]:
+            - listitem [ref=f2e1366]:
+              - code [ref=f2e1367]: electronDist
+              - text: — supply a custom Electron binary
+            - listitem [ref=f2e1368]:
+              - code [ref=f2e1369]: msiProjectCreated
+              - text: — edit WiX XML before MSI compilation
+            - listitem [ref=f2e1370]:
+              - code [ref=f2e1371]: appxManifestCreated
+              - text: — edit AppX manifest XML before packaging
+            - listitem [ref=f2e1372]:
+              - code [ref=f2e1373]: onNodeModuleFile
+              - text: — filter which
+              - code [ref=f2e1374]: node_modules
+              - text: files are included in the bundle
+          - heading "Defining HooksDirect link to Defining Hooks" [level=2] [ref=f2e1375]:
+            - text: Defining Hooks
+            - link "Direct link to Defining Hooks" [ref=f2e1376] [cursor=pointer]:
+              - /url: "#defining-hooks"
+              - text: "#"
+          - paragraph [ref=f2e1377]: "Hooks can be defined in three ways:"
+          - heading "1. Inline Function (JS/TS config only)Direct link to 1. Inline Function (JS/TS config only)" [level=3] [ref=f2e1378]:
+            - text: 1. Inline Function (JS/TS config only)
+            - link "Direct link to 1. Inline Function (JS/TS config only)" [ref=f2e1379] [cursor=pointer]:
+              - /url: "#1-inline-function-jsts-config-only"
+              - text: "#"
+          - code [ref=f2e1383]:
+            - generic [ref=f2e1384]: // electron-builder.config.js
+            - generic [ref=f2e1385]: "module.exports = {"
+            - generic [ref=f2e1386]: "afterPack: async (context) => {"
+            - generic [ref=f2e1387]: console.log("afterPack:", context.appOutDir)
+            - generic [ref=f2e1388]: "}"
+            - generic [ref=f2e1389]: "}"
+          - heading "2. Path to FileDirect link to 2. Path to File" [level=3] [ref=f2e1390]:
+            - text: 2. Path to File
+            - link "Direct link to 2. Path to File" [ref=f2e1391] [cursor=pointer]:
+              - /url: "#2-path-to-file"
+              - text: "#"
+          - paragraph [ref=f2e1392]: "Use a file path string when using JSON/YAML config, or when you want to keep hooks in separate files:"
+          - code [ref=f2e1396]:
+            - generic [ref=f2e1397]: "# electron-builder.yml"
+            - generic [ref=f2e1398]: "afterPack: ./scripts/afterPack.js"
+          - code [ref=f2e1402]:
+            - generic [ref=f2e1403]: // scripts/afterPack.js
+            - generic [ref=f2e1404]: "exports.default = async function(context) {"
+            - generic [ref=f2e1405]: console.log("afterPack:", context.appOutDir)
+            - generic [ref=f2e1406]: "}"
+          - paragraph [ref=f2e1407]:
+            - text: The function must be the
+            - strong [ref=f2e1408]: default export
+            - text: of the module.
+          - heading "3. Module IDDirect link to 3. Module ID" [level=3] [ref=f2e1409]:
+            - text: 3. Module ID
+            - link "Direct link to 3. Module ID" [ref=f2e1410] [cursor=pointer]:
+              - /url: "#3-module-id"
+              - text: "#"
+          - paragraph [ref=f2e1411]: "Reference a node module:"
+          - code [ref=f2e1415]:
+            - generic [ref=f2e1416]: "afterPack: my-electron-builder-plugin"
+          - heading "Hook ReferenceDirect link to Hook Reference" [level=2] [ref=f2e1417]:
+            - text: Hook Reference
+            - link "Direct link to Hook Reference" [ref=f2e1418] [cursor=pointer]:
+              - /url: "#hook-reference"
+              - text: "#"
+          - heading "beforeBuildDirect link to beforebuild" [level=3] [ref=f2e1419]:
+            - code [ref=f2e1420]: beforeBuild
+            - link "Direct link to beforebuild" [ref=f2e1421] [cursor=pointer]:
+              - /url: "#beforebuild"
+              - text: "#"
+          - paragraph [ref=f2e1422]:
+            - text: Runs before native dependencies are installed or rebuilt (before
+            - code [ref=f2e1423]: npm rebuild
+            - text: ). Resolving to
+            - code [ref=f2e1424]: "false"
+            - text: skips dependency installation entirely.
+          - code [ref=f2e1428]:
+            - generic [ref=f2e1429]: "beforeBuild: async (context) => {"
+            - generic [ref=f2e1430]: "// context: BeforeBuildContext"
+            - generic [ref=f2e1431]: "// { appDir, electronVersion, platform, arch }"
+            - generic [ref=f2e1432]: console.log("Building for:", context.platform.name, context.arch)
+            - generic [ref=f2e1433]: // return false to skip dependency install
+            - generic [ref=f2e1434]: "}"
+          - heading "beforePackDirect link to beforepack" [level=3] [ref=f2e1435]:
+            - code [ref=f2e1436]: beforePack
+            - link "Direct link to beforepack" [ref=f2e1437] [cursor=pointer]:
+              - /url: "#beforepack"
+              - text: "#"
+          - paragraph [ref=f2e1438]: Runs before files are copied into the app bundle.
+          - code [ref=f2e1442]:
+            - generic [ref=f2e1443]: "beforePack: async (context) => {"
+            - generic [ref=f2e1444]: "// context: BeforePackContext"
+            - generic [ref=f2e1445]: "// { outDir, appOutDir, packager, electronPlatformName, arch, targets }"
+            - generic [ref=f2e1446]: "}"
+          - heading "afterExtractDirect link to afterextract" [level=3] [ref=f2e1447]:
+            - code [ref=f2e1448]: afterExtract
+            - link "Direct link to afterextract" [ref=f2e1449] [cursor=pointer]:
+              - /url: "#afterextract"
+              - text: "#"
+          - paragraph [ref=f2e1450]: Runs after the Electron binary has been extracted into the output directory, before app files are placed. Useful for manipulating the Electron binary or its resources.
+          - code [ref=f2e1454]:
+            - generic [ref=f2e1455]: "afterExtract: async (context) => {"
+            - generic [ref=f2e1456]: "// context: AfterExtractContext (same shape as PackContext)"
+            - generic [ref=f2e1457]: "// { outDir, appOutDir, packager, electronPlatformName, arch, targets }"
+            - generic [ref=f2e1458]: "}"
+          - heading "afterPackDirect link to afterpack" [level=3] [ref=f2e1459]:
+            - code [ref=f2e1460]: afterPack
+            - link "Direct link to afterpack" [ref=f2e1461] [cursor=pointer]:
+              - /url: "#afterpack"
+              - text: "#"
+          - paragraph [ref=f2e1462]: "Runs after the app is fully packaged but before code signing. This is the ideal hook for:"
+          - list [ref=f2e1463]:
+            - listitem [ref=f2e1464]: Modifying the app bundle structure
+            - listitem [ref=f2e1465]: Adding files that should not be ASAR-archived
+            - listitem [ref=f2e1466]: Running post-processing on the packaged app
+          - code [ref=f2e1470]:
+            - generic [ref=f2e1471]: "afterPack: async (context) => {"
+            - generic [ref=f2e1472]: "// context: AfterPackContext"
+            - generic [ref=f2e1473]: "// { outDir, appOutDir, packager, electronPlatformName, arch, targets }"
+            - generic [ref=f2e1474]: const path = require("path")
+            - generic [ref=f2e1475]: const fs = require("fs")
+            - generic [ref=f2e1477]: "// Example: add a VERSION file to the app bundle"
+            - generic [ref=f2e1478]: const versionFile = path.join(context.appOutDir, "VERSION")
+            - generic [ref=f2e1479]: fs.writeFileSync(versionFile, context.packager.appInfo.version)
+            - generic [ref=f2e1480]: "}"
+          - heading "afterSignDirect link to aftersign" [level=3] [ref=f2e1481]:
+            - code [ref=f2e1482]: afterSign
+            - link "Direct link to aftersign" [ref=f2e1483] [cursor=pointer]:
+              - /url: "#aftersign"
+              - text: "#"
+          - paragraph [ref=f2e1484]: Runs after the app is signed but before the distributable (DMG, NSIS installer, etc.) is created. Commonly used for macOS notarization in custom workflows.
+          - code [ref=f2e1488]:
+            - generic [ref=f2e1489]: "afterSign: async (context) => {"
+            - generic [ref=f2e1490]: "// context: AfterPackContext"
+            - generic [ref=f2e1491]: "// { outDir, appOutDir, packager, electronPlatformName, arch, targets }"
+            - generic [ref=f2e1492]: "}"
+          - paragraph [ref=f2e1493]:
+            - text: :::tip[Notarization] electron-builder has built-in notarization support via
+            - code [ref=f2e1494]: "mac.notarize: true"
+            - text: . Only use
+            - code [ref=f2e1495]: afterSign
+            - text: for notarization if you need a custom notarization workflow. See
+            - link "Notarization" [ref=f2e1496] [cursor=pointer]:
+              - /url: /docs/features/code-signing/notarization
+            - text: ". :::"
+          - heading "artifactBuildStartedDirect link to artifactbuildstarted" [level=3] [ref=f2e1497]:
+            - code [ref=f2e1498]: artifactBuildStarted
+            - link "Direct link to artifactbuildstarted" [ref=f2e1499] [cursor=pointer]:
+              - /url: "#artifactbuildstarted"
+              - text: "#"
+          - paragraph [ref=f2e1500]: Runs when an individual artifact (e.g., a DMG, an NSIS installer) starts being built.
+          - code [ref=f2e1504]:
+            - generic [ref=f2e1505]: "artifactBuildStarted: async (context) => {"
+            - generic [ref=f2e1506]: "// context: ArtifactBuildStarted"
+            - generic [ref=f2e1507]: "// { targetPresentableName, file, safeArtifactName, packager, arch }"
+            - generic [ref=f2e1508]: console.log("Building artifact:", context.targetPresentableName)
+            - generic [ref=f2e1509]: "}"
+          - heading "artifactBuildCompletedDirect link to artifactbuildcompleted" [level=3] [ref=f2e1510]:
+            - code [ref=f2e1511]: artifactBuildCompleted
+            - link "Direct link to artifactbuildcompleted" [ref=f2e1512] [cursor=pointer]:
+              - /url: "#artifactbuildcompleted"
+              - text: "#"
+          - paragraph [ref=f2e1513]: Runs when an individual artifact finishes building.
+          - code [ref=f2e1517]:
+            - generic [ref=f2e1518]: "artifactBuildCompleted: async (context) => {"
+            - generic [ref=f2e1519]: "// context: ArtifactCreated"
+            - generic [ref=f2e1520]: "// { file, safeArtifactName, target, packager, publishConfig, isWriteUpdateInfo, updateInfo, sha2, sha512, artifactName, arch }"
+            - generic [ref=f2e1521]: console.log("Built:", context.file, "SHA512:", context.sha512)
+            - generic [ref=f2e1522]: "}"
+          - heading "afterAllArtifactBuildDirect link to afterallartifactbuild" [level=3] [ref=f2e1523]:
+            - code [ref=f2e1524]: afterAllArtifactBuild
+            - link "Direct link to afterallartifactbuild" [ref=f2e1525] [cursor=pointer]:
+              - /url: "#afterallartifactbuild"
+              - text: "#"
+          - paragraph [ref=f2e1526]: Runs after all artifacts have been built. Can return an array of additional file paths to publish.
+          - code [ref=f2e1530]:
+            - generic [ref=f2e1531]: "afterAllArtifactBuild: async (buildResult) => {"
+            - generic [ref=f2e1532]: "// buildResult: BuildResult"
+            - generic [ref=f2e1533]: "// { outDir, artifactPaths, platformToTargets, configuration }"
+            - generic [ref=f2e1535]: "// Example: upload debug symbols to Sentry"
+            - generic [ref=f2e1536]: "for (const artifactPath of buildResult.artifactPaths) {"
+            - generic [ref=f2e1537]: "if (artifactPath.endsWith('.dSYM') || artifactPath.endsWith('.pdb')) {"
+            - generic [ref=f2e1538]: await uploadSymbols(artifactPath)
+            - generic [ref=f2e1539]: "}"
+            - generic [ref=f2e1540]: "}"
+            - generic [ref=f2e1542]: // Return additional files to publish
+            - generic [ref=f2e1543]: return ["/path/to/additional-artifact.zip"]
+            - generic [ref=f2e1544]: "}"
+          - heading "electronDistDirect link to electrondist" [level=3] [ref=f2e1545]:
+            - code [ref=f2e1546]: electronDist
+            - link "Direct link to electrondist" [ref=f2e1547] [cursor=pointer]:
+              - /url: "#electrondist"
+              - text: "#"
+          - paragraph [ref=f2e1548]:
+            - text: Provide a custom Electron binary instead of the standard downloaded one. The hook receives
+            - code [ref=f2e1549]: PrepareApplicationStageDirectoryOptions
+            - text: and should return the path to a custom Electron build or a directory of Electron zip files.
+          - code [ref=f2e1553]:
+            - generic [ref=f2e1554]: "electronDist: async (context) => {"
+            - generic [ref=f2e1555]: // Return path to custom Electron directory
+            - generic [ref=f2e1556]: return "/path/to/custom/electron-dist"
+            - generic [ref=f2e1557]: "}"
+          - heading "msiProjectCreatedDirect link to msiprojectcreated" [level=3] [ref=f2e1558]:
+            - code [ref=f2e1559]: msiProjectCreated
+            - link "Direct link to msiprojectcreated" [ref=f2e1560] [cursor=pointer]:
+              - /url: "#msiprojectcreated"
+              - text: "#"
+          - paragraph [ref=f2e1561]: Runs after the WiX project has been created on disk but before it is compiled into an MSI. Receives the path to the WiX project directory.
+          - code [ref=f2e1565]:
+            - generic [ref=f2e1566]: "msiProjectCreated: async (wixProjectPath) => {"
+            - generic [ref=f2e1567]: // Modify WiX XML files at wixProjectPath
+            - generic [ref=f2e1568]: "}"
+          - heading "appxManifestCreatedDirect link to appxmanifestcreated" [level=3] [ref=f2e1569]:
+            - code [ref=f2e1570]: appxManifestCreated
+            - link "Direct link to appxmanifestcreated" [ref=f2e1571] [cursor=pointer]:
+              - /url: "#appxmanifestcreated"
+              - text: "#"
+          - paragraph [ref=f2e1572]: Runs after the AppX manifest has been created but before the package is assembled. Receives the path to the manifest file.
+          - code [ref=f2e1576]:
+            - generic [ref=f2e1577]: "appxManifestCreated: async (manifestPath) => {"
+            - generic [ref=f2e1578]: // Modify the AppX manifest XML
+            - generic [ref=f2e1579]: const fs = require("fs")
+            - generic [ref=f2e1580]: let manifest = fs.readFileSync(manifestPath, "utf8")
+            - generic [ref=f2e1581]: // ... modify manifest ...
+            - generic [ref=f2e1582]: fs.writeFileSync(manifestPath, manifest)
+            - generic [ref=f2e1583]: "}"
+          - heading "onNodeModuleFileDirect link to onnodemodulefile" [level=3] [ref=f2e1584]:
+            - code [ref=f2e1585]: onNodeModuleFile
+            - link "Direct link to onnodemodulefile" [ref=f2e1586] [cursor=pointer]:
+              - /url: "#onnodemodulefile"
+              - text: "#"
+          - paragraph [ref=f2e1587]:
+            - text: Called for each file in
+            - code [ref=f2e1588]: node_modules
+            - text: during packaging. Return
+            - code [ref=f2e1589]: "true"
+            - text: to force-include,
+            - code [ref=f2e1590]: "false"
+            - text: to force-exclude, or
+            - code [ref=f2e1591]: undefined
+            - text: /
+            - code [ref=f2e1592]: void
+            - text: to use default behavior.
+          - code [ref=f2e1596]:
+            - generic [ref=f2e1597]: "onNodeModuleFile: async (filePath) => {"
+            - generic [ref=f2e1598]: // Exclude test files from all node_modules
+            - generic [ref=f2e1599]: "if (filePath.includes(\"__tests__\") || filePath.endsWith(\".test.js\")) {"
+            - generic [ref=f2e1600]: return false
+            - generic [ref=f2e1601]: "}"
+            - generic [ref=f2e1602]: "}"
+          - heading "Common Hook PatternsDirect link to Common Hook Patterns" [level=2] [ref=f2e1603]:
+            - text: Common Hook Patterns
+            - link "Direct link to Common Hook Patterns" [ref=f2e1604] [cursor=pointer]:
+              - /url: "#common-hook-patterns"
+              - text: "#"
+          - heading "Modifying Info.plist After PackDirect link to Modifying Info.plist After Pack" [level=3] [ref=f2e1605]:
+            - text: Modifying Info.plist After Pack
+            - link "Direct link to Modifying Info.plist After Pack" [ref=f2e1606] [cursor=pointer]:
+              - /url: "#modifying-infoplist-after-pack"
+              - text: "#"
+          - code [ref=f2e1610]:
+            - generic [ref=f2e1611]: const path = require("path")
+            - generic [ref=f2e1612]: const plist = require("plist")
+            - generic [ref=f2e1613]: const fs = require("fs")
+            - generic [ref=f2e1615]: "afterPack: async (context) => {"
+            - generic [ref=f2e1616]: if (context.electronPlatformName !== "darwin") return
+            - generic [ref=f2e1618]: const plistPath = path.join(
+            - generic [ref=f2e1619]: context.appOutDir,
+            - generic [ref=f2e1620]: "`${context.packager.appInfo.productFilename}.app`,"
+            - generic [ref=f2e1621]: "\"Contents\","
+            - generic [ref=f2e1622]: "\"Info.plist\""
+            - generic [ref=f2e1623]: )
+            - generic [ref=f2e1624]: const plistData = plist.parse(fs.readFileSync(plistPath, "utf8"))
+            - generic [ref=f2e1625]: plistData.LSUIElement = true // Hide from dock
+            - generic [ref=f2e1626]: fs.writeFileSync(plistPath, plist.build(plistData))
+            - generic [ref=f2e1627]: "}"
+          - heading "Custom Code SigningDirect link to Custom Code Signing" [level=3] [ref=f2e1628]:
+            - text: Custom Code Signing
+            - link "Direct link to Custom Code Signing" [ref=f2e1629] [cursor=pointer]:
+              - /url: "#custom-code-signing"
+              - text: "#"
+          - code [ref=f2e1633]:
+            - generic [ref=f2e1634]: "mac:"
+            - generic [ref=f2e1635]: "sign: \"./scripts/sign.js\""
+          - code [ref=f2e1639]:
+            - generic [ref=f2e1640]: // scripts/sign.js
+            - generic [ref=f2e1641]: "exports.default = async function(configuration) {"
+            - generic [ref=f2e1642]: "// configuration: CustomMacSign"
+            - generic [ref=f2e1643]: "// { path, packager, entitlements, ... }"
+            - generic [ref=f2e1644]: "const { execSync } = require(\"child_process\")"
+            - generic [ref=f2e1645]: "execSync(`codesign --deep --sign \"${configuration.identity}\" \"${configuration.path}\"`)"
+            - generic [ref=f2e1646]: "}"
+          - heading "Uploading Symbols to SentryDirect link to Uploading Symbols to Sentry" [level=3] [ref=f2e1647]:
+            - text: Uploading Symbols to Sentry
+            - link "Direct link to Uploading Symbols to Sentry" [ref=f2e1648] [cursor=pointer]:
+              - /url: "#uploading-symbols-to-sentry"
+              - text: "#"
+          - code [ref=f2e1652]:
+            - generic [ref=f2e1653]: "afterAllArtifactBuild: async (buildResult) => {"
+            - generic [ref=f2e1654]: "const { execSync } = require(\"child_process\")"
+            - generic [ref=f2e1655]: const dsymPaths = buildResult.artifactPaths.filter(p => p.endsWith(".dSYM"))
+            - generic [ref=f2e1656]: "for (const dsym of dsymPaths) {"
+            - generic [ref=f2e1657]: "execSync(`sentry-cli upload-dif ${dsym}`)"
+            - generic [ref=f2e1658]: "}"
+            - generic [ref=f2e1659]: "}"
+          - heading "Generating a Changelog FileDirect link to Generating a Changelog File" [level=3] [ref=f2e1660]:
+            - text: Generating a Changelog File
+            - link "Direct link to Generating a Changelog File" [ref=f2e1661] [cursor=pointer]:
+              - /url: "#generating-a-changelog-file"
+              - text: "#"
+          - code [ref=f2e1665]:
+            - generic [ref=f2e1666]: "afterAllArtifactBuild: async (buildResult) => {"
+            - generic [ref=f2e1667]: const fs = require("fs")
+            - generic [ref=f2e1668]: "const changelogPath = `${buildResult.outDir}/CHANGELOG.txt`"
+            - generic [ref=f2e1669]: fs.writeFileSync(changelogPath, generateChangelog())
+            - generic [ref=f2e1670]: return [changelogPath] // include in publish
+            - generic [ref=f2e1671]: "}"
+          - heading "Async and Error HandlingDirect link to Async and Error Handling" [level=2] [ref=f2e1672]:
+            - text: Async and Error Handling
+            - link "Direct link to Async and Error Handling" [ref=f2e1673] [cursor=pointer]:
+              - /url: "#async-and-error-handling"
+              - text: "#"
+          - paragraph [ref=f2e1674]: "All hooks support async functions. If a hook throws an error, the build fails:"
+          - code [ref=f2e1678]:
+            - generic [ref=f2e1679]: "afterPack: async (context) => {"
+            - generic [ref=f2e1680]: "try {"
+            - generic [ref=f2e1681]: await doSomething()
+            - generic [ref=f2e1682]: "} catch (err) {"
+            - generic [ref=f2e1683]: console.error("afterPack failed:", err)
+            - generic [ref=f2e1684]: throw err // rethrow to fail the build
+            - generic [ref=f2e1685]: "}"
+            - generic [ref=f2e1686]: "}"
+          - heading "Debugging HooksDirect link to Debugging Hooks" [level=2] [ref=f2e1687]:
+            - text: Debugging Hooks
+            - link "Direct link to Debugging Hooks" [ref=f2e1688] [cursor=pointer]:
+              - /url: "#debugging-hooks"
+              - text: "#"
+          - paragraph [ref=f2e1689]:
+            - text: Add
+            - code [ref=f2e1690]: console.log
+            - text: or
+            - code [ref=f2e1691]: console.error
+            - text: inside your hooks — output appears in the electron-builder terminal output.
+          - paragraph [ref=f2e1692]: "Enable verbose electron-builder logging to see the full build lifecycle:"
+          - code [ref=f2e1696]:
+            - generic [ref=f2e1697]: DEBUG=electron-builder electron-builder build
+          - heading "Interface ReferenceDirect link to Interface Reference" [level=2] [ref=f2e1698]:
+            - text: Interface Reference
+            - link "Direct link to Interface Reference" [ref=f2e1699] [cursor=pointer]:
+              - /url: "#interface-reference"
+              - text: "#"
+          - paragraph [ref=f2e1700]: "{!./app-builder-lib.Interface.Hooks.md!}"
+        - link "Edit this page" [ref=f2e1704] [cursor=pointer]:
+          - /url: https://github.com/electron-userland/electron-builder/edit/master/website/docs/configuration.md
+          - img [ref=f2e1705]
+          - text: Edit this page
+      - navigation "Docs pages" [ref=f2e1708]:
+        - link "Next App Contents »" [ref=f2e1709] [cursor=pointer]:
+          - /url: /docs/contents
+          - generic [ref=f2e1710]: Next
+          - generic [ref=f2e1711]: App Contents »
+  - contentinfo [ref=f2e1712]:
+    - generic [ref=f2e1713]:
+      - generic [ref=f2e1714]:
+        - generic [ref=f2e1715]:
+          - generic [ref=f2e1716]: Docs
+          - list [ref=f2e1717]:
+            - listitem [ref=f2e1718]:
+              - link "Overview" [ref=f2e1719] [cursor=pointer]:
+                - /url: /docs
+            - listitem [ref=f2e1720]:
+              - link "CLI" [ref=f2e1721] [cursor=pointer]:
+                - /url: /docs/cli
+            - listitem [ref=f2e1722]:
+              - link "Configuration" [ref=f2e1723] [cursor=pointer]:
+                - /url: /docs/configuration
+        - generic [ref=f2e1724]:
+          - generic [ref=f2e1725]: Community
+          - list [ref=f2e1726]:
+            - listitem [ref=f2e1727]:
+              - link "GitHub Issues(opens in new tab)" [ref=f2e1728] [cursor=pointer]:
+                - /url: https://github.com/electron-userland/electron-builder/issues
+                - text: GitHub Issues
+                - img "(opens in new tab)" [ref=f2e1729]
+            - listitem [ref=f2e1731]:
+              - link "npm(opens in new tab)" [ref=f2e1732] [cursor=pointer]:
+                - /url: https://www.npmjs.com/package/electron-builder
+                - text: npm
+                - img "(opens in new tab)" [ref=f2e1733]
+        - generic [ref=f2e1735]:
+          - generic [ref=f2e1736]: Donate
+          - list [ref=f2e1737]:
+            - listitem [ref=f2e1738]:
+              - link "Donate(opens in new tab)" [ref=f2e1739] [cursor=pointer]:
+                - /url: https://www.electron.build/docs/donate
+                - text: Donate
+                - img "(opens in new tab)" [ref=f2e1740]
+      - generic [ref=f2e1743]: Copyright © 2026 electron-builder contributors. Built with Docusaurus.

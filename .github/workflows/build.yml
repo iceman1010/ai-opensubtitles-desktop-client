@@ -52,9 +52,11 @@ jobs:
 
     - name: Build application
       run: npm run build
+      shell: bash
 
     - name: Build packages
       run: ${{ matrix.dist_script }}
+      shell: bash
       env:
         CSC_IDENTITY_AUTO_DISCOVERY: false
 

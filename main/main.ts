@@ -307,7 +307,11 @@ class MainApp {
 
       const appConfig = this.configManager.getConfig();
       this.ffmpegManager.setDebugLevel(appConfig.debugLevel ?? 0);
-      const ffmpegOk = await this.ffmpegManager.initialize(appConfig.ffmpegPath);
+      // Startup uses Layers 1-4a only. The interactive Layer 4b download is
+      // wired to a separate IPC (ffmpeg-trigger-download) so it only runs
+      // when the user explicitly requests it from Preferences or the
+      // "FFmpeg missing" dialog.
+      const ffmpegOk = await this.ffmpegManager.initialize({ customPath: appConfig.ffmpegPath });
       logger.stage(ffmpegOk ? 'ffmpeg-ready' : 'ffmpeg-failed');
       if (!ffmpegOk) {
         logger.warn('STARTUP', 'FFmpeg initialization failed — media processing will be unavailable until FFmpeg is installed or the app is updated.');
@@ -1212,7 +1216,7 @@ class MainApp {
       if (config.ffmpegPath !== undefined) {
         this.ffmpegManager = new (require('./ffmpeg').FFmpegManager)();
         this.ffmpegManager.setDebugLevel(config.debugLevel ?? 0);
-        await this.ffmpegManager.initialize(config.ffmpegPath);
+        await this.ffmpegManager.initialize({ customPath: config.ffmpegPath });
       }
       return result;
     });
@@ -1560,6 +1564,40 @@ class MainApp {
 
     ipcMain.handle('open-ffmpeg-dialog', async () => {
       return this.openFfmpegDialog();
+    });
+
+    // Reports the current FFmpeg resolution state to the renderer so the
+    // Preferences UI can show "Using bundled X" / "Using system Y" / "Missing".
+    ipcMain.handle('get-ffmpeg-info', () => {
+      return {
+        ready: this.ffmpegManager.isReady(),
+        path: this.ffmpegManager.getFFmpegPath(),
+        source: this.ffmpegManager.getResolutionSource(),
+        platform: process.platform,
+      };
+    });
+
+    // Layer 4b: user-triggered download. Streams progress events back to the
+    // renderer via 'ffmpeg-download-progress'. Resolves to a result object so
+    // the dialog knows whether to show success or error.
+    ipcMain.handle('ffmpeg-trigger-download', async () => {
+      try {
+        // Pass an always-true confirm callback: the user already clicked
+        // "Download" in the UI, so no second confirmation is needed.
+        const ok = await this.ffmpegManager.initialize({
+          confirmDownload: async () => true,
+          onDownloadProgress: (percent) => {
+            if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+              this.mainWindow.webContents.send('ffmpeg-download-progress', percent);
+            }
+          },
+        });
+        return { success: ok, path: this.ffmpegManager.getFFmpegPath(), source: this.ffmpegManager.getResolutionSource() };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        this.debug(1, 'FFmpeg', `User-triggered download failed: ${message}`);
+        return { success: false, error: message };
+      }
     });
 
     // Terminal logging for dev mode

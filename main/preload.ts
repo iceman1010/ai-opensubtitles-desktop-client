@@ -18,6 +18,12 @@ const electronAPI = {
   readAudioFile: (filePath: string) => ipcRenderer.invoke('read-audio-file', filePath),
   saveFile: (content: string, defaultFileName: string) => ipcRenderer.invoke('save-file', content, defaultFileName),
   ffmpegReady: () => ipcRenderer.invoke('ffmpeg-ready'),
+  getFfmpegInfo: () => ipcRenderer.invoke('get-ffmpeg-info'),
+  triggerFfmpegDownload: () => ipcRenderer.invoke('ffmpeg-trigger-download'),
+  onFfmpegDownloadProgress: (callback: (event: any, percent: number) => void) =>
+    ipcRenderer.on('ffmpeg-download-progress', callback),
+  removeFfmpegDownloadProgressListener: (callback: (event: any, percent: number) => void) =>
+    ipcRenderer.removeListener('ffmpeg-download-progress', callback),
   extractAudio: (inputPath: string, outputPath?: string, onProgress?: (progress: number) => void, durationSeconds?: number) => 
     ipcRenderer.invoke('extract-audio', inputPath, outputPath, onProgress, durationSeconds),
   convertAudio: (inputPath: string, outputPath?: string, onProgress?: (progress: number) => void) => 

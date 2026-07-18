@@ -1,0 +1,109 @@
+- generic [ref=f3e2]:
+  - generic [ref=f3e3]:
+    - link "Skip to content" [ref=f3e4] [cursor=pointer]:
+      - /url: "#start-of-content"
+    - banner [ref=f3e6]:
+      - heading "Navigation Menu" [level=2] [ref=f3e7]
+      - generic [ref=f3e9]:
+        - button "Toggle navigation" [ref=f3e11] [cursor=pointer]
+        - link "Homepage" [ref=f3e17] [cursor=pointer]:
+          - /url: /
+          - img [ref=f3e18]
+        - generic [ref=f3e20]:
+          - link "Sign in" [ref=f3e21] [cursor=pointer]:
+            - /url: /login?return_to=https%3A%2F%2Fgithub.com%2Fsearch%3Fq%3D%2522process.resourcesPath%2522%2B%2522ffmpeg%2522%2Belectron%2BNOT%2Bnode_modules%26type%3Dcode
+          - button "Appearance settings" [ref=f3e24] [cursor=pointer]:
+            - img
+  - main [ref=f3e27]:
+    - generic [ref=f3e30]:
+      - heading "code Search Results · \"process.resourcesPath\" \"ffmpeg\" electron NOT node_modules" [level=1] [ref=f3e31]
+      - generic [ref=f3e34]:
+        - generic [ref=f3e35]:
+          - generic [ref=f3e36]:
+            - heading "Filter by" [level=2] [ref=f3e37]
+            - list "Filter by" [ref=f3e42]:
+              - listitem [ref=f3e43]:
+                - list [ref=f3e44]:
+                  - listitem [ref=f3e45]:
+                    - link "Code (...) results" [ref=f3e46] [cursor=pointer]:
+                      - /url: https://github.com/search?q=%22process.resourcesPath%22+%22ffmpeg%22+electron+NOT+node_modules&type=code
+                      - generic:
+                        - img
+                      - generic [ref=f3e47]:
+                        - generic [ref=f3e48]: Code
+                        - generic:
+                          - generic: ...
+                          - generic: (...)
+                          - generic: results
+                  - listitem [ref=f3e49]:
+                    - link "Repositories results" [ref=f3e50] [cursor=pointer]:
+                      - /url: https://github.com/search?q=%22process.resourcesPath%22+%22ffmpeg%22+electron+NOT+node_modules&type=repositories
+                      - generic:
+                        - img
+                      - generic [ref=f3e51]:
+                        - generic [ref=f3e52]: Repositories
+                        - generic:
+                          - generic: results
+                  - listitem [ref=f3e53]:
+                    - link "Issues results" [ref=f3e54] [cursor=pointer]:
+                      - /url: https://github.com/search?q=%22process.resourcesPath%22+%22ffmpeg%22+electron+NOT+node_modules&type=issues
+                      - generic:
+                        - img
+                      - generic [ref=f3e55]:
+                        - generic [ref=f3e56]: Issues
+                        - generic:
+                          - generic: results
+                  - listitem [ref=f3e57]:
+                    - link "Pull requests results" [ref=f3e58] [cursor=pointer]:
+                      - /url: https://github.com/search?q=%22process.resourcesPath%22+%22ffmpeg%22+electron+NOT+node_modules&type=pullrequests
+                      - generic:
+                        - img
+                      - generic [ref=f3e59]:
+                        - generic [ref=f3e60]: Pull requests
+                        - generic:
+                          - generic: results
+                  - listitem [ref=f3e61]:
+                    - link "Discussions results" [ref=f3e62] [cursor=pointer]:
+                      - /url: https://github.com/search?q=%22process.resourcesPath%22+%22ffmpeg%22+electron+NOT+node_modules&type=discussions
+                      - generic:
+                        - img
+                      - generic [ref=f3e63]:
+                        - generic [ref=f3e64]: Discussions
+                        - generic:
+                          - generic: results
+                  - listitem [ref=f3e65]:
+                    - link "Users results" [ref=f3e66] [cursor=pointer]:
+                      - /url: https://github.com/search?q=%22process.resourcesPath%22+%22ffmpeg%22+electron+NOT+node_modules&type=users
+                      - generic:
+                        - img
+                      - generic [ref=f3e67]:
+                        - generic [ref=f3e68]: Users
+                        - generic:
+                          - generic: results
+                  - listitem [ref=f3e69]:
+                    - button "More" [ref=f3e70] [cursor=pointer]:
+                      - generic:
+                        - img
+                      - generic [ref=f3e72]: More
+              - listitem [ref=f3e73]
+              - listitem [ref=f3e74]:
+                - link "Advanced search" [ref=f3e75] [cursor=pointer]:
+                  - /url: /search/advanced
+                  - generic:
+                    - img
+                  - generic [ref=f3e77]: Advanced search
+          - slider "Draggable pane splitter" [ref=f3e79]
+        - generic [ref=f3e83]:
+          - button "Open column options" [ref=f3e88] [cursor=pointer]:
+            - img [ref=f3e89]
+          - generic [ref=f3e93]:
+            - img "Mona looking through a globe hologram for code" [ref=f3e95]
+            - generic [ref=f3e96]: Sign in to search code on GitHub
+            - generic [ref=f3e97]: Before you can access our code search functionality please sign in or create a free account.
+            - generic [ref=f3e98]:
+              - link "Sign in" [ref=f3e99] [cursor=pointer]:
+                - /url: /login?return_to=https%3A%2F%2Fgithub.com%2Fsearch%3Fq%3D%2522process.resourcesPath%2522%2B%2522ffmpeg%2522%2Belectron%2BNOT%2Bnode_modules%26type%3Dcode
+                - generic [ref=f3e101]: Sign in
+              - link "Sign up" [ref=f3e102] [cursor=pointer]:
+                - /url: /signup?source=code_search_results
+                - generic [ref=f3e104]: Sign up
