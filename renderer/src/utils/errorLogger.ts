@@ -31,13 +31,50 @@ class ErrorLogger {
     return true;
   }
 
+  /** Make any value log-safe. Plain objects are passed through JSON round-trip;
+   * Error objects (whose message/stack are non-enumerable and would otherwise
+   * stringify to {}) are converted to { name, message, stack } plus any
+   * enumerable custom props (e.g. code, detail). */
+  private serializeData(data: any): any {
+    if (data instanceof Error) {
+      const serialized: Record<string, any> = {
+        name: data.name,
+        message: data.message,
+        stack: data.stack
+      };
+      Object.keys(data).forEach(key => {
+        try {
+          serialized[key] = this.serializeData((data as any)[key]);
+        } catch {
+          serialized[key] = String((data as any)[key]);
+        }
+      });
+      return serialized;
+    }
+    if (Array.isArray(data)) {
+      return data.map(item => this.serializeData(item));
+    }
+    if (data && typeof data === 'object') {
+      const result: Record<string, any> = {};
+      Object.keys(data).forEach(key => {
+        try {
+          result[key] = this.serializeData(data[key]);
+        } catch {
+          result[key] = String(data[key]);
+        }
+      });
+      return result;
+    }
+    return data;
+  }
+
   log(level: 'info' | 'warn' | 'error', category: string, message: string, data?: any) {
     const entry: ErrorLogEntry = {
       timestamp: new Date().toISOString(),
       level,
       category,
       message,
-      data: data ? JSON.parse(JSON.stringify(data)) : undefined
+      data: data !== undefined ? this.serializeData(data) : undefined
     };
 
     this.logs.push(entry);

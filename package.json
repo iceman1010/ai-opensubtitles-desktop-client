@@ -1,6 +1,6 @@
 {
   "name": "ai-opensubtitles-client",
-  "version": "1.14.13",
+  "version": "1.14.14",
   "description": "Cross-platform desktop client for AI.Opensubtitles.com",
   "main": "dist/main/main.js",
   "homepage": "./",
@@ -75,6 +75,7 @@
           "to": ".",
           "filter": [
             "ffmpeg",
+            "ffprobe",
             "*.dylib"
           ]
         }

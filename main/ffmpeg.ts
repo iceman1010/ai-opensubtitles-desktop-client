@@ -34,6 +34,59 @@ export interface FFmpegResolution {
   source: 'custom' | 'bundled' | 'system' | 'download';
 }
 
+/** Machine-readable failure codes for media probing. FATAL_* codes indicate an
+ * environment problem (missing/quarantined binary, broken setup) that affects
+ * every file — the renderer surfaces full diagnostics for those regardless of
+ * the user's debug settings. File-scoped codes (INVALID_DATA etc.) mean the
+ * environment is fine but this particular file can't be read. */
+export type MediaProbeErrorCode =
+  | 'FFMPEG_NOT_READY'
+  | 'FFPROBE_NOT_FOUND'
+  | 'PERMISSION_DENIED'
+  | 'FILE_NOT_FOUND'
+  | 'INVALID_DATA'
+  | 'KILLED_BY_SIGNAL'
+  | 'SPAWN_ERROR'
+  | 'PROBE_FAILED';
+
+const FATAL_PROBE_CODES: MediaProbeErrorCode[] = [
+  'FFMPEG_NOT_READY',
+  'FFPROBE_NOT_FOUND',
+  'KILLED_BY_SIGNAL',
+  'SPAWN_ERROR'
+];
+
+export function isFatalProbeCode(code: string | undefined | null): boolean {
+  return !!code && (FATAL_PROBE_CODES as string[]).includes(code);
+}
+
+/** Error thrown by getMediaInfo. Carries a stable `code`, a user-friendly
+ * `message`, and the raw probe output in `detail` so support tickets are
+ * self-contained. Survives IPC serialization because all fields are
+ * enumerable own properties. */
+export class MediaProbeError extends Error {
+  code: MediaProbeErrorCode;
+  /** Raw ffprobe stderr / spawn error text for diagnostics. */
+  detail?: string;
+  /** ffprobe exit code, when it ran and terminated itself. */
+  exitCode?: number;
+  /** Signal that killed ffprobe (e.g. SIGKILL from Gatekeeper), if any. */
+  signal?: string;
+
+  constructor(
+    code: MediaProbeErrorCode,
+    message: string,
+    options: { detail?: string; exitCode?: number; signal?: string } = {}
+  ) {
+    super(message);
+    this.name = 'MediaProbeError';
+    this.code = code;
+    this.detail = options.detail;
+    this.exitCode = options.exitCode;
+    this.signal = options.signal;
+  }
+}
+
 export interface FFmpegInitOptions {
   /** Optional custom path supplied from Preferences. Can be a directory
    * containing ffmpeg.exe, or a full path to the binary itself. */
@@ -48,6 +101,7 @@ export interface FFmpegInitOptions {
 
 export class FFmpegManager {
   private ffmpegPath: string | null = null;
+  private ffprobePath: string | null = null;
   private resolutionSource: FFmpegResolution['source'] | null = null;
   private isInitialized = false;
   private debugLevel: number = 0;
@@ -437,6 +491,25 @@ export class FFmpegManager {
     this.ffmpegPath = p;
     this.resolutionSource = source;
     ffmpeg.setFfmpegPath(p);
+
+    // fluent-ffmpeg resolves ffprobe independently (FFPROBE_PATH env → PATH →
+    // sibling of ffmpeg). GUI apps on macOS get the launchd PATH which lacks
+    // Homebrew dirs, so sibling detection is the only reliable layer. Point it
+    // at an ffprobe sitting next to the resolved ffmpeg whenever one exists.
+    const siblingName = process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe';
+    const siblingProbe = path.join(path.dirname(p), siblingName);
+    try {
+      if (fs.existsSync(siblingProbe)) {
+        ffmpeg.setFfprobePath(siblingProbe);
+        this.ffprobePath = siblingProbe;
+        this.debug(2, 'FFmpeg', `✅ ffprobe paired from sibling: ${siblingProbe}`);
+      } else {
+        this.debug(1, 'FFmpeg', `No sibling ffprobe at ${siblingProbe}; relying on PATH/FFPROBE_PATH`);
+      }
+    } catch (err) {
+      this.debug(1, 'FFmpeg', 'Sibling ffprobe check failed:', err);
+    }
+
     this.isInitialized = true;
     this.debug(1, 'FFmpeg', `✅ FFmpeg ready via ${source}: ${p}`);
   }
@@ -461,6 +534,12 @@ export class FFmpegManager {
 
   getFFmpegPath(): string | null {
     return this.ffmpegPath;
+  }
+
+  /** The ffprobe path we explicitly paired (sibling of ffmpeg), or null when
+   * fluent-ffmpeg is resolving ffprobe on its own (FFPROBE_PATH/PATH). */
+  getFfprobePath(): string | null {
+    return this.ffprobePath;
   }
 
   getResolutionSource(): FFmpegResolution['source'] | null {
@@ -549,33 +628,27 @@ export class FFmpegManager {
     format?: string;
   }> {
     if (!this.isReady()) {
-      throw new Error('FFmpeg is not ready. Call initialize() first.');
+      throw new MediaProbeError(
+        'FFMPEG_NOT_READY',
+        'FFmpeg is not initialized. Install FFmpeg or set a custom path in Preferences.',
+        { detail: `Resolved ffmpeg path: ${this.ffmpegPath ?? 'none'}` }
+      );
     }
     this.ensureLibPathForSpawn();
 
     return new Promise((resolve, reject) => {
       ffmpeg.ffprobe(filePath, (error: any, metadata: any) => {
         if (error) {
-          let errorMessage = 'File is not a valid media file';
-
-          if (error.message.includes('No such file')) {
-            errorMessage = 'File not found or cannot be accessed';
-          } else if (error.message.includes('Invalid data found when processing input')) {
-            errorMessage = 'File is not a valid media file (appears to be a different file type)';
-          } else if (error.message.includes('Invalid data') || error.message.includes('not supported')) {
-            errorMessage = 'Unsupported file format or corrupted file';
-          } else if (error.message.includes('Permission denied')) {
-            errorMessage = 'Permission denied accessing the file';
-          } else if (error.message.includes('ffprobe exited with code')) {
-            errorMessage = 'File is not a valid media file';
-          }
-
-          reject(new Error(errorMessage));
+          reject(this.classifyProbeError(error));
           return;
         }
 
         if (!metadata || !metadata.streams || metadata.streams.length === 0) {
-          reject(new Error('File contains no readable media streams'));
+          reject(new MediaProbeError(
+            'INVALID_DATA',
+            'File contains no readable media streams',
+            { detail: JSON.stringify(metadata?.format ?? null) }
+          ));
           return;
         }
 
@@ -583,7 +656,11 @@ export class FFmpegManager {
         const hasVideo = metadata.streams.some((stream: any) => stream.codec_type === 'video');
 
         if (!hasAudio && !hasVideo) {
-          reject(new Error('File does not contain audio or video content'));
+          reject(new MediaProbeError(
+            'INVALID_DATA',
+            'File does not contain audio or video content',
+            { detail: `streams found: ${metadata.streams.map((s: any) => s.codec_type).join(', ')}` }
+          ));
           return;
         }
 
@@ -595,6 +672,83 @@ export class FFmpegManager {
         });
       });
     });
+  }
+
+  /** Map a fluent-ffmpeg ffprobe failure to a MediaProbeError with a stable
+   * code, friendly message, and raw detail. fluent-ffmpeg appends captured
+   * ffprobe stderr to error.message after a newline, and reports spawn
+   * failures / "Cannot find ffprobe" / "killed with signal X" verbatim. */
+  private classifyProbeError(error: any): MediaProbeError {
+    const rawMessage: string = typeof error?.message === 'string' ? error.message : String(error);
+    const firstLine = rawMessage.split('\n')[0];
+    const detail = rawMessage.split('\n').slice(1).join('\n').trim();
+
+    const exitCodeMatch = firstLine.match(/ffprobe exited with code (\d+)/);
+    const signalMatch = firstLine.match(/killed with signal (\S+)/);
+
+    if (rawMessage.includes('Cannot find ffprobe')) {
+      return new MediaProbeError(
+        'FFPROBE_NOT_FOUND',
+        'FFprobe was not found. The ffprobe utility ships next to FFmpeg — reinstall FFmpeg (e.g. brew install ffmpeg) or point Preferences to a folder containing both ffmpeg and ffprobe.',
+        { detail: `ffmpeg in use: ${this.ffmpegPath ?? 'unknown'} (via ${this.resolutionSource ?? 'unknown'})` }
+      );
+    }
+
+    if (signalMatch) {
+      // SIGKILL on macOS typically means Gatekeeper killed an unsigned or
+      // corruptly-signed binary.
+      return new MediaProbeError(
+        'KILLED_BY_SIGNAL',
+        `FFprobe was killed by ${signalMatch[1]}. On macOS this usually means the binary was blocked by system security (Gatekeeper). Reinstall the app or run: xattr -dr com.apple.quarantine <ffprobe path>`,
+        { detail: detail || undefined, signal: signalMatch[1] }
+      );
+    }
+
+    if (error?.code === 'ENOENT' || rawMessage.includes('spawn') && rawMessage.includes('ENOENT')) {
+      return new MediaProbeError(
+        'SPAWN_ERROR',
+        'FFprobe could not be started (file not found).',
+        { detail: rawMessage }
+      );
+    }
+
+    if (error?.code === 'EACCES' || rawMessage.includes('Permission denied')) {
+      return new MediaProbeError(
+        'PERMISSION_DENIED',
+        'Permission denied accessing the file or the FFprobe binary.',
+        { detail: rawMessage }
+      );
+    }
+
+    if (rawMessage.includes('No such file')) {
+      return new MediaProbeError(
+        'FILE_NOT_FOUND',
+        'File not found or cannot be accessed',
+        { detail: rawMessage }
+      );
+    }
+
+    if (rawMessage.includes('Invalid data found when processing input')) {
+      return new MediaProbeError(
+        'INVALID_DATA',
+        'File is not a valid media file (appears to be a different file type)',
+        { detail: rawMessage }
+      );
+    }
+
+    if (exitCodeMatch) {
+      return new MediaProbeError(
+        'PROBE_FAILED',
+        'FFprobe could not read this file',
+        { detail: detail || rawMessage, exitCode: parseInt(exitCodeMatch[1], 10) }
+      );
+    }
+
+    return new MediaProbeError(
+      'PROBE_FAILED',
+      'FFprobe failed unexpectedly',
+      { detail: rawMessage }
+    );
   }
 
   private generateOutputPath(inputPath: string, extension: string): string {

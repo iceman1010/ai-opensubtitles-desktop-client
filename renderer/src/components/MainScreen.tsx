@@ -3,6 +3,7 @@ import FileSelector from './FileSelector';
 import { getProcessingType } from '../config/fileFormats';
 import { LanguageInfo, TranslationInfo, DetectedLanguage, ServicesInfo, ServiceModel } from '../services/api';
 import { logger } from '../utils/errorLogger';
+import { parseProbeError } from '../utils/probeError';
 import { parseSubtitleFile, formatDuration, formatCharacterCount, ParsedSubtitle } from '../utils/subtitleParser';
 import ImprovedTranscriptionOptions from './ImprovedTranscriptionOptions';
 import ImprovedTranslationOptions from './ImprovedTranslationOptions';
@@ -104,7 +105,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileType, setFileType] = useState<'transcription' | 'translation' | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
+  const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error' | 'info'; message: string; copyText?: string } | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [previewContent, setPreviewContent] = useState<string>('');
 
@@ -919,18 +920,29 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
             format: mediaInfo.format
           });
         } catch (mediaError: any) {
-          // File extension suggests it's media, but FFmpeg can't read it
+          // File extension suggests it's media, but the probe failed. Fatal
+          // codes (missing/blocked ffprobe, etc.) are environmental — show the
+          // full diagnostics regardless of debug settings so the user can
+          // report them. File-specific failures show a short message unless
+          // debug mode is on.
+          const probe = parseProbeError(mediaError);
           logger.error('MainScreen', `Invalid media file (path: ${filePath}):`, mediaError);
-          
-          // Show detailed error only in debug mode, simple message otherwise
-          let errorMessage = 'File is not a valid audio or video file';
-          if (config.debugMode) {
-            errorMessage = mediaError.message || errorMessage;
+
+          let errorMessage: string;
+          let copyText: string | undefined;
+          if (probe.fatal) {
+            errorMessage = `${probe.fullMessage}\n\nPlease copy these details and report them.`;
+            copyText = probe.fullMessage;
+          } else if (config.debugMode) {
+            errorMessage = probe.fullMessage;
+          } else {
+            errorMessage = mediaError.probeMessage || 'File is not a valid audio or video file';
           }
-          
+
           setStatusMessage({
             type: 'error',
-            message: `Invalid media file: ${errorMessage}`
+            message: `Invalid media file: ${errorMessage}`,
+            copyText
           });
           setFileType(null);
           return;
@@ -1899,7 +1911,21 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
 
       {statusMessage && (
         <div className={`status-message ${statusMessage.type}`}>
-          {statusMessage.message}
+          <div style={{ whiteSpace: 'pre-wrap' }}>{statusMessage.message}</div>
+          {statusMessage.copyText && (
+            <button
+              type="button"
+              className="button button-secondary"
+              style={{ marginTop: '8px', padding: '4px 12px', fontSize: '0.85em' }}
+              onClick={() => {
+                navigator.clipboard.writeText(statusMessage.copyText!)
+                  .then(() => logger.info('MainScreen', 'Diagnostics copied to clipboard'))
+                  .catch((err) => logger.error('MainScreen', 'Failed to copy diagnostics', err));
+              }}
+            >
+              <i className="fas fa-copy"></i> Copy error details
+            </button>
+          )}
         </div>
       )}
 

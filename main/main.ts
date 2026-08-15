@@ -3,7 +3,7 @@ import { autoUpdater } from 'electron-updater';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import { ConfigManager } from './config';
-import { FFmpegManager } from './ffmpeg';
+import { FFmpegManager, MediaProbeError } from './ffmpeg';
 import { initializePowerSaveBlocker, cleanupPowerSaveBlocker } from './powerSaveBlocker';
 import { logger } from './logger';
 import * as fileFormatsConfig from '../shared/fileFormats.json';
@@ -307,6 +307,11 @@ class MainApp {
 
       const appConfig = this.configManager.getConfig();
       this.ffmpegManager.setDebugLevel(appConfig.debugLevel ?? 0);
+      // GUI apps on macOS inherit the launchd PATH (/usr/bin:/bin:...) which
+      // excludes Homebrew — prepend the standard package-manager bin dirs so
+      // Layer 3 (which/PATH detection) can find system ffmpeg+ffprobe when
+      // nothing is bundled. Mirrors what sindresorhus/fix-path does.
+      this.extendPathForGuiLaunch();
       // Startup uses Layers 1-4a only. The interactive Layer 4b download is
       // wired to a separate IPC (ffmpeg-trigger-download) so it only runs
       // when the user explicitly requests it from Preferences or the
@@ -1193,6 +1198,46 @@ class MainApp {
     debug('Power monitoring initialized');
   }
 
+  /** GUI apps launched from Finder/Dock inherit launchd's minimal PATH
+   * (/usr/bin:/bin:/usr/sbin:/sbin) which excludes Homebrew and local dirs.
+   * Prepend the standard package-manager bin dirs on macOS (and common local
+   * dirs on Linux) so FFmpeg Layer-3 detection and fluent-ffmpeg's internal
+   * ffprobe PATH lookup work in packaged builds. */
+  private extendPathForGuiLaunch(): void {
+    const extraDirs = process.platform === 'darwin'
+      ? ['/opt/homebrew/bin', '/usr/local/bin', '/opt/local/bin']
+      : process.platform === 'linux'
+        ? [path.join(process.env.HOME || '', '.local', 'bin'), path.join(process.env.HOME || '', 'bin')]
+        : [];
+    if (extraDirs.length === 0) return;
+    const current = (process.env.PATH || '').split(path.delimiter);
+    const missing = extraDirs.filter(dir => dir && !current.includes(dir));
+    if (missing.length === 0) return;
+    process.env.PATH = [...missing, ...current].join(path.delimiter);
+    this.debug(2, 'Main', `PATH extended for GUI launch: +${missing.join(',')}`);
+  }
+
+  /** Build a self-contained diagnostic block for media-probe failures so a
+   * user-reported error message contains everything needed for triage. */
+  private buildProbeDiagnostics(filePath: string): string {
+    const lines: string[] = [];
+    lines.push(`App version: ${app.getVersion()} (${app.isPackaged ? 'packaged' : 'dev'})`);
+    lines.push(`Platform: ${process.platform} ${process.arch}`);
+    lines.push(`FFmpeg: ${this.ffmpegManager.getFFmpegPath() ?? 'not resolved'} (source: ${this.ffmpegManager.getResolutionSource() ?? 'none'})`);
+    lines.push(`FFprobe: ${this.ffmpegManager.getFfprobePath() ?? 'not explicitly paired (resolved via PATH/FFPROBE_PATH)'}`);
+    lines.push(`FFPROBE_PATH env: ${process.env.FFPROBE_PATH || 'unset'}`);
+    lines.push(`PATH: ${process.env.PATH || 'unset'}`);
+    try {
+      const fs = require('fs');
+      const stat = fs.statSync(filePath);
+      lines.push(`File exists: yes (${stat.size} bytes)`);
+    } catch (err: any) {
+      lines.push(`File exists: no (${err?.code || err?.message || 'stat failed'})`);
+    }
+    lines.push(`Path: ${filePath}`);
+    return lines.join('\n');
+  }
+
   private async setupIPC() {
     // Initialize PowerSaveBlocker with debug mode based on config
     const config = this.configManager.getConfig();
@@ -1214,6 +1259,7 @@ class MainApp {
       }
       // Reinitialize FFmpeg if the path changed
       if (config.ffmpegPath !== undefined) {
+        this.extendPathForGuiLaunch();
         this.ffmpegManager = new (require('./ffmpeg').FFmpegManager)();
         this.ffmpegManager.setDebugLevel(config.debugLevel ?? 0);
         await this.ffmpegManager.initialize({ customPath: config.ffmpegPath });
@@ -1411,13 +1457,35 @@ class MainApp {
 
     ipcMain.handle('get-media-info', async (_, filePath: string) => {
       try {
-        console.log('[get-media-info] Received path:', filePath);
         const result = await this.ffmpegManager.getMediaInfo(filePath);
-        console.log('[get-media-info] Success');
         return result;
       } catch (error) {
-        console.error('[get-media-info] Failed for:', filePath, error);
-        throw error;
+        // Reject with a self-contained message: Electron's IPC Error
+        // serialization does not reliably preserve custom properties, so the
+        // stable code travels as a [CODE] prefix and the diagnostics block is
+        // embedded in the message itself. The props are attached as a bonus
+        // for Electron versions that do pass them.
+        const probeError = error instanceof MediaProbeError
+          ? error
+          : new MediaProbeError('PROBE_FAILED', error instanceof Error ? error.message : String(error));
+        const diagnostics = this.buildProbeDiagnostics(filePath);
+        const sections = [
+          probeError.message,
+          '--- Diagnostics ---',
+          diagnostics,
+          probeError.detail ? `--- FFprobe output ---\n${probeError.detail}` : null
+        ].filter(Boolean);
+        const wrapped = new Error(`[${probeError.code}] ${sections.join('\n\n')}`);
+        (wrapped as any).code = probeError.code;
+        (wrapped as any).probeMessage = probeError.message;
+        (wrapped as any).diagnostics = diagnostics;
+        console.error('[get-media-info] Failed for:', filePath, probeError);
+        logger.error('FFPROBE', `Media probe failed (${probeError.code}) for: ${filePath}`, {
+          message: probeError.message,
+          detail: probeError.detail,
+          diagnostics
+        });
+        throw wrapped;
       }
     });
 

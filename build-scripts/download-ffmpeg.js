@@ -24,6 +24,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const https = require('https');
+const crypto = require('crypto');
 const { spawnSync } = require('child_process');
 const { createGunzip } = require('zlib');
 
@@ -61,17 +62,40 @@ const TARGETS = {
     binKeep: (entry) => BTB_BIN_KEEP.has(entry),
     libKeep: (entry) => /\.so(\.|$)/.test(entry),
   },
+  // macOS: static builds. ffmpeg AND ffprobe are both required — the app
+  // probes files with ffprobe via fluent-ffmpeg, which resolves ffprobe as a
+  // sibling of the resolved ffmpeg. evermeet.cx publishes both binaries as
+  // separate zips (stable getrelease API).
   'darwin-x64': {
-    // evermeet.cx ships static x64 builds; no shared libs to chase.
-    url: 'https://evermeet.cx/ffmpeg/getrelease/zip',
+    sources: [
+      { url: 'https://evermeet.cx/ffmpeg/getrelease/zip', binaryName: 'ffmpeg', archiveName: 'ffmpeg.zip' },
+      { url: 'https://evermeet.cx/ffmpeg/getrelease/ffprobe/zip', binaryName: 'ffprobe', archiveName: 'ffprobe.zip' },
+    ],
     binaryName: 'ffmpeg',
     extract: 'zip',
     innerRoot: '', // zip root
-    binKeep: (entry) => entry === 'ffmpeg',
   },
-  // darwin-arm64: not bundled. macOS arm64 users fall back to system/Homebrew
-  // FFmpeg detection (already robust) or to the Preferences custom path.
-  // Adding a bundled arm64 mac binary is a follow-up if/when needed.
+  // macOS Apple Silicon: evermeet.cx refuses to publish arm64 builds, so we
+  // use osxexperts.net static builds (ffmpeg 9.0 + ffprobe 9.0). SHA-256
+  // values are published on their download page and pinned here; the
+  // extracted binaries are verified after download.
+  'darwin-arm64': {
+    sources: [
+      {
+        url: 'https://www.osxexperts.net/ffmpeg9arm.zip',
+        binaryName: 'ffmpeg',
+        sha256: '591260c945d0eef150e3bf82b0ef988bd36a9cecc18ff05d6679617159f0a95e',
+      },
+      {
+        url: 'https://www.osxexperts.net/ffprobe9arm.zip',
+        binaryName: 'ffprobe',
+        sha256: 'e11c17e8200b3ee4c4c186d245e2b4053f01d56957336c1817fca0b997469106',
+      },
+    ],
+    binaryName: 'ffmpeg',
+    extract: 'zip',
+    innerRoot: '', // zip root
+  },
 };
 
 function hostTarget() {
@@ -217,6 +241,26 @@ function extractTarXz(tarPath, destDir, spec) {
   flattenBtbExtract(destDir, spec);
 }
 
+function sha256OfFile(filePath) {
+  return new Promise((resolve, reject) => {
+    const hash = crypto.createHash('sha256');
+    const stream = fs.createReadStream(filePath);
+    stream.on('data', (chunk) => hash.update(chunk));
+    stream.on('end', () => resolve(hash.digest('hex')));
+    stream.on('error', reject);
+  });
+}
+
+/** All binaries a target requires to be considered present. Multi-binary
+ * targets (macOS: ffmpeg + ffprobe) are only skipped when EVERY binary
+ * exists, so adding a new binary to an existing target re-fetches. */
+function requiredBinaries(spec) {
+  if (Array.isArray(spec.sources)) {
+    return spec.sources.map((s) => s.binaryName);
+  }
+  return [spec.binaryName];
+}
+
 async function fetchTarget(targetKey, force) {
   const spec = TARGETS[targetKey];
   if (!spec) {
@@ -224,30 +268,67 @@ async function fetchTarget(targetKey, force) {
     return false;
   }
   const libDir = path.join(FFMPEG_DIR, targetKey, 'lib');
-  const finalBin = path.join(libDir, spec.binaryName);
-  if (!force && fs.existsSync(finalBin)) {
-    log(`Already present, skipping: ${targetKey} (${path.relative(ROOT, finalBin)})`);
+  const required = requiredBinaries(spec);
+  const missing = required.filter((name) => !fs.existsSync(path.join(libDir, name)));
+  if (!force && missing.length === 0) {
+    log(`Already present, skipping: ${targetKey} (${required.join(', ')})`);
     return true;
   }
-  ensureDir(libDir);
-  const archiveName = path.basename(new URL(spec.url).pathname) || `${targetKey}.archive`;
-  const archivePath = path.join(FFMPEG_DIR, targetKey, archiveName);
-  log(`Downloading ${targetKey}: ${spec.url}`);
-  await fetchToFile(spec.url, archivePath);
-  const sizeMB = (fs.statSync(archivePath).size / 1024 / 1024).toFixed(1);
-  log(`  fetched ${sizeMB} MB`);
-  try {
-    if (spec.extract === 'zip') {
-      extractZip(archivePath, libDir, spec);
-    } else if (spec.extract === 'tar') {
-      extractTarXz(archivePath, libDir, spec);
-    } else {
-      throw new Error(`Unknown extract method for ${targetKey}: ${spec.extract}`);
-    }
-  } finally {
-    try { fs.unlinkSync(archivePath); } catch (_) { /* keep archive if extraction failed mid-way */ }
+  if (!force && missing.length > 0) {
+    log(`Partial install for ${targetKey} (missing: ${missing.join(', ')}); re-fetching.`);
   }
-  log(`  OK -> ${path.relative(ROOT, finalBin)}`);
+  ensureDir(libDir);
+
+  const sources = Array.isArray(spec.sources)
+    ? spec.sources
+    : [{ url: spec.url, binaryName: spec.binaryName }];
+
+  for (const source of sources) {
+    const archiveName = source.archiveName || path.basename(new URL(source.url).pathname) || `${targetKey}.archive`;
+    const archivePath = path.join(FFMPEG_DIR, targetKey, archiveName);
+    log(`Downloading ${targetKey}/${source.binaryName}: ${source.url}`);
+    await fetchToFile(source.url, archivePath);
+    const sizeMB = (fs.statSync(archivePath).size / 1024 / 1024).toFixed(1);
+    log(`  fetched ${sizeMB} MB`);
+    try {
+      if (spec.extract === 'zip') {
+        extractZip(archivePath, libDir, spec);
+      } else if (spec.extract === 'tar') {
+        extractTarXz(archivePath, libDir, spec);
+      } else {
+        throw new Error(`Unknown extract method for ${targetKey}: ${spec.extract}`);
+      }
+      const binPath = path.join(libDir, source.binaryName);
+      if (!fs.existsSync(binPath)) {
+        // Archive layout differed from expectation — look for the binary one
+        // level down (some hosts wrap files in a subdirectory).
+        const wrapped = path.join(libDir, spec.innerRoot || '', source.binaryName);
+        if (fs.existsSync(wrapped)) {
+          fs.renameSync(wrapped, binPath);
+        } else {
+          throw new Error(`After extraction, ${source.binaryName} not found in ${libDir}`);
+        }
+      }
+      fs.chmodSync(binPath, 0o755);
+      // macOS zips often carry __MACOSX/AppleDouble junk; drop it so it
+      // never reaches extraResources.
+      const macosxJunk = path.join(libDir, '__MACOSX');
+      if (fs.existsSync(macosxJunk)) {
+        fs.rmSync(macosxJunk, { recursive: true, force: true });
+      }
+      if (source.sha256) {
+        const actual = await sha256OfFile(binPath);
+        if (actual.toLowerCase() !== source.sha256.toLowerCase()) {
+          throw new Error(`SHA-256 mismatch for ${source.binaryName}: expected ${source.sha256}, got ${actual}`);
+        }
+        log(`  SHA-256 verified for ${source.binaryName}`);
+      }
+    } finally {
+      try { fs.unlinkSync(archivePath); } catch (_) { /* keep archive if extraction failed mid-way */ }
+    }
+  }
+  const finalBin = path.join(libDir, spec.binaryName);
+  log(`  OK -> ${path.relative(ROOT, finalBin)} (+ ${required.slice(1).join(', ') || 'no extras'})`);
   return true;
 }
 
@@ -266,7 +347,14 @@ async function main() {
       log('Pass --all to fetch every target (useful for local multi-platform packaging).');
       return;
     }
-    targets = [host];
+    if (process.platform === 'darwin') {
+      // The macOS CI runner is arm64 but packages BOTH arches (dmg/zip for
+      // x64 and arm64), and extraResources references ffmpeg/darwin-${arch}
+      // per arch — so both darwin targets are always needed on a mac host.
+      targets = ['darwin-x64', 'darwin-arm64'];
+    } else {
+      targets = [host];
+    }
   }
 
   let failures = 0;
