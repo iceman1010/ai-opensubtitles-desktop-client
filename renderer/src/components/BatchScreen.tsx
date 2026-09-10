@@ -160,12 +160,14 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
     totalFilesProcessed: number;
     successfulFiles: number;
     outputFiles: string[];
+    completedFiles: BatchFile[];
   }>({
     startTime: null,
     endTime: null,
     totalFilesProcessed: 0,
     successfulFiles: 0,
-    outputFiles: []
+    outputFiles: [],
+    completedFiles: []
   });
   const [isDragOverWindow, setIsDragOverWindow] = useState(false);
 
@@ -1265,14 +1267,16 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
       endTime: null,
       totalFilesProcessed: 0,
       successfulFiles: 0,
-      outputFiles: []
+      outputFiles: [],
+      completedFiles: []
     });
   };
 
-  const addOutputFile = (filePath: string) => {
+  const addOutputFile = (filePath: string, qualityData: Partial<BatchFile> = {}) => {
     setBatchStats(prev => ({
       ...prev,
-      outputFiles: [...prev.outputFiles, filePath]
+      outputFiles: [...prev.outputFiles, filePath],
+      completedFiles: [...prev.completedFiles, { outputPath: filePath, ...qualityData } as BatchFile]
     }));
   };
 
@@ -1607,6 +1611,8 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
           logger.warn('BatchScreen', 'Failed to cleanup intermediate file', cleanupError);
         }
       }
+    } else {
+      translationQuality = extractQualityData(transcriptionResult?.data);
     }
 
     // Save final output
@@ -1617,7 +1623,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
       const savedPath = await writeFileDirectly(outputContent, outputPath);
 
       logger.info('BatchScreen', `File saved: ${savedPath}`);
-      addOutputFile(savedPath); // Track output file for summary
+      addOutputFile(savedPath, translationQuality); // Track output file for summary
 
       // Update file with final output path
       setQueue(prev => prev.map(f =>
@@ -1690,12 +1696,14 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
       const outputPath = await generateOutputFileName(file.path, 'translation', batchSettings.targetLanguage);
       const savedPath = await writeFileDirectly(outputContent, outputPath);
       
+      const qualityData = extractQualityData(translationResult?.data);
+
       logger.info('BatchScreen', `File saved: ${savedPath}`);
-      addOutputFile(savedPath); // Track output file for summary
+      addOutputFile(savedPath, qualityData); // Track output file for summary
       
       // Update file with output path
       setQueue(prev => prev.map(f => 
-        f.id === file.id ? { ...f, outputPath: savedPath, progress: 100, ...extractQualityData(translationResult?.data) } : f
+        f.id === file.id ? { ...f, outputPath: savedPath, progress: 100, ...qualityData } : f
       ));
     }
   };
@@ -1844,14 +1852,15 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
     return await window.electronAPI.writeFileDirectly(content, outputPath);
   };
 
-  // Map output paths to their completed BatchFile so the completion summary can offer quality reports
+  // Map output paths to their completed file snapshot so the completion summary can offer quality reports
+  // even after the queue has been auto-cleared.
   const completedFileByOutput = useMemo(() => {
     const map = new Map<string, BatchFile>();
-    for (const f of queue) {
+    for (const f of batchStats.completedFiles) {
       if (f.outputPath) map.set(f.outputPath, f);
     }
     return map;
-  }, [queue]);
+  }, [batchStats.completedFiles]);
 
   return (
     <div style={{
@@ -1912,7 +1921,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap', marginBottom: '12px' }}>
             <h3 style={{ margin: 0 }}>File Queue ({queue.length} files)</h3>
             {isDetectingLanguages && (
-              <p style={{ color: '#007bff', fontSize: '14px', fontStyle: 'italic', margin: 0 }}>
+              <p style={{ color: 'var(--primary-color)', fontSize: '14px', fontStyle: 'italic', margin: 0 }}>
                 Detecting languages sequentially... ({queue.filter(f => f.status === 'detecting').length} in progress)
               </p>
             )}
@@ -1947,14 +1956,32 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
                 alignItems: 'center',
                 padding: '10px',
                 borderBottom: index < queue.length - 1 ? '1px solid var(--border-color)' : 'none',
-                backgroundColor: index === currentFileIndex ? 'var(--info-color)' : 'transparent'
+                backgroundColor: index === currentFileIndex && isProcessing ? 'rgba(52, 152, 219, 0.1)' : 'transparent',
               }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 'bold' }}>{file.name}</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                    Type: {file.type} | Status: {file.status}
+                  <div style={{ fontWeight: 'bold', wordBreak: 'break-all' }}>
+                    {file.name}
+                    <span style={{
+                      marginLeft: '8px',
+                      padding: '2px 6px',
+                      borderRadius: '3px',
+                      fontSize: '11px',
+                      fontWeight: 'normal',
+                      backgroundColor: file.type === 'transcription' ? 'rgba(52, 152, 219, 0.15)' : 'rgba(155, 89, 182, 0.15)',
+                      color: file.type === 'transcription' ? 'var(--primary-color)' : '#9b59b6',
+                    }}>
+                      {file.type}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                    Status: <span style={{
+                      color: file.status === 'completed' ? 'var(--success-color)' :
+                        file.status === 'error' ? 'var(--danger-color)' :
+                        file.status === 'processing' || file.status === 'detecting' ? 'var(--primary-color)' :
+                        'var(--text-secondary)',
+                    }}>{file.status}</span>
                     {file.detectedLanguage && ` | Language: ${file.detectedLanguage.native || file.detectedLanguage.name}`}
-                    {file.progress !== undefined && ` | Progress: ${file.progress}%`}
+                    {file.progress !== undefined && file.status === 'processing' && ` | Progress: ${file.progress}%`}
                     {file.creditsUsed !== undefined && file.creditsUsed > 0 && ` | Credits: ${file.creditsUsed}`}
                     {file.quality && (
                       <>
@@ -1968,6 +1995,23 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
                     )}
                   </div>
                   
+                  {file.status === 'processing' && file.progress !== undefined && (
+                    <div style={{
+                      marginTop: '6px',
+                      height: '4px',
+                      backgroundColor: 'var(--bg-primary)',
+                      borderRadius: '2px',
+                      overflow: 'hidden',
+                    }}>
+                      <div style={{
+                        width: `${file.progress}%`,
+                        height: '100%',
+                        backgroundColor: 'var(--primary-color)',
+                        transition: 'width 0.3s ease',
+                      }} />
+                    </div>
+                  )}
+
                   {/* Source Language Selector for Translation Files */}
                   {file.type === 'translation' && contextTranslationInfo && batchSettings.translationModel && (
                     <div style={{ marginTop: '8px' }}>
@@ -1983,7 +2027,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
                           padding: '2px 4px',
                           border: '1px solid var(--border-color)',
                           borderRadius: '3px',
-                          backgroundColor: 'white',
+                          backgroundColor: 'var(--bg-primary)',
                           maxWidth: '200px'
                         }}
                       >
@@ -2016,7 +2060,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
                           padding: '2px 4px',
                           border: '1px solid var(--border-color)',
                           borderRadius: '3px',
-                          backgroundColor: 'white',
+                          backgroundColor: 'var(--bg-primary)',
                           maxWidth: '200px'
                         }}
                       >
@@ -2035,36 +2079,56 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
                     </div>
                   )}
                   
-                  {file.error && <div style={{ fontSize: '12px', color: 'var(--danger-text)' }}>Error: {file.error}</div>}
+                  {file.status === 'completed' && (file.quality || file.readability) && (
+                    <button
+                      onClick={() => handleShowQualityReport(file)}
+                      title="View quality report"
+                      style={{
+                        marginTop: '6px', padding: '4px 10px', fontSize: '11px',
+                        backgroundColor: 'transparent',
+                        color: file.quality ? (file.quality.valid ? 'var(--success-color)' : 'var(--danger-color)') : 'var(--primary-color)',
+                        border: `1px solid ${file.quality ? (file.quality.valid ? 'var(--success-color)' : 'var(--danger-color)') : 'var(--primary-color)'}`,
+                        borderRadius: '3px', cursor: 'pointer',
+                      }}
+                    >
+                      <i className={file.quality ? (file.quality.valid ? 'fas fa-check-circle' : 'fas fa-times-circle') : 'fas fa-eye'} style={{ marginRight: '4px' }}></i>
+                      Quality Report
+                    </button>
+                  )}
+
+                  {file.status === 'completed' && file.outputPath && (
+                    <button
+                      onClick={() => handleDownloadFile(file.outputPath)}
+                      title="Download subtitle file"
+                      style={{
+                        marginTop: '6px', padding: '4px 10px', fontSize: '11px',
+                        backgroundColor: 'var(--success-color)', color: 'white',
+                        border: 'none', borderRadius: '3px', cursor: 'pointer',
+                      }}
+                    >
+                      <i className="fas fa-download" style={{ marginRight: '4px' }}></i>
+                      Download {file.outputPath.split(/[\\/]/).pop()}
+                    </button>
+                  )}
+
+                  {file.error && <div style={{ fontSize: '12px', color: 'var(--danger-color)', marginTop: '4px' }}>Error: {file.error}</div>}
                 </div>
                 
                 {!isProcessing && (
-                  <div style={{ display: 'flex', gap: '5px' }}>
-                    <button onClick={() => moveFileUp(index)} disabled={index === 0} title="Move Up"><i className="fas fa-arrow-up"></i></button>
-                    <button onClick={() => moveFileDown(index)} disabled={index === queue.length - 1} title="Move Down"><i className="fas fa-arrow-down"></i></button>
-                    <button onClick={() => removeFromQueue(file.id)} title="Remove"><i className="fas fa-times"></i></button>
+                  <div style={{ display: 'flex', gap: '5px', marginLeft: '10px' }}>
+                    <button onClick={() => moveFileUp(index)} disabled={index === 0} title="Move Up"
+                      style={{ padding: '4px 8px', border: '1px solid var(--border-color)', borderRadius: '3px', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', cursor: index === 0 ? 'not-allowed' : 'pointer' }}>
+                      <i className="fas fa-arrow-up"></i>
+                    </button>
+                    <button onClick={() => moveFileDown(index)} disabled={index === queue.length - 1} title="Move Down"
+                      style={{ padding: '4px 8px', border: '1px solid var(--border-color)', borderRadius: '3px', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', cursor: index === queue.length - 1 ? 'not-allowed' : 'pointer' }}>
+                      <i className="fas fa-arrow-down"></i>
+                    </button>
+                    <button onClick={() => removeFromQueue(file.id)} title="Remove"
+                      style={{ padding: '4px 8px', border: '1px solid var(--danger-color)', borderRadius: '3px', backgroundColor: 'transparent', color: 'var(--danger-color)', cursor: 'pointer' }}>
+                      <i className="fas fa-times"></i>
+                    </button>
                   </div>
-                )}
-                {file.status === 'completed' && (file.quality || file.readability) && (
-                  <button
-                    onClick={() => handleShowQualityReport(file)}
-                    title="View quality report"
-                    style={{
-                      marginLeft: '5px',
-                      flexShrink: 0,
-                      padding: '4px 8px',
-                      fontSize: '11px',
-                      border: `1px solid ${file.quality ? (file.quality.valid ? 'var(--success-color)' : 'var(--danger-color)') : 'var(--primary-color)'}`,
-                      backgroundColor: 'transparent',
-                      color: file.quality ? (file.quality.valid ? 'var(--success-color)' : 'var(--danger-color)') : 'var(--primary-color)',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    <i className={file.quality ? (file.quality.valid ? 'fas fa-check-circle' : 'fas fa-times-circle') : 'fas fa-tachometer-alt'} style={{ marginRight: '4px' }}></i>
-                    Quality Report
-                  </button>
                 )}
               </div>
             ))}
@@ -2078,43 +2142,30 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
           style={{
             textAlign: 'center',
             padding: '60px 20px',
-            backgroundColor: 'var(--bg-tertiary)',
+            backgroundColor: 'var(--bg-secondary)',
             borderRadius: '12px',
-            border: '2px dashed #dee2e6',
-            opacity: 1,
-            transform: 'translateY(0)',
-            transition: 'opacity 0.3s ease-in-out, transform 0.3s ease-in-out'
+            border: '2px dashed var(--border-color)'
           }}
         >
           <div style={{ fontSize: '48px', marginBottom: '20px' }}>
-            <i className="fas fa-layer-group" style={{color: '#495057'}}></i>
+            <i className="fas fa-layer-group" style={{ color: 'var(--text-muted)' }}></i>
           </div>
-          <div style={{ fontSize: '28px', color: '#495057', marginBottom: '15px', fontWeight: '500' }}>
+          <div style={{ fontSize: '28px', color: 'var(--text-muted)', marginBottom: '15px', fontWeight: '500' }}>
             Batch Processing Power
           </div>
-          <div style={{ fontSize: '16px', color: '#6c757d', marginBottom: '25px', lineHeight: '1.5' }}>
+          <div style={{ fontSize: '16px', color: 'var(--text-secondary)', marginBottom: '25px', lineHeight: '1.5' }}>
             Process multiple files automatically with advanced workflow control
           </div>
-          <div style={{ fontSize: '14px', color: '#adb5bd', marginBottom: '20px' }}>
-            <div style={{ marginBottom: '8px' }}>
-              <strong>Bulk Transcription:</strong> Convert multiple audio/video files to text
-            </div>
-            <div style={{ marginBottom: '8px' }}>
-              <strong>Bulk Translation:</strong> Translate multiple subtitle files
-            </div>
-            <div>
-              <strong>Smart Chaining:</strong> Auto-transcribe then translate in sequence
-            </div>
+          <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '20px' }}>
+            <div style={{ marginBottom: '8px' }}><strong>Bulk Transcription:</strong> Convert multiple audio/video files to text</div>
+            <div style={{ marginBottom: '8px' }}><strong>Bulk Translation:</strong> Translate multiple subtitle files</div>
+            <div><strong>Smart Chaining:</strong> Auto-transcribe then translate in sequence</div>
           </div>
-          <div style={{ 
-            fontSize: '13px', 
-            color: '#adb5bd',
-            fontStyle: 'italic',
-            borderTop: '1px solid #e9ecef',
-            paddingTop: '20px',
-            marginTop: '20px'
+          <div style={{
+            fontSize: '13px', color: 'var(--text-muted)', fontStyle: 'italic',
+            borderTop: '1px solid var(--border-color)', paddingTop: '20px', marginTop: '20px',
           }}>
-            Use "Select Files" above or drag & drop multiple files to get started
+            Use the file selector above or drag & drop multiple files to get started
           </div>
         </div>
       )}
@@ -2132,7 +2183,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
       >
         {/* Workflow Selection - Only shown when audio/video files present */}
         {uiState.chainingEnabled && (
-          <div style={{ width: '100%', paddingBottom: '16px', marginBottom: '4px', borderBottom: '1px solid var(--border-color)' }}>
+          <div style={{ width: '100%', gridColumn: '1 / -1', paddingBottom: '16px', marginBottom: '4px', borderBottom: '1px solid var(--border-color)' }}>
             <h4 style={{ margin: '0 0 8px 0' }}><i className="fas fa-route"></i> Processing Workflow</h4>
 
             {/* Radio Button Selection */}
@@ -2145,7 +2196,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
                 border: `2px solid ${batchSettings.workflowMode === 'transcribe-only' ? 'var(--primary-color)' : 'var(--border-color)'}`,
                 borderRadius: '8px',
                 cursor: isProcessing ? 'not-allowed' : 'pointer',
-                backgroundColor: batchSettings.workflowMode === 'transcribe-only' ? 'var(--primary-bg-light, rgba(74, 144, 226, 0.1))' : 'transparent',
+                backgroundColor: batchSettings.workflowMode === 'transcribe-only' ? 'rgba(52, 152, 219, 0.1)' : 'transparent',
                 transition: 'all 0.2s ease'
               }}>
                 <input
@@ -2175,7 +2226,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
                 border: `2px solid ${batchSettings.workflowMode === 'transcribe-and-translate' ? 'var(--primary-color)' : 'var(--border-color)'}`,
                 borderRadius: '8px',
                 cursor: isProcessing ? 'not-allowed' : 'pointer',
-                backgroundColor: batchSettings.workflowMode === 'transcribe-and-translate' ? 'var(--primary-bg-light, rgba(74, 144, 226, 0.1))' : 'transparent',
+                backgroundColor: batchSettings.workflowMode === 'transcribe-and-translate' ? 'rgba(52, 152, 219, 0.1)' : 'transparent',
                 transition: 'all 0.2s ease'
               }}>
                 <input
@@ -2201,9 +2252,8 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
             {/* Workflow Diagram - Shows for both modes */}
             <div style={{
               padding: '10px 15px',
-              backgroundColor: 'var(--bg-secondary)',
-              borderRadius: '8px',
-              marginBottom: '15px'
+              backgroundColor: 'var(--bg-primary)',
+              borderRadius: '8px'
             }}>
               <div style={{
                 display: 'flex',
@@ -2241,7 +2291,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
                   <div style={{ fontSize: '24px', marginBottom: '5px' }}>
                     <i className="fas fa-file-alt"></i>
                   </div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Output SRT</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Output {batchSettings.outputFormat.toUpperCase()}</div>
                 </div>
               </div>
               <div style={{
@@ -2259,73 +2309,11 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
                 )}
               </div>
             </div>
-
-            {/* Expected Output Preview */}
-            {queue.length > 0 && (
-              <div style={{
-                marginTop: '15px',
-                padding: '12px',
-                backgroundColor: 'var(--bg-secondary)',
-                borderRadius: '8px'
-              }}>
-                <h5 style={{ margin: '0 0 10px 0', fontSize: '14px' }}>
-                  <i className="fas fa-eye"></i> Expected Output
-                </h5>
-                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px' }}>
-                  {queue.filter(f => f.type === 'transcription').length > 0 && (
-                    <li style={{ marginBottom: '5px' }}>
-                      {queue.filter(f => f.type === 'transcription').length} audio/video file(s) →{' '}
-                      <code style={{
-                        padding: '2px 6px',
-                        backgroundColor: 'var(--bg-primary)',
-                        borderRadius: '4px',
-                        fontSize: '12px'
-                      }}>
-                        {(() => {
-                          const pattern = config.defaultFilenameFormat || '{filename}.{language_code}.{type}.{extension}';
-                          const languageCode = enableChaining ? (batchSettings.targetLanguage || 'target') : 'source';
-                          const type = enableChaining ? 'translation' : 'transcription';
-                          return generateFilename(pattern, 'example.mp4', languageCode, 'Language', type, batchSettings.outputFormat);
-                        })()}
-                      </code>
-                    </li>
-                  )}
-                  {queue.filter(f => f.type === 'translation').length > 0 && (
-                    <li>
-                      {queue.filter(f => f.type === 'translation').length} subtitle file(s) →{' '}
-                      <code style={{
-                        padding: '2px 6px',
-                        backgroundColor: 'var(--bg-primary)',
-                        borderRadius: '4px',
-                        fontSize: '12px'
-                      }}>
-                        {(() => {
-                          const pattern = config.defaultFilenameFormat || '{filename}.{language_code}.{type}.{extension}';
-                          return generateFilename(pattern, 'example.srt', batchSettings.targetLanguage || 'target', 'Language', 'translation', batchSettings.outputFormat);
-                        })()}
-                      </code>
-                      {' '}
-                      <span style={{ color: 'var(--text-secondary)' }}>(translation)</span>
-                    </li>
-                  )}
-                </ul>
-              </div>
-            )}
           </div>
         )}
 
         <div className="form-group" style={{ opacity: uiState.transcriptionEnabled ? 1 : 0.5 }}>
           <label>Transcription Model:</label>
-          {!uiState.transcriptionEnabled && (
-            <p style={{
-              fontSize: '12px',
-              color: 'var(--text-secondary)',
-              fontStyle: 'italic',
-              margin: '0 0 6px 0'
-            }}>
-              No audio/video files in queue
-            </p>
-          )}
           <select
             value={batchSettings.transcriptionModel}
             onChange={(e) => handleTranscriptionModelChange(e.target.value)}
@@ -2340,20 +2328,20 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
               ))
             )}
           </select>
-        </div>
-
-        <div className="form-group" style={{ opacity: uiState.translationEnabled ? 1 : 0.5 }}>
-          <label>Translation Model:</label>
-          {!uiState.translationEnabled && (
+          {!uiState.transcriptionEnabled && (
             <p style={{
               fontSize: '12px',
               color: 'var(--text-secondary)',
               fontStyle: 'italic',
-              margin: '0 0 6px 0'
+              margin: '6px 0 0 0'
             }}>
-              Select "Auto-translate" workflow or add subtitle files to queue
+              No audio/video files in queue
             </p>
           )}
+        </div>
+
+        <div className="form-group" style={{ opacity: uiState.translationEnabled ? 1 : 0.5 }}>
+          <label>Translation Model:</label>
           <select
             value={batchSettings.translationModel}
             onChange={(e) => handleTranslationModelChange(e.target.value)}
@@ -2368,6 +2356,16 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
               ))
             )}
           </select>
+          {!uiState.translationEnabled && (
+            <p style={{
+              fontSize: '12px',
+              color: 'var(--text-secondary)',
+              fontStyle: 'italic',
+              margin: '6px 0 0 0'
+            }}>
+              Select "Auto-translate" workflow or add subtitle files to queue
+            </p>
+          )}
         </div>
 
         <div className="form-group" style={{ opacity: uiState.translationEnabled ? 1 : 0.5 }}>
@@ -2403,101 +2401,99 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
             ))}
           </select>
         </div>
-        <div className="form-group">
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0', cursor: isProcessing ? 'not-allowed' : 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={batchSettings.useCustomOutputDirectory}
-              onChange={(e) => setBatchSettings(prev => ({ 
-                ...prev, 
-                useCustomOutputDirectory: e.target.checked,
-                outputDirectory: e.target.checked ? prev.outputDirectory : ''
-              }))}
-              disabled={isProcessing}
-            />
-            Use custom output directory
-          </label>
-            {batchSettings.useCustomOutputDirectory && (
-              <div style={{ display: 'flex', gap: '5px', marginLeft: '25px' }}>
-                <input
-                  type="text"
-                  value={batchSettings.outputDirectory}
-                  onChange={(e) => setBatchSettings(prev => ({ ...prev, outputDirectory: e.target.value }))}
-                  disabled={isProcessing}
-                  placeholder="Select output directory"
-                  style={{
-                    flex: 1,
-                    padding: '5px',
-                    backgroundColor: 'var(--input-bg)',
-                    color: 'var(--text-primary)',
-                    border: '1px solid var(--input-border)',
-                    borderRadius: '4px'
-                  }}
-                />
-                <button
-                  onClick={async () => {
-                    try {
-                      const directory = await window.electronAPI.selectDirectory();
-                      if (directory) {
-                        setBatchSettings(prev => ({ ...prev, outputDirectory: directory }));
-                      }
-                    } catch (error) {
-                      logger.error('BatchScreen', 'Directory selection failed:', error);
+        <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', alignItems: 'center' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0', cursor: isProcessing ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}>
+              <input
+                type="checkbox"
+                checked={batchSettings.abortOnError}
+                onChange={(e) => setBatchSettings(prev => ({ ...prev, abortOnError: e.target.checked }))}
+                disabled={isProcessing}
+              />
+              Abort batch processing on first error
+            </label>
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              opacity: enableChaining ? 1 : 0.5,
+              marginBottom: '0',
+              cursor: (isProcessing || !enableChaining) ? 'not-allowed' : 'pointer',
+              whiteSpace: 'nowrap'
+            }}>
+              <input
+                type="checkbox"
+                checked={batchSettings.keepIntermediateFiles}
+                onChange={(e) => setBatchSettings(prev => ({ ...prev, keepIntermediateFiles: e.target.checked }))}
+                disabled={isProcessing || !enableChaining}
+              />
+              Keep original transcription files when auto-translating
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0', cursor: isProcessing ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}>
+              <input
+                type="checkbox"
+                checked={batchSettings.useCustomOutputDirectory}
+                onChange={(e) => setBatchSettings(prev => ({
+                  ...prev,
+                  useCustomOutputDirectory: e.target.checked,
+                  outputDirectory: e.target.checked ? prev.outputDirectory : ''
+                }))}
+                disabled={isProcessing}
+              />
+              Use custom output directory
+            </label>
+          </div>
+          {batchSettings.useCustomOutputDirectory ? (
+            <div style={{ display: 'flex', gap: '5px', marginTop: '8px' }}>
+              <input
+                type="text"
+                value={batchSettings.outputDirectory}
+                onChange={(e) => setBatchSettings(prev => ({ ...prev, outputDirectory: e.target.value }))}
+                disabled={isProcessing}
+                placeholder="Select output directory"
+                style={{
+                  flex: 1,
+                  padding: '5px',
+                  backgroundColor: 'var(--input-bg)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--input-border)',
+                  borderRadius: '4px'
+                }}
+              />
+              <button
+                onClick={async () => {
+                  try {
+                    const directory = await window.electronAPI.selectDirectory();
+                    if (directory) {
+                      setBatchSettings(prev => ({ ...prev, outputDirectory: directory }));
                     }
-                  }}
-                  disabled={isProcessing}
-                  style={{
-                    padding: '5px 10px',
-                    backgroundColor: 'var(--button-bg)',
-                    color: 'var(--button-text)',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: isProcessing ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  Browse
-                </button>
-              </div>
-            )}
-            {!batchSettings.useCustomOutputDirectory && (
-              <div style={{ 
-                fontSize: '12px', 
-                color: 'var(--text-secondary)', 
-                fontStyle: 'italic',
-                marginLeft: '25px'
-              }}>
-                Files will be saved in the same directory as source files
-              </div>
-            )}
-        </div>
-
-        <div className="form-group" style={{ alignSelf: 'flex-end' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0', cursor: isProcessing ? 'not-allowed' : 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={batchSettings.abortOnError}
-              onChange={(e) => setBatchSettings(prev => ({ ...prev, abortOnError: e.target.checked }))}
-              disabled={isProcessing}
-            />
-            Abort batch processing on first error
-          </label>
-          <label style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            opacity: enableChaining ? 1 : 0.5,
-            marginBottom: '0',
-            cursor: (isProcessing || !enableChaining) ? 'not-allowed' : 'pointer'
-          }}>
-            <input
-              type="checkbox"
-              checked={batchSettings.keepIntermediateFiles}
-              onChange={(e) => setBatchSettings(prev => ({ ...prev, keepIntermediateFiles: e.target.checked }))}
-              disabled={isProcessing || !enableChaining}
-            />
-            Keep original transcription files when auto-translating
-            {!enableChaining && <span style={{ fontSize: '12px', fontStyle: 'italic' }}>(Only applies to "Auto-translate" workflow)</span>}
-          </label>
+                  } catch (error) {
+                    logger.error('BatchScreen', 'Directory selection failed:', error);
+                  }
+                }}
+                disabled={isProcessing}
+                style={{
+                  padding: '5px 10px',
+                  backgroundColor: 'var(--button-bg)',
+                  color: 'var(--button-text)',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: isProcessing ? 'not-allowed' : 'pointer'
+                }}
+              >
+                Browse
+              </button>
+            </div>
+          ) : (
+            <div style={{
+              fontSize: '12px',
+              color: 'var(--text-secondary)',
+              fontStyle: 'italic',
+              marginTop: '6px'
+            }}>
+              Files will be saved in the same directory as source files
+            </div>
+          )}
         </div>
       </div>
 
@@ -2508,9 +2504,9 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
           justifyContent: 'space-between',
           alignItems: 'center',
           padding: '20px',
-          backgroundColor: 'var(--bg-tertiary)',
+          backgroundColor: 'var(--bg-secondary)',
           borderRadius: '8px',
-          border: '1px solid #ced4da',
+          border: '1px solid var(--border-color)',
           opacity: queue.length > 0 ? 1 : 0,
           transform: queue.length > 0 ? 'translateY(0)' : 'translateY(-10px)',
           transition: 'opacity 0.3s ease-in-out, transform 0.3s ease-in-out',
@@ -2522,7 +2518,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
           <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '5px' }}>
             Overall Progress: {overallProgress}%
             {batchCreditStats.totalCreditsUsed > 0 && (
-              <span style={{ marginLeft: '20px', fontSize: '16px', color: '#2196F3' }}>
+              <span style={{ marginLeft: '20px', fontSize: '16px', color: 'var(--primary-color)' }}>
                 Credits Used: {batchCreditStats.totalCreditsUsed}
               </span>
             )}
@@ -2559,7 +2555,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
               disabled={isDetectingLanguages || !isAuthenticated || !isFullyOnline()}
               style={{
                 padding: '10px 20px',
-                backgroundColor: isDetectingLanguages ? '#6c757d' : '#17a2b8',
+                backgroundColor: isDetectingLanguages ? 'var(--text-muted)' : '#17a2b8',
                 color: 'white',
                 border: 'none',
                 borderRadius: '4px',
@@ -2573,18 +2569,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
               }}
             >
               {isDetectingLanguages ? (
-                <>
-                  <span style={{
-                    display: 'inline-block',
-                    width: '16px',
-                    height: '16px',
-                    border: '2px solid #ffffff',
-                    borderTop: '2px solid transparent',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite'
-                  }}></span>
-                  Detecting...
-                </>
+                <><i className="fas fa-spinner fa-spin"></i> Detecting...</>
               ) : (
                 'Detect Languages'
               )}
@@ -2615,16 +2600,16 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
         <div style={{
           width: '100%',
           height: '10px',
-          backgroundColor: 'var(--bg-tertiary)',
+          backgroundColor: 'var(--bg-secondary)',
           borderRadius: '5px',
           overflow: 'hidden',
-          border: '1px solid #ced4da'
+          border: '1px solid var(--border-color)'
         }}>
           <div
             style={{
               width: `${overallProgress}%`,
               height: '100%',
-              backgroundColor: '#007bff',
+              backgroundColor: 'var(--primary-color)',
               transition: 'width 0.3s ease'
             }}
           />
@@ -2699,7 +2684,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
                       padding: '8px 12px',
                       margin: '4px 0',
                       backgroundColor: 'var(--bg-secondary)',
-                      border: '1px solid var(--danger-border)',
+                      border: '1px solid var(--danger-color)',
                       borderRadius: '4px',
                       fontSize: '14px'
                     }}
@@ -2723,16 +2708,8 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
             }}>
               <button
                 onClick={() => setShowLanguageValidationModal(false)}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: 'var(--button-bg)',
-                  color: 'var(--button-text)',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500'
-                }}
+                className="btn-primary"
+                style={{ padding: '10px 20px', fontSize: '14px', fontWeight: '500' }}
               >
                 OK, I'll Select Languages
               </button>
@@ -2782,17 +2759,17 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
               gap: '16px',
               marginBottom: '20px',
               padding: '16px',
-              backgroundColor: 'var(--bg-tertiary)',
+              backgroundColor: 'var(--bg-primary)',
               borderRadius: '6px'
             }}>
               <div>
-                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#28a745' }}>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--success-color)' }}>
                   {batchStats.successfulFiles}
                 </div>
                 <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Files Processed</div>
               </div>
               <div>
-                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#2196F3' }}>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--primary-color)' }}>
                   {batchCreditStats.totalCreditsUsed}
                 </div>
                 <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Credits Used</div>
@@ -2806,7 +2783,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
                 <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Duration</div>
               </div>
               <div>
-                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#6f42c1' }}>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--success-color)' }}>
                   {batchStats.outputFiles.length}
                 </div>
                 <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Output Files</div>
@@ -2822,16 +2799,16 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
                   alignItems: 'center',
                   gap: '8px',
                   padding: '10px 14px',
-                  marginBottom: '16px',
-                  backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                  border: '1px solid var(--success-color)',
+                  marginBottom: '20px',
+                  backgroundColor: 'rgba(155, 89, 182, 0.1)',
+                  border: '1px solid rgba(155, 89, 182, 0.3)',
                   borderRadius: '6px',
-                  color: 'var(--success-color)',
+                  color: '#9b59b6',
                   fontSize: '13px',
                   fontWeight: '500'
                 }}>
-                  <i className="fas fa-undo-alt"></i>
-                  {totalRefunded} credits were refunded for failed quality checks
+                  <i className="fas fa-coins"></i>
+                  {totalRefunded} credits refunded for failed quality checks
                 </div>
               );
             })()}
@@ -2851,7 +2828,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
                   overflow: 'auto',
                   border: '1px solid var(--border-color)',
                   borderRadius: '4px',
-                  backgroundColor: 'var(--bg-tertiary)'
+                  backgroundColor: 'var(--bg-primary)'
                 }}>
                   {batchStats.outputFiles.map((filePath, index) => (
                     <div
@@ -2884,6 +2861,34 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
                         {filePath}
                       </span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                        {/* Quality Report Button */}
+                        {(() => {
+                          const qualityFile = completedFileByOutput.get(filePath);
+                          if (!qualityFile || !(qualityFile.quality || qualityFile.readability)) return null;
+                          return (
+                            <div
+                              onClick={() => handleShowQualityReport(qualityFile)}
+                              title="View quality report"
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: qualityFile.quality ? (qualityFile.quality.valid ? 'var(--success-color)' : 'var(--danger-color)') : 'var(--primary-color)',
+                                cursor: 'pointer',
+                                padding: '6px',
+                                borderRadius: '4px',
+                                fontSize: '13px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '28px',
+                                height: '28px',
+                                transition: 'all 0.2s ease',
+                              }}
+                            >
+                              <i className={qualityFile.quality ? (qualityFile.quality.valid ? 'fas fa-check-circle' : 'fas fa-times-circle') : 'fas fa-eye'}></i>
+                            </div>
+                          );
+                        })()}
                         {/* Preview Button */}
                         <div
                           onClick={() => handlePreviewFile(filePath)}
@@ -2949,34 +2954,6 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
                         >
                           <i className="fas fa-download"></i>
                         </div>
-                        {/* Quality Report Button */}
-                        {(() => {
-                          const qualityFile = completedFileByOutput.get(filePath);
-                          if (!qualityFile || !(qualityFile.quality || qualityFile.readability)) return null;
-                          return (
-                            <div
-                              onClick={() => handleShowQualityReport(qualityFile)}
-                              title="View quality report"
-                              style={{
-                                background: 'transparent',
-                                border: 'none',
-                                color: qualityFile.quality ? (qualityFile.quality.valid ? 'var(--success-color)' : 'var(--danger-color)') : 'var(--primary-color)',
-                                cursor: 'pointer',
-                                padding: '6px',
-                                borderRadius: '4px',
-                                fontSize: '13px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                width: '28px',
-                                height: '28px',
-                                transition: 'all 0.2s ease',
-                              }}
-                            >
-                              <i className={qualityFile.quality ? (qualityFile.quality.valid ? 'fas fa-check-circle' : 'fas fa-times-circle') : 'fas fa-tachometer-alt'}></i>
-                            </div>
-                          );
-                        })()}
                       </div>
                     </div>
                   ))}
@@ -2996,16 +2973,8 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
             <div style={{ textAlign: 'center' }}>
               <button
                 onClick={() => setShowCompletionSummary(false)}
-                style={{
-                  padding: '12px 24px',
-                  backgroundColor: '#007bff',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500'
-                }}
+                className="btn-primary"
+                style={{ padding: '12px 24px' }}
               >
                 Close
               </button>

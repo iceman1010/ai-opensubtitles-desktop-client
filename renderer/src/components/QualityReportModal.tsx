@@ -75,6 +75,14 @@ function label(key: string, labels: Record<string, string>): string {
   return labels[key] || key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
+function formatNumber(value: unknown, digits = 1): string {
+  return typeof value === 'number' && Number.isFinite(value) ? value.toFixed(digits) : 'N/A';
+}
+
+function formatValue(value: unknown): string {
+  return typeof value === 'number' || typeof value === 'string' ? String(value) : 'N/A';
+}
+
 function StatChip({ label: chipLabel, value, color }: { label: string; value: string; color?: string }) {
   return (
     <div style={{
@@ -149,7 +157,7 @@ function DefectGroup({ type, defects }: { type: string; defects: QualityDefect[]
           borderRadius: '4px', fontSize: '13px', color: 'var(--text-primary)',
           lineHeight: 1.5,
         }}>
-          {d.message}
+          {d.message || ''}
         </div>
       ))}
     </div>
@@ -177,18 +185,18 @@ function ReadabilityProblemRow({ problem }: { problem: ReadabilityProblem }) {
         <span style={{ fontFamily: 'monospace' }}>
           {formatTimecode(problem.start_seconds)} &rarr; {formatTimecode(problem.end_seconds)}
         </span>
-        <span>{problem.duration_seconds.toFixed(1)}s</span>
-        <span>{problem.chars} chars</span>
-        {problem.cps !== null && <span>{problem.cps.toFixed(1)} cps</span>}
+        <span>{formatNumber(problem.duration_seconds)}s</span>
+        <span>{formatValue(problem.chars)} chars</span>
+        {typeof problem.cps === 'number' && <span>{problem.cps.toFixed(1)} cps</span>}
       </div>
       <div style={{ marginTop: '6px', color: 'var(--text-primary)', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
         {problem.text}
       </div>
       <div style={{ marginTop: '6px', display: 'flex', gap: '10px', flexWrap: 'wrap', fontSize: '11px', color: 'var(--text-secondary)' }}>
-        {problem.issues.map((issue, i) => (
+        {(problem.issues ?? []).map((issue, i) => (
           <span key={i}>
             <i className="fas fa-circle" style={{ fontSize: '5px', verticalAlign: 'middle', marginRight: '4px', color: issue.severity === 'critical' ? 'var(--danger-color)' : '#e67e22' }}></i>
-            {label(issue.type, ISSUE_LABELS)}: {issue.type === 'reading_speed' ? `${issue.value.toFixed(1)} cps` : `${issue.value}`} (limit {issue.type === 'reading_speed' ? `${issue.limit.toFixed(1)}` : issue.limit})
+            {label(issue.type, ISSUE_LABELS)}: {issue.type === 'reading_speed' ? `${formatNumber(issue.value)} cps` : formatValue(issue.value)} (limit {issue.type === 'reading_speed' ? formatNumber(issue.limit) : formatValue(issue.limit)})
           </span>
         ))}
       </div>
@@ -299,8 +307,8 @@ function QualityReportModal({ isOpen, onClose, quality, readability, qualityRefu
             gap: '8px',
             overflow: 'hidden',
           }}>
-            <i className="fas fa-clipboard-check" style={{ color: verdictColor, flexShrink: 0 }}></i>
-            <span>Translation Quality Report</span>
+            <i className="fas fa-clipboard-check" style={{ color: 'var(--primary-color)', flexShrink: 0 }}></i>
+            <span>Subtitle Quality Report</span>
             {fileName && (
               <span style={{ fontSize: '12px', fontWeight: '400', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 &middot; {fileName}
@@ -347,14 +355,14 @@ function QualityReportModal({ isOpen, onClose, quality, readability, qualityRefu
               <i className={valid ? 'fas fa-check-circle' : 'fas fa-times-circle'}></i>
               {valid ? 'Translation passed the quality check' : 'Translation failed the quality check'}
             </span>
-            {quality && quality.error_count > 0 && (
+            {quality && (quality.error_count ?? 0) > 0 && (
               <span style={{ fontSize: '12px', color: 'var(--danger-color)' }}>
-                {quality.error_count} error{quality.error_count !== 1 ? 's' : ''}
+                {quality.error_count} error{(quality.error_count ?? 0) !== 1 ? 's' : ''}
               </span>
             )}
-            {quality && quality.warning_count > 0 && (
+            {quality && (quality.warning_count ?? 0) > 0 && (
               <span style={{ fontSize: '12px', color: '#e67e22' }}>
-                {quality.warning_count} warning{quality.warning_count !== 1 ? 's' : ''}
+                {quality.warning_count} warning{(quality.warning_count ?? 0) !== 1 ? 's' : ''}
               </span>
             )}
             {typeof qualityRefund === 'number' && qualityRefund > 0 && (
@@ -416,23 +424,23 @@ function QualityReportModal({ isOpen, onClose, quality, readability, qualityRefu
               {hasQuality ? (
                 <>
                   <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
-                    <StatChip label="Source captions" value={String(quality!.quality.source_captions)} />
-                    <StatChip label="Aligned pairs" value={String(quality!.quality.aligned_pairs)} />
+                    <StatChip label="Source captions" value={formatValue(quality?.quality?.source_captions)} />
+                    <StatChip label="Aligned pairs" value={formatValue(quality?.quality?.aligned_pairs)} />
                     <StatChip
                       label="Errors"
-                      value={String(quality!.error_count)}
-                      color={quality!.error_count > 0 ? 'var(--danger-color)' : 'var(--success-color)'}
+                      value={formatValue(quality?.error_count)}
+                      color={(quality?.error_count ?? 0) > 0 ? 'var(--danger-color)' : 'var(--success-color)'}
                     />
                     <StatChip
                       label="Warnings"
-                      value={String(quality!.warning_count)}
-                      color={quality!.warning_count > 0 ? '#e67e22' : undefined}
+                      value={formatValue(quality?.warning_count)}
+                      color={(quality?.warning_count ?? 0) > 0 ? '#e67e22' : undefined}
                     />
-                    {readability && <StatChip label="Avg reading speed" value={`${readability.avg_cps.toFixed(1)} cps`} />}
-                    {readability && <StatChip label="Max reading speed" value={`${readability.max_cps.toFixed(1)} cps`} />}
+                    {readability && <StatChip label="Avg reading speed" value={`${formatNumber(readability.avg_cps)} cps`} />}
+                    {readability && <StatChip label="Max reading speed" value={`${formatNumber(readability.max_cps)} cps`} />}
                   </div>
 
-                  {!valid && quality!.quality.reasons.length > 0 && (
+                  {!valid && (quality?.quality?.reasons?.length ?? 0) > 0 && (
                     <div style={{
                       padding: '10px 14px', marginBottom: '20px',
                       backgroundColor: 'rgba(220, 53, 69, 0.1)',
@@ -443,7 +451,7 @@ function QualityReportModal({ isOpen, onClose, quality, readability, qualityRefu
                         <i className="fas fa-exclamation-circle" style={{ marginRight: '6px' }}></i>
                         Limits exceeded:
                       </div>
-                      {quality!.quality.reasons.map((reason, i) => (
+                      {quality?.quality?.reasons?.map((reason, i) => (
                         <div key={i} style={{ fontSize: '13px', color: 'var(--text-primary)', padding: '2px 0' }}>
                           {reason}
                         </div>
@@ -453,22 +461,26 @@ function QualityReportModal({ isOpen, onClose, quality, readability, qualityRefu
 
                   <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: 'var(--text-primary)' }}>Quality ratios</h4>
                   <div style={{ padding: '4px 0' }}>
-                    {RATIO_ORDER.map(key => (
-                      <RatioRow
-                        key={key}
-                        ratioKey={key}
-                        ratio={(quality!.quality.ratios as Record<string, number>)[key]}
-                        threshold={(quality!.quality.thresholds as Record<string, number | null>)[key] ?? null}
-                      />
-                    ))}
+                    {RATIO_ORDER.map(key => {
+                      const ratios = quality?.quality?.ratios as Record<string, number> | undefined;
+                      if (!ratios || ratios[key] === undefined) return null;
+                      return (
+                        <RatioRow
+                          key={key}
+                          ratioKey={key}
+                          ratio={ratios[key]}
+                          threshold={((quality?.quality?.thresholds as Record<string, number | null> | undefined)?.[key]) ?? null}
+                        />
+                      );
+                    })}
                   </div>
                 </>
               ) : hasReadability ? (
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  <StatChip label="Captions" value={String(readability!.captions)} />
-                  <StatChip label="Avg reading speed" value={`${readability!.avg_cps.toFixed(1)} cps`} />
-                  <StatChip label="Max reading speed" value={`${readability!.max_cps.toFixed(1)} cps`} />
-                  <StatChip label="Longest line" value={`${readability!.max_cpl} chars`} />
+                  <StatChip label="Captions" value={formatValue(readability?.captions)} />
+                  <StatChip label="Avg reading speed" value={`${formatNumber(readability?.avg_cps)} cps`} />
+                  <StatChip label="Max reading speed" value={`${formatNumber(readability?.max_cps)} cps`} />
+                  <StatChip label="Longest line" value={`${formatValue(readability?.max_cpl)} chars`} />
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-secondary)' }}>
@@ -496,11 +508,11 @@ function QualityReportModal({ isOpen, onClose, quality, readability, qualityRefu
           {activeTab === 'readability' && (
             <div>
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
-                <StatChip label="Captions" value={String(readability!.captions)} />
-                <StatChip label="Analyzed" value={String(readability!.analyzed)} />
-                <StatChip label="Avg speed" value={`${readability!.avg_cps.toFixed(1)} cps`} />
-                <StatChip label="Max speed" value={`${readability!.max_cps.toFixed(1)} cps`} color={readability!.max_cps > readability!.thresholds.max_cps ? 'var(--danger-color)' : undefined} />
-                <StatChip label="Longest line" value={`${readability!.max_cpl} chars`} color={readability!.max_cpl > readability!.thresholds.max_cpl ? 'var(--danger-color)' : undefined} />
+                <StatChip label="Captions" value={formatValue(readability?.captions)} />
+                <StatChip label="Analyzed" value={formatValue(readability?.analyzed)} />
+                <StatChip label="Avg speed" value={`${formatNumber(readability?.avg_cps)} cps`} />
+                <StatChip label="Max speed" value={`${formatNumber(readability?.max_cps)} cps`} color={(readability?.max_cps ?? 0) > (readability?.thresholds?.max_cps ?? Number.POSITIVE_INFINITY) ? 'var(--danger-color)' : undefined} />
+                <StatChip label="Longest line" value={`${formatValue(readability?.max_cpl)} chars`} color={(readability?.max_cpl ?? 0) > (readability?.thresholds?.max_cpl ?? Number.POSITIVE_INFINITY) ? 'var(--danger-color)' : undefined} />
               </div>
 
               <div style={{
@@ -508,9 +520,9 @@ function QualityReportModal({ isOpen, onClose, quality, readability, qualityRefu
                 display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap',
               }}>
                 <span>
-                  Limits: {readability!.thresholds.max_cps} cps, {readability!.thresholds.max_cpl} chars/line, {readability!.thresholds.max_lines} lines
+                  Limits: {formatValue(readability?.thresholds?.max_cps)} cps, {formatValue(readability?.thresholds?.max_cpl)} chars/line, {formatValue(readability?.thresholds?.max_lines)} lines
                 </span>
-                {Object.entries(readability!.problems_by_type || {}).map(([type, count]) => (
+                {Object.entries(readability?.problems_by_type || {}).map(([type, count]) => (
                   <span key={type} style={{
                     padding: '2px 8px', borderRadius: '4px',
                     backgroundColor: 'var(--bg-tertiary)', fontSize: '11px',
@@ -520,7 +532,7 @@ function QualityReportModal({ isOpen, onClose, quality, readability, qualityRefu
                 ))}
               </div>
 
-              {readability!.problems.length > 0 && (
+              {(readability?.problems?.length ?? 0) > 0 && (
                 <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
                   {(['all', 'critical', 'minor'] as const).map(f => (
                     <button
@@ -536,13 +548,13 @@ function QualityReportModal({ isOpen, onClose, quality, readability, qualityRefu
                       }}
                     >
                       {f}
-                      {f !== 'all' && ` (${readability!.problems.filter(p => p.severity === f).length})`}
+                      {f !== 'all' && ` (${(readability?.problems ?? []).filter(p => p.severity === f).length})`}
                     </button>
                   ))}
                 </div>
               )}
 
-              {readability!.problems.length === 0 ? (
+              {(readability?.problems?.length ?? 0) === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-secondary)' }}>
                   <i className="fas fa-check-circle" style={{ fontSize: '24px', color: 'var(--success-color)', marginBottom: '12px', display: 'block' }}></i>
                   Every caption is within the readability limits.
