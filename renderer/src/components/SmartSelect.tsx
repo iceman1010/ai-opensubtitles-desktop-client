@@ -50,18 +50,20 @@ const SmartSelect: React.FC<SmartSelectProps> = ({
   const selectStyles: React.CSSProperties = {
     width: '100%',
     padding: '8px 12px',
-    border: '1px solid #ddd',
+    border: '1px solid var(--input-border)',
     borderRadius: 4,
-    backgroundColor: 'white',
+    backgroundColor: 'var(--input-bg)',
     fontSize: 14,
-    color: '#333',
-    cursor: disabled ? 'not-allowed' : 'pointer'
+    color: 'var(--text-primary)',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    WebkitAppearance: 'none',
+    appearance: 'none'
   };
 
   const disabledSelectStyles: React.CSSProperties = {
     ...selectStyles,
-    backgroundColor: '#f5f5f5',
-    color: '#666'
+    backgroundColor: 'var(--bg-tertiary)',
+    color: 'var(--text-muted)'
   };
 
   return (
@@ -69,18 +71,22 @@ const SmartSelect: React.FC<SmartSelectProps> = ({
       <style>{`
         .smart-select:focus {
           outline: none;
-          border-color: #007bff;
-          box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+          border-color: var(--primary-color);
+          box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.15);
         }
         
         .smart-select:hover:not(:disabled) {
-          border-color: #007bff;
+          border-color: var(--primary-color);
         }
         
         .smart-select option[disabled] {
-          background-color: #f0f0f0 !important;
-          color: #666 !important;
+          background-color: var(--bg-tertiary) !important;
+          color: var(--text-muted) !important;
           font-style: normal !important;
+
+        }
+
+        .smart-select option.smart-select-separator {
           text-align: center !important;
         }
       `}</style>
@@ -108,7 +114,7 @@ const SmartSelect: React.FC<SmartSelectProps> = ({
         
         {/* Separator */}
         {incompatibleOptions.length > 0 && compatibleOptions.length > 0 && (
-          <option disabled style={{ backgroundColor: '#f0f0f0', color: '#666' }}>
+          <option disabled className="smart-select-separator" style={{ backgroundColor: '#f0f0f0', color: '#666' }}>
             ────────────────────
           </option>
         )}

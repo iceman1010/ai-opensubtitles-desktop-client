@@ -162,13 +162,107 @@ export interface FeatureSearchResponse {
   per_page?: number;
 }
 
+export interface QualityDefect {
+  type: string;
+  severity: 'error' | 'warning';
+  message: string;
+  [key: string]: any;
+}
+
+export interface QualityReadabilityStats {
+  avg_cps: number;
+  max_cps: number;
+  max_cps_caption: number;
+  max_cpl: number;
+  max_cpl_caption: number;
+}
+
+export interface QualityReportStats {
+  source_captions: number;
+  aligned_pairs: number;
+  partial_chars_analyzed: number;
+  ratios: {
+    content_loss: number;
+    timestamp_drift: number;
+    partial_translation: number;
+    merged: number;
+    verbatim_copy: number;
+    near_verbatim_copy: number;
+    unexpected_script: number;
+    unaligned: number;
+  };
+  thresholds: {
+    content_loss: number;
+    timestamp_drift: number;
+    partial_translation: number | null;
+    merged: number;
+    verbatim_copy: number;
+    near_verbatim_copy: number;
+    unexpected_script: number | null;
+    unaligned: number | null;
+  };
+  readability: QualityReadabilityStats;
+  strict: boolean;
+  reasons: string[];
+}
+
+export interface QualityReport {
+  valid: boolean;
+  result: 'passed' | 'failed';
+  original: string;
+  translation: string;
+  language: string;
+  timestamp_tolerance: number;
+  defect_count: number;
+  error_count: number;
+  warning_count: number;
+  defects_by_type: { [type: string]: number };
+  defects: QualityDefect[];
+  quality: QualityReportStats;
+}
+
+export interface ReadabilityIssue {
+  type: string;
+  value: number;
+  limit: number;
+  severity: 'minor' | 'critical';
+}
+
+export interface ReadabilityProblem {
+  caption: number;
+  severity: 'minor' | 'critical';
+  start_seconds: number;
+  end_seconds: number;
+  duration_seconds: number;
+  chars: number;
+  cps: number | null;
+  text: string;
+  issues: ReadabilityIssue[];
+}
+
+export interface ReadabilityReport {
+  captions: number;
+  analyzed: number;
+  avg_cps: number;
+  max_cps: number;
+  max_cps_caption: number;
+  max_cpl: number;
+  max_cpl_caption: number;
+  thresholds: { max_cps: number; max_cpl: number; max_lines: number };
+  problems_by_type: { [type: string]: number };
+  problems: ReadabilityProblem[];
+}
+
 export interface CompletedTaskData {
   file_name: string;
   url: string;
-  character_count: number;
+  characters_count: number;
   unit_price: number;
   total_price: number;
   credits_left: number;
+  quality?: QualityReport;
+  readability?: ReadabilityReport;
+  quality_refund?: number;
   task: {
     login: string;
     loginid: string;

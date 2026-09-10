@@ -8,6 +8,7 @@
   --text-secondary: #666666;
   --text-muted: #999999;
   --border-color: #dee2e6;
+  --border-light: #e9ecef;
   --shadow-color: rgba(0, 0, 0, 0.1);
   --input-bg: #ffffff;
   --input-border: #ced4da;
@@ -41,6 +42,7 @@
   --text-secondary: #e0e0e0;
   --text-muted: #b0b0b0;
   --border-color: #555555;
+  --border-light: #3a3a3a;
   --shadow-color: rgba(0, 0, 0, 0.3);
   --input-bg: #3a3a3a;
   --input-border: #666666;
@@ -85,6 +87,8 @@ body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
   height: 100vh;
+  font-size: 14px;
+  line-height: 1.5;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
@@ -151,24 +155,25 @@ body {
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   font-weight: 500;
   color: var(--text-primary);
+  font-size: 13px;
 }
 
 .form-group input,
 .form-group select,
 select {
   width: 100%;
-  padding: 12px;
+  padding: 8px 12px;
   border: 1px solid var(--input-border);
   border-radius: 4px;
-  font-size: 16px;
+  font-size: 14px;
   background-color: var(--input-bg);
   color: var(--text-primary);
   transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
@@ -452,62 +457,125 @@ input[type="file"][webkitdirectory]::-moz-file-upload-button {
 }
 
 .file-info {
-  margin: 20px 0;
-  padding: 15px;
-  background-color: var(--bg-tertiary);
-  border-radius: 4px;
+  padding: 16px;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
   border: 1px solid var(--border-color);
 }
 
 .file-info h3 {
-  margin-bottom: 10px;
+  margin: 0;
 }
 
 .file-info p {
   margin: 5px 0;
 }
 
+.file-info-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.file-info-name {
+  word-break: break-all;
+  color: var(--text-primary);
+}
+
+.file-info-cost {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-light);
+  font-size: 14px;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 12px;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: #ffffff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover:not(:disabled) {
+  filter: brightness(0.9);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Two-column row for file info + language detection */
+.info-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 20px;
+}
+
+/* Full-width stacked column for content below the file selector */
+.content-stack {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.content-stack > .status-message {
+  margin-bottom: 0;
+}
+
 .options-section {
-  margin: 30px 0;
+  margin: 0;
 }
 
 .options-container {
   padding: 20px;
-  background-color: var(--bg-tertiary);
+  background-color: var(--bg-secondary);
   border-radius: 8px;
   border: 1px solid var(--border-color);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
 }
 
 .options-container .form-group {
   display: flex;
   flex-direction: column;
-}
-
-@media (min-width: 768px) {
-  .options-container {
-    padding: 24px;
-  }
-  
-  .options-container .form-group {
-    flex-direction: row;
-    align-items: center;
-    gap: 15px;
-  }
-  
-  .options-container .form-group label {
-    min-width: 150px;
-    margin-bottom: 0;
-    text-align: left;
-  }
-  
-  .options-container .form-group select {
-    flex: 1;
-    max-width: 300px;
-  }
+  flex: 1 1 240px;
+  margin-bottom: 0;
 }
 
 .options-container h3 {
-  margin-bottom: 20px;
+  width: 100%;
+  margin: 0;
+  font-size: 16px;
   color: var(--text-primary);
 }
 
@@ -520,16 +588,6 @@ input[type="file"][webkitdirectory]::-moz-file-upload-button {
 @media (min-width: 1024px) {
   .main-content {
     padding: 40px;
-  }
-  
-  .file-info > div[style*="display: flex"] {
-    flex-wrap: wrap;
-    gap: 30px !important;
-  }
-  
-  .file-info > div[style*="display: flex"] > div {
-    flex: 1;
-    min-width: 200px;
   }
 }
 

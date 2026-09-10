@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import FileSelector from './FileSelector';
 import { getProcessingType } from '../config/fileFormats';
-import { LanguageInfo, TranslationInfo, DetectedLanguage, ServicesInfo, ServiceModel } from '../services/api';
+import { LanguageInfo, TranslationInfo, DetectedLanguage, ServicesInfo, ServiceModel, QualityReport, ReadabilityReport } from '../services/api';
 import { logger } from '../utils/errorLogger';
 import { parseProbeError } from '../utils/probeError';
 import { parseSubtitleFile, formatDuration, formatCharacterCount, ParsedSubtitle } from '../utils/subtitleParser';
@@ -13,6 +13,7 @@ import { generateFilename } from '../utils/filenameGenerator';
 import appConfig from '../config/appConfig.json';
 import * as fileFormatsConfig from '../../../shared/fileFormats.json';
 import SubtitlePreviewModal from './SubtitlePreviewModal';
+import QualityReportModal from './QualityReportModal';
 
 // Utility functions for file type checking
 const isVideoFile = (fileName: string): boolean => {
@@ -66,6 +67,13 @@ interface AppConfig {
   };
 }
 
+interface QualitySummary {
+  quality?: QualityReport;
+  readability?: ReadabilityReport;
+  qualityRefund?: number;
+  fileName?: string;
+}
+
 interface MainScreenProps {
   config: AppConfig;
   setAppProcessing: (processing: boolean, task?: string) => void;
@@ -106,6 +114,8 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
   const [fileType, setFileType] = useState<'transcription' | 'translation' | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error' | 'info'; message: string; copyText?: string } | null>(null);
+  const [qualitySummary, setQualitySummary] = useState<QualitySummary | null>(null);
+  const [showQualityReport, setShowQualityReport] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewContent, setPreviewContent] = useState<string>('');
 
@@ -1002,6 +1012,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
     const processingType = getProcessingType(filePath);
     setFileType(processingType === 'unknown' ? null : processingType);
     setStatusMessage(null);
+    setQualitySummary(null);
     
     // Reset language detection state when new file is selected
     setDetectedLanguage(null);
@@ -1049,6 +1060,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
     setIsProcessing(true);
     setAppProcessing(true, fileType === 'transcription' ? 'Transcribing...' : 'Translating...');
     setStatusMessage({ type: 'info', message: 'Processing file...' });
+    setQualitySummary(null);
 
     // Prevent system sleep during processing
     try {
@@ -1149,7 +1161,10 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         if (typeof result.data.total_price === 'number' && result.data.total_price > 0) {
           message += ` (${result.data.total_price} credits used)`;
         }
-        
+        if (typeof result.data.quality_refund === 'number' && result.data.quality_refund > 0) {
+          message += ` — quality check failed, ${result.data.quality_refund} credits refunded`;
+        }
+
         setStatusMessage({ 
           type: 'success', 
           message: message
@@ -1174,6 +1189,16 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
               logger.error('MainScreen', 'Credits animation error:', error);
             }
           }
+        }
+
+        // Show quality summary for translations when quality data is available
+        if (fileType === 'translation' && (result.data.quality || result.data.readability)) {
+          setQualitySummary({
+            quality: result.data.quality,
+            readability: result.data.readability,
+            qualityRefund: typeof result.data.quality_refund === 'number' ? result.data.quality_refund : undefined,
+            fileName: result.data.file_name,
+          });
         }
         
         // If we have content, show it in preview
@@ -1283,11 +1308,24 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           if (typeof result.data.total_price === 'number' && result.data.total_price > 0) {
             message += ` (${result.data.total_price} credits used)`;
           }
+          if (typeof result.data.quality_refund === 'number' && result.data.quality_refund > 0) {
+            message += ` — quality check failed, ${result.data.quality_refund} credits refunded`;
+          }
 
           setStatusMessage({
             type: 'success',
             message: message
           });
+
+          // Show quality summary for translations when quality data is available
+          if (type === 'translation' && (result.data.quality || result.data.readability)) {
+            setQualitySummary({
+              quality: result.data.quality,
+              readability: result.data.readability,
+              qualityRefund: typeof result.data.quality_refund === 'number' ? result.data.quality_refund : undefined,
+              fileName: result.data.file_name,
+            });
+          }
 
           // Update credits from the response with animation trigger
           if (typeof result.data.credits_left === 'number') {
@@ -1522,6 +1560,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         disabled={isProcessing || isDetectingLanguage} 
       />
 
+      <div className="content-stack">
       {/* Welcome message when no file is selected */}
       {!selectedFile && (
         <div 
@@ -1531,7 +1570,6 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
             backgroundColor: 'var(--bg-secondary)',
             borderRadius: '12px',
             border: '2px dashed #dee2e6',
-            margin: '20px 0',
             opacity: 1,
             transform: 'translateY(0)',
             transition: 'opacity 0.3s ease-in-out, transform 0.3s ease-in-out'
@@ -1567,7 +1605,9 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         </div>
       )}
 
-      {selectedFile && fileType && (
+      {selectedFile && (
+        <div className="info-row">
+        {selectedFile && fileType && (
         <div 
           className="file-info"
           style={{
@@ -1576,55 +1616,45 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
             transition: 'opacity 0.3s ease-in-out, transform 0.3s ease-in-out'
           }}
         >
-          <h3>Selected File:</h3>
-          <p style={{ wordBreak: 'break-all', marginBottom: '8px' }}>{selectedFile}</p>
-          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-            <div>
+          <div className="file-info-header">
+            <h3>Selected File:</h3>
+            <span className="file-info-name">{selectedFile}</span>
+          </div>
+          <div className="chip-row">
+            <span className="chip">
               <strong>Type:</strong> {fileType === 'transcription' ? 'Audio/Video (Transcription)' : 'Subtitle (Translation)'}
-            </div>
+            </span>
             
             {isLoadingFileInfo ? (
-              <div style={{ color: '#666', fontStyle: 'italic' }}>
-                Analyzing file...
-              </div>
+              <span className="chip" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Analyzing file...</span>
             ) : fileInfo ? (
               <>
                 {/* Media file information */}
                 {fileInfo.duration !== undefined && (
-                  <div>
-                    <strong>Duration:</strong> {formatDuration(fileInfo.duration)}
-                  </div>
+                  <span className="chip"><strong>Duration:</strong> {formatDuration(fileInfo.duration)}</span>
                 )}
                 
                 {fileInfo.format && (
-                  <div>
-                    <strong>Format:</strong> {fileInfo.format.toUpperCase()}
-                  </div>
+                  <span className="chip"><strong>Format:</strong> {fileInfo.format.toUpperCase()}</span>
                 )}
                 
                 {fileInfo.hasAudio !== undefined && (
-                  <div>
+                  <span className="chip">
                     <strong>Audio:</strong> <i className={`fas ${fileInfo.hasAudio ? 'fa-check text-success' : 'fa-times text-danger'}`}></i>
                     {fileInfo.hasVideo !== undefined && (
-                      <span style={{ marginLeft: '10px' }}>
+                      <>
                         <strong>Video:</strong> <i className={`fas ${fileInfo.hasVideo ? 'fa-check text-success' : 'fa-times text-danger'}`}></i>
-                      </span>
+                      </>
                     )}
-                  </div>
+                  </span>
                 )}
                 
                 {/* Subtitle file information */}
                 {fileInfo.subtitleInfo && (
                   <>
-                    <div>
-                      <strong>Characters:</strong> {formatCharacterCount(fileInfo.subtitleInfo.characterCount)}
-                    </div>
-                    <div>
-                      <strong>Words:</strong> {formatCharacterCount(fileInfo.subtitleInfo.wordCount)}
-                    </div>
-                    <div>
-                      <strong>Subtitle Lines:</strong> {formatCharacterCount(fileInfo.subtitleInfo.lineCount)}
-                    </div>
+                    <span className="chip"><strong>Characters:</strong> {formatCharacterCount(fileInfo.subtitleInfo.characterCount)}</span>
+                    <span className="chip"><strong>Words:</strong> {formatCharacterCount(fileInfo.subtitleInfo.wordCount)}</span>
+                    <span className="chip"><strong>Lines:</strong> {formatCharacterCount(fileInfo.subtitleInfo.lineCount)}</span>
                   </>
                 )}
               </>
@@ -1633,13 +1663,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           
           {/* Cost estimation for translation */}
           {fileType === 'translation' && fileInfo?.subtitleInfo && (
-            <div style={{
-              marginTop: '12px',
-              padding: '8px 12px',
-              backgroundColor: 'var(--bg-tertiary)',
-              borderRadius: '4px',
-              fontSize: '14px'
-            }}>
+            <div className="file-info-cost">
               {estimatedCost !== null ? (
                 estimatedCost === 0 ? (
                   <>
@@ -1679,13 +1703,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
 
           {/* Duration estimate for transcription */}
           {fileType === 'transcription' && fileInfo?.duration && (
-            <div style={{
-              marginTop: '12px',
-              padding: '8px 12px',
-              backgroundColor: 'var(--bg-tertiary)',
-              borderRadius: '4px',
-              fontSize: '14px'
-            }}>
+            <div className="file-info-cost">
               {estimatedCost !== null ? (
                 estimatedCost === 0 ? (
                   <>
@@ -1728,7 +1746,6 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       {/* Language Detection Section */}
       {selectedFile && (
         <div style={{
-          marginTop: '20px',
           padding: '15px',
           border: '1px solid var(--border-color)',
           borderRadius: '6px',
@@ -1738,70 +1755,35 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           transition: 'opacity 0.4s ease-in-out, transform 0.4s ease-in-out',
           transitionDelay: '0.1s'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
             <h4 style={{ margin: 0, color: 'var(--text-primary)' }}>Language Detection</h4>
-            <button 
+            <button
               onClick={detectLanguageForFile}
               disabled={isDetectingLanguage || isProcessing}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: isDetectingLanguage ? '#ccc' : '#4CAF50',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: isDetectingLanguage ? 'not-allowed' : 'pointer',
-                fontSize: '14px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
+              className="btn-primary"
+              style={{ padding: '8px 16px', fontSize: '14px' }}
             >
-              {isDetectingLanguage ? (
-                <>
-                  <span style={{ 
-                    display: 'inline-block', 
-                    width: '12px', 
-                    height: '12px', 
-                    border: '2px solid white',
-                    borderTop: '2px solid transparent',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite'
-                  }}></span>
-                  Detecting...
-                </>
-              ) : (
-                <>
-                  <i className="fas fa-search" style={{marginRight: '6px'}}></i>Detect Language
-                </>
-              )}
+              {isDetectingLanguage ? 'Detecting...' : 'Detect Language'}
             </button>
+            <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Optional — auto-fills the source language</span>
           </div>
-          
-          <p style={{
-            margin: '0 0 15px 0',
-            color: 'var(--text-secondary)',
-            fontSize: '14px'
-          }}>
-            Click "Detect Language" to automatically identify the source language and see which AI models support it.
-          </p>
 
           {/* Language Detection Result */}
           {showLanguageDetectionResult && detectedLanguage && (
             <div style={{
-              marginTop: '15px',
+              marginTop: '12px',
               padding: '12px',
-              backgroundColor: 'var(--success-bg)',
-              border: '1px solid var(--success-border)',
+              backgroundColor: 'rgba(40, 167, 69, 0.1)',
+              border: '1px solid rgba(40, 167, 69, 0.3)',
               borderRadius: '4px'
             }}>
-              <h5 style={{ margin: '0 0 10px 0', color: 'var(--success-text)' }}>
+              <h5 style={{ margin: '0', color: 'var(--success-color)' }}>
                 Language Detected: {detectedLanguage.name}
               </h5>
               
-              <div style={{ display: 'flex', gap: '20px', marginBottom: '15px', fontSize: '14px', color: 'var(--success-text)' }}>
-                <div><strong>Native Name:</strong> {detectedLanguage.native}</div>
-                <div><strong>ISO Code:</strong> {detectedLanguage.ISO_639_1}</div>
-                <div><strong>W3C Code:</strong> {detectedLanguage.W3C}</div>
+              <div className="chip-row">
+                <span className="chip"><strong>Native Name:</strong> {detectedLanguage.native}</span>
+                <span className="chip"><strong>ISO Code:</strong> {detectedLanguage.ISO_639_1}</span>
               </div>
               
               {/* Only show relevant model compatibility based on file type */}
@@ -1814,18 +1796,18 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
                   <div>
                     {/* Show translation models for subtitle files */}
                     {isSubtitle && (
-                      <div style={{ marginBottom: '15px' }}>
-                        <h6 style={{ margin: '0 0 8px 0', color: 'var(--text-primary)' }}>
+                      <div style={{ marginTop: '12px' }}>
+                        <h6 style={{ margin: '0 0 6px 0' }}>
                           Compatible Translation Models ({compatibleModels.translation.length})
                         </h6>
                         {compatibleModels.translation.length > 0 ? (
-                          <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: 'var(--success-text)' }}>
+                          <div className="chip-row" style={{ marginTop: 0 }}>
                             {compatibleModels.translation.map(model => (
-                              <li key={model}>{model}</li>
+                              <span key={model} className="chip">{model}</span>
                             ))}
-                          </ul>
+                          </div>
                         ) : (
-                          <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                          <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                             No translation models support this language
                           </p>
                         )}
@@ -1834,18 +1816,18 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
                     
                     {/* Show transcription models for audio/video files */}
                     {isAudioVideo && (
-                      <div style={{ marginBottom: '15px' }}>
-                        <h6 style={{ margin: '0 0 8px 0', color: 'var(--text-primary)' }}>
+                      <div style={{ marginTop: '12px' }}>
+                        <h6 style={{ margin: '0 0 6px 0' }}>
                           Compatible Transcription Models ({compatibleModels.transcription.length})
                         </h6>
                         {compatibleModels.transcription.length > 0 ? (
-                          <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: 'var(--success-text)' }}>
+                          <div className="chip-row" style={{ marginTop: 0 }}>
                             {compatibleModels.transcription.map(model => (
-                              <li key={model}>{model}</li>
+                              <span key={model} className="chip">{model}</span>
                             ))}
-                          </ul>
+                          </div>
                         ) : (
-                          <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                          <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                             No transcription models support this language
                           </p>
                         )}
@@ -1861,17 +1843,19 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
                 <div style={{
                   marginTop: '10px',
                   padding: '8px',
-                  backgroundColor: 'var(--success-bg)',
+                  backgroundColor: 'rgba(40, 167, 69, 0.1)',
                   borderRadius: '3px',
                   fontSize: '12px',
-                  color: 'var(--success-text)',
-                  border: '1px solid var(--success-border)'
+                  color: 'var(--success-color)',
+                  border: '1px solid rgba(40, 167, 69, 0.3)'
                 }}>
-                  <i className="fas fa-check-circle" style={{ color: 'var(--success-text)' }}></i> Language selection has been automatically updated below
+                  <i className="fas fa-check-circle" style={{ color: 'var(--success-color)' }}></i> Language selection has been automatically updated below
                 </div>
               )}
             </div>
           )}
+          </div>
+        )}
         </div>
       )}
 
@@ -1929,6 +1913,55 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         </div>
       )}
 
+      {qualitySummary && (
+        <div style={{
+          padding: '14px 16px',
+          border: '1px solid var(--border-color)',
+          borderRadius: '6px',
+          backgroundColor: 'var(--bg-secondary)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          flexWrap: 'wrap',
+        }}>
+          {qualitySummary.quality ? (
+            <span style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              fontSize: '14px', fontWeight: '600',
+              color: qualitySummary.quality.valid ? 'var(--success-color)' : 'var(--danger-color)',
+            }}>
+              <i className={qualitySummary.quality.valid ? 'fas fa-check-circle' : 'fas fa-times-circle'}></i>
+              Quality: {qualitySummary.quality.valid ? 'Passed' : 'Failed'}
+            </span>
+          ) : (
+            <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+              <i className="fas fa-tachometer-alt" style={{ marginRight: '6px' }}></i>
+              Readability
+            </span>
+          )}
+          {typeof qualitySummary.qualityRefund === 'number' && qualitySummary.qualityRefund > 0 && (
+            <span className="chip" style={{ color: '#9b59b6' }}>
+              <strong>{qualitySummary.qualityRefund} credits refunded</strong>
+            </span>
+          )}
+          {qualitySummary.quality && qualitySummary.quality.warning_count > 0 && (
+            <span className="chip"><strong>Warnings:</strong> {qualitySummary.quality.warning_count}</span>
+          )}
+          {qualitySummary.readability && (
+            <span className="chip"><strong>Avg speed:</strong> {qualitySummary.readability.avg_cps.toFixed(1)} cps</span>
+          )}
+          <div style={{ flex: 1 }}></div>
+          <button
+            onClick={() => setShowQualityReport(true)}
+            className="button button-secondary"
+            style={{ padding: '8px 16px', fontSize: '13px' }}
+          >
+            <i className="fas fa-clipboard-check" style={{ marginRight: '6px' }}></i>
+            View Quality Report
+          </button>
+        </div>
+      )}
+
       {selectedFile && fileType && (
         <div 
           className="action-section"
@@ -1957,12 +1990,23 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         </div>
       )}
 
+      </div>
+
       <SubtitlePreviewModal
         isOpen={showPreview}
         onClose={handlePreviewClose}
         content={previewContent}
         fileName={generateResultFilename() || selectedFile?.split(/[/\\]/).pop() || ''}
         onDownload={() => handleSaveFile(previewContent)}
+      />
+
+      <QualityReportModal
+        isOpen={showQualityReport}
+        onClose={() => setShowQualityReport(false)}
+        quality={qualitySummary?.quality}
+        readability={qualitySummary?.readability}
+        qualityRefund={qualitySummary?.qualityRefund}
+        fileName={qualitySummary?.fileName}
       />
       
       {/* Credit Warning Modal */}
