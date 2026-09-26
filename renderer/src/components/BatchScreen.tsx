@@ -535,6 +535,14 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
     return undefined;
   };
 
+  const resolveLanguageForApi = (candidate: string | undefined, apiLanguages: LanguageInfo[] | undefined): string => {
+    if (!candidate || candidate === 'auto' || !apiLanguages?.length) return candidate || 'auto';
+    if (apiLanguages.some(l => l.language_code === candidate)) return candidate;
+    const base = candidate.split(/[-_]/)[0].toLowerCase();
+    const remapped = apiLanguages.find(l => l.language_code.toLowerCase().split(/[-_]/)[0] === base);
+    return remapped?.language_code || 'auto';
+  };
+
   // Update source language selections when translation model changes
   const updateSourceLanguageSelectionsForModel = (newModel: string) => {
     if (!contextTranslationInfo?.languages[newModel]) return;
@@ -1514,8 +1522,16 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
       ));
       setAppProcessing(true, `Initiating transcription for ${file.name}...`);
 
+      const transcriptionLangsMap = contextTranscriptionInfo?.languages;
+      const transcriptionApiLanguages = transcriptionLangsMap && !Array.isArray(transcriptionLangsMap)
+        ? transcriptionLangsMap[batchSettings.transcriptionModel]
+        : undefined;
+
       const transcriptionInitResult = await initiateTranscription(fileToProcess, {
-        language: file.selectedSourceLanguage || file.detectedLanguage?.ISO_639_1 || 'auto',
+        language: resolveLanguageForApi(
+          file.selectedSourceLanguage || file.detectedLanguage?.ISO_639_1,
+          transcriptionApiLanguages
+        ),
         api: batchSettings.transcriptionModel,
         returnContent: true
       });
@@ -1563,8 +1579,13 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
       await writeFileDirectly(outputContent, tempFileName);
       setAppProcessing(true, `Initiating translation for ${file.name}...`);
       
+      const translationApiLanguages = contextTranslationInfo?.languages[batchSettings.translationModel];
+
       const translationInitResult = await initiateTranslation(tempFileName, {
-        translateFrom: file.selectedSourceLanguage || file.detectedLanguage?.ISO_639_1 || 'auto',
+        translateFrom: resolveLanguageForApi(
+          file.selectedSourceLanguage || file.detectedLanguage?.ISO_639_1,
+          translationApiLanguages
+        ),
         translateTo: batchSettings.targetLanguage,
         api: batchSettings.translationModel,
         returnContent: true
@@ -1655,8 +1676,13 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
     ));
     setAppProcessing(true, `Initiating translation for ${file.name}...`);
 
+    const standaloneTranslationApiLanguages = contextTranslationInfo?.languages[batchSettings.translationModel];
+
     const translationInitResult = await initiateTranslation(file.path, {
-      translateFrom: file.selectedSourceLanguage || file.detectedLanguage?.ISO_639_1 || 'auto',
+      translateFrom: resolveLanguageForApi(
+        file.selectedSourceLanguage || file.detectedLanguage?.ISO_639_1,
+        standaloneTranslationApiLanguages
+      ),
       translateTo: batchSettings.targetLanguage,
       api: batchSettings.translationModel,
       returnContent: true

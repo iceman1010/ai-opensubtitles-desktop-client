@@ -104,11 +104,16 @@ const ImprovedTranscriptionOptions: React.FC<ImprovedTranscriptionOptionsProps> 
   // Handle model change
   const handleModelChange = (newModel: string) => {
     setOptions(prev => ({ ...prev, model: newModel }));
-    
-    // If current language is not compatible with new model, switch to auto-detect
-    if (currentConsolidated) {
+
+    if (currentConsolidated && currentConsolidated.id !== 'auto-detect') {
       const compatibleApis = compatibilityMatrix[currentConsolidated.id] || [];
-      if (!compatibleApis.includes(newModel)) {
+      if (compatibleApis.includes(newModel)) {
+        // Remap to the new API's own code for the same language (e.g. ja-JP -> ja)
+        const bestVariant = getBestVariantForApi(currentConsolidated, newModel);
+        if (bestVariant) {
+          setOptions(prev => ({ ...prev, language: bestVariant }));
+        }
+      } else {
         setOptions(prev => ({ ...prev, language: 'auto' }));
       }
     }
