@@ -351,6 +351,7 @@ class MainApp {
         preload: path.join(__dirname, 'preload.js'),
       },
       show: true,
+      backgroundColor: windowConfig.darkMode ? '#1a1a1a' : '#f5f5f5',
     });
 
     // Open DevTools if debug mode is enabled
@@ -396,9 +397,10 @@ class MainApp {
     });
 
     const isDev = process.env.NODE_ENV === 'development';
+    const themeQuery = `darkMode=${windowConfig.darkMode ? '1' : '0'}`;
     if (isDev) {
       const devPort = process.env.VITE_DEV_PORT || '5173';
-      this.mainWindow.loadURL(`http://localhost:${devPort}`);
+      this.mainWindow.loadURL(`http://localhost:${devPort}/?${themeQuery}`);
       // this.mainWindow.webContents.openDevTools(); // Commented out for cleaner UI
     } else {
       // Smart path resolution for different packaging formats
@@ -422,7 +424,7 @@ class MainApp {
       this.debug(3, 'Renderer', '==========================');
       
       try {
-        await this.mainWindow.loadFile(rendererPath);
+        await this.mainWindow.loadFile(rendererPath, { query: { darkMode: windowConfig.darkMode ? '1' : '0' } });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         logger.error('RENDERER', `loadFile failed: ${message}`, {

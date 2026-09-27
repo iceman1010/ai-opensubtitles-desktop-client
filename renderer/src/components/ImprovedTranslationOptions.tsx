@@ -173,6 +173,30 @@ const ImprovedTranslationOptions: React.FC<ImprovedTranslationOptionsProps> = ({
     }
   };
 
+  const handleModelChange = (newModel: string) => {
+    onModelChange(newModel);
+
+    if (currentSourceConsolidated && currentSourceConsolidated.id !== 'auto-detect') {
+      const compatibleApis = compatibilityMatrix[currentSourceConsolidated.id] || [];
+      if (compatibleApis.includes(newModel)) {
+        const bestVariant = getBestVariantForApi(currentSourceConsolidated, newModel);
+        if (bestVariant) onLanguageChange('sourceLanguage', bestVariant);
+      } else {
+        onLanguageChange('sourceLanguage', 'auto');
+      }
+    }
+
+    if (currentDestConsolidated) {
+      const compatibleApis = compatibilityMatrix[currentDestConsolidated.id] || [];
+      if (compatibleApis.includes(newModel)) {
+        const bestVariant = getBestVariantForApi(currentDestConsolidated, newModel);
+        if (bestVariant) onLanguageChange('destinationLanguage', bestVariant);
+      } else {
+        onLanguageChange('destinationLanguage', '');
+      }
+    }
+  };
+
   return (
     <div className="options-container">
       <h3>Translation Options</h3>
@@ -183,7 +207,7 @@ const ImprovedTranslationOptions: React.FC<ImprovedTranslationOptionsProps> = ({
           id="translation-model"
           value={options.model}
           options={modelOptions}
-          onChange={onModelChange}
+          onChange={handleModelChange}
           disabled={disabled}
           placeholder="Select AI Model"
         />

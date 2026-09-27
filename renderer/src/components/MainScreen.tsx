@@ -861,16 +861,14 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
     try {
       const result = await getTranslationApisForLanguage(sourceLanguage, targetLanguage);
       if (result.success && result.data) {
-        setAvailableTranslationApis(result.data);
-        
-        // Update model if current selection is not available
-        const currentModel = translationOptions.model;
-        const isCurrentModelAvailable = result.data.includes(currentModel);
-        
-        if (!isCurrentModelAvailable && result.data.length > 0) {
-          const defaultModel = result.data[0];
-          setTranslationOptions(prev => ({ ...prev, model: defaultModel }));
-        }
+        const models = result.data;
+        setAvailableTranslationApis(models);
+
+        setTranslationOptions(prev =>
+          !models.includes(prev.model) && models.length > 0
+            ? { ...prev, model: models[0] }
+            : prev
+        );
       }
     } catch (error) {
       logger.error('MainScreen', 'Failed to load models for language pair:', error);
@@ -891,18 +889,17 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       currentOptions: translationOptions
     });
 
-    const updatedOptions = { ...translationOptions, [field]: newLanguage };
-    logger.debug(2, 'MainScreen', 'Setting updated options', updatedOptions);
+    setTranslationOptions(prev => ({ ...prev, [field]: newLanguage }));
 
-    setTranslationOptions(updatedOptions);
+    const updatedSource = field === 'sourceLanguage' ? newLanguage : translationOptions.sourceLanguage;
+    const updatedDestination = field === 'destinationLanguage' ? newLanguage : translationOptions.destinationLanguage;
 
-    // Load compatible models for this language pair
-    if (updatedOptions.sourceLanguage && updatedOptions.destinationLanguage) {
+    if (updatedSource && updatedDestination) {
       logger.debug(2, 'MainScreen', 'Loading models for language pair', {
-        source: updatedOptions.sourceLanguage,
-        dest: updatedOptions.destinationLanguage
+        source: updatedSource,
+        dest: updatedDestination
       });
-      loadModelsForTranslationLanguage(updatedOptions.sourceLanguage, updatedOptions.destinationLanguage);
+      loadModelsForTranslationLanguage(updatedSource, updatedDestination);
     }
   };
 

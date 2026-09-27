@@ -18,6 +18,7 @@ export interface AppConfig {
   userId?: number;
   autoLanguageDetection?: boolean;
   supportEmail?: string;
+  darkMode?: boolean;
   credits?: {
     used: number;
     remaining: number;

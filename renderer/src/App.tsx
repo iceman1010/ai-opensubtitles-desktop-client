@@ -135,7 +135,7 @@ function App() {
             left: 0,
             width: '100vw',
             height: '100vh',
-            backgroundColor: config?.darkMode ? '#1a1a1a' : '#ffffff',
+            backgroundColor: (config?.darkMode ?? document.documentElement.classList.contains('dark-mode')) ? '#1a1a1a' : '#ffffff',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
