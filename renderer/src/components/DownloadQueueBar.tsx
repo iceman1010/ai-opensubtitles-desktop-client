@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface DownloadQueueBarProps {
   queueLength: number;
   onBatchDownload: () => void;

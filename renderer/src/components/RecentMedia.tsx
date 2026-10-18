@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import type { AppConfig } from '../../../shared/appConfig';
 import { useAPI } from '../contexts/APIContext';
 import { UncontrolledTreeEnvironment, StaticTreeDataProvider, Tree, TreeItem, TreeItemIndex } from 'react-complex-tree';
 import 'react-complex-tree/lib/style-modern.css';
@@ -10,20 +11,6 @@ interface RecentMediaItem {
   time: number;
   time_str: string;
   files?: string[];
-}
-
-interface AppConfig {
-  username: string;
-  password: string;
-  apiKey?: string;
-  lastUsedLanguage?: string;
-  debugMode?: boolean;
-  hideRecentMediaInfoPanel?: boolean;
-  darkMode?: boolean;
-  credits?: {
-    used: number;
-    remaining: number;
-  };
 }
 
 interface RecentMediaProps {
@@ -49,6 +36,8 @@ function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdat
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMorePages, setHasMorePages] = useState(true);
   const loadingRef = useRef(false);
+  const treeContainerRef = useRef<HTMLDivElement>(null);
+  const scrollToEndRef = useRef(false);
   const PAGE_SIZE = 20;
 
   // Race condition protection for downloads
@@ -93,6 +82,7 @@ function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdat
       if (result.success && result.data) {
         if (append) {
           setRecentMedia(prev => [...prev, ...result.data!]);
+          scrollToEndRef.current = true;
         } else {
           setRecentMedia(result.data);
         }
@@ -113,6 +103,18 @@ function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdat
       setIsLoadingMore(false);
     }
   }, [getRecentMedia, isAuthenticated, setAppProcessing]);
+
+  // When appended items arrive, the tree remounts (key change) and fetches its items
+  // asynchronously — scroll to the end of the list once the new content has rendered
+  useEffect(() => {
+    if (!scrollToEndRef.current || !treeContainerRef.current) return;
+    scrollToEndRef.current = false;
+    const el = treeContainerRef.current;
+    const scrollToBottom = () => { el.scrollTop = el.scrollHeight; };
+    requestAnimationFrame(() => requestAnimationFrame(scrollToBottom));
+    const fallbackTimer = setTimeout(scrollToBottom, 150);
+    return () => clearTimeout(fallbackTimer);
+  }, [recentMedia.length]);
 
   useEffect(() => {
     if (isAuthenticated && isVisible && !hasLoadedOnce) {
@@ -297,6 +299,14 @@ function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdat
     return data;
   }, [recentMedia]);
 
+  // UncontrolledTreeEnvironment caches fetched items internally and StaticTreeDataProvider
+  // emits no change events, so appending to recentMedia would never refresh the root's
+  // children. Remount the environment (key) whenever the fetched list changes.
+  const treeKey = recentMedia.length > 0
+    ? `recent-media-${recentMedia.length}-${recentMedia[recentMedia.length - 1].id}`
+    : 'recent-media-empty';
+  const treeDataProvider = useMemo(() => new StaticTreeDataProvider(treeData), [treeData]);
+
   if (!isAuthenticated) {
     return (
       <div className="recent-media-screen" style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '20px' }}>
@@ -377,9 +387,11 @@ function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdat
           <small>Your transcriptions and translations will appear here</small>
         </div>
       ) : (
-        <div style={{
-          flex: showInfoPanel ? 1 : '1 1 calc(100% - 120px)', // Expand more when info panel is hidden
-          overflowY: 'auto',
+        <div
+          ref={treeContainerRef}
+          style={{
+            flex: showInfoPanel ? 1 : '1 1 calc(100% - 120px)', // Expand more when info panel is hidden
+            overflowY: 'auto',
           background: 'var(--bg-secondary)',
           borderRadius: '8px',
           border: '1px solid var(--border-color)',
@@ -529,7 +541,8 @@ function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdat
             }
           `}</style>
           <UncontrolledTreeEnvironment
-            dataProvider={new StaticTreeDataProvider(treeData)}
+            key={treeKey}
+            dataProvider={treeDataProvider}
             getItemTitle={(item) => {
               if (item.data?.type === 'media') {
                 return item.data.title;
@@ -775,7 +788,7 @@ function RecentMedia({ setAppProcessing, isVisible = true, config, onConfigUpdat
             <div style={{
               display: 'flex',
               justifyContent: 'center',
-              padding: '16px 8px 8px'
+              padding: '16px 8px 20px'
             }}>
               <button
                 onClick={handleLoadMore}

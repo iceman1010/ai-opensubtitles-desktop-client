@@ -19,7 +19,7 @@ class ErrorLogger {
     return this.debugLevel;
   }
 
-  private shouldLog(level: 'info' | 'warn' | 'error', category: string, message?: string): boolean {
+  private shouldLog(level: 'info' | 'warn' | 'error', _category: string, _message?: string): boolean {
     if (level === 'error' || level === 'warn') {
       return true;
     }

@@ -133,10 +133,6 @@ export class OpenSubtitlesAPI {
     return auth.loadCachedToken(this.state);
   }
 
-  private async saveToken(token: string): Promise<void> {
-    return auth.saveToken(token);
-  }
-
   async clearCachedToken(): Promise<void> {
     return auth.clearCachedToken(this.state);
   }

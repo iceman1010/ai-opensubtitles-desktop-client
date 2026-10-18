@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import type { AppConfig } from '../../../shared/appConfig';
 import FileSelector from './FileSelector';
 import { getProcessingType } from '../config/fileFormats';
-import { LanguageInfo, TranslationInfo, DetectedLanguage, ServicesInfo, ServiceModel, QualityReport, ReadabilityReport } from '../services/api';
+import { TranslationInfo, DetectedLanguage, ServicesInfo, ServiceModel, QualityReport, ReadabilityReport } from '../services/api';
 import { logger } from '../utils/errorLogger';
 import { parseProbeError } from '../utils/probeError';
 import { parseSubtitleFile, formatDuration, formatCharacterCount, ParsedSubtitle } from '../utils/subtitleParser';
@@ -9,8 +10,8 @@ import ImprovedTranscriptionOptions from './ImprovedTranscriptionOptions';
 import ImprovedTranslationOptions from './ImprovedTranslationOptions';
 import { isOnline } from '../utils/networkUtils';
 import { useAPI } from '../contexts/APIContext';
+import { consolidateLanguages, getBestVariantForApi } from '../utils/languageMapper';
 import { generateFilename } from '../utils/filenameGenerator';
-import appConfig from '../config/appConfig.json';
 import * as fileFormatsConfig from '../../../shared/fileFormats.json';
 import SubtitlePreviewModal from './SubtitlePreviewModal';
 import QualityReportModal from './QualityReportModal';
@@ -41,31 +42,6 @@ const needsAudioConversion = (fileName: string): boolean => {
   return ext ? !supportedAudioFormats.includes(ext) : false;
 };
 
-
-interface AppConfig {
-  username: string;
-  password: string;
-  apiKey?: string;
-  lastUsedLanguage?: string;
-  debugMode?: boolean;
-  debugLevel?: number;
-  checkUpdatesOnStart?: boolean;
-  autoRemoveCompletedFiles?: boolean;
-  cacheExpirationHours?: number;
-  betaTest?: boolean;
-  ffmpegPath?: string;
-  audio_language_detection_time?: number;
-  apiBaseUrl?: string;
-  autoLanguageDetection?: boolean;
-  darkMode?: boolean;
-  pollingIntervalSeconds?: number;
-  pollingTimeoutSeconds?: number;
-  defaultFilenameFormat?: string;
-  credits?: {
-    used: number;
-    remaining: number;
-  };
-}
 
 interface QualitySummary {
   quality?: QualityReport;
@@ -133,10 +109,6 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
     model: '',
     format: fileFormatsConfig.subtitle[0] || 'srt'
   });
-  const [_availableTranslationLanguages, setAvailableTranslationLanguages] = useState<LanguageInfo[]>([]);
-  const [_availableTranslationApis, setAvailableTranslationApis] = useState<string[]>([]);
-  const [_availableTranscriptionLanguages, setAvailableTranscriptionLanguages] = useState<LanguageInfo[]>([]);
-  const [_availableTranscriptionApis, setAvailableTranscriptionApis] = useState<string[]>([]);
   const [_isLoadingDynamicOptions, setIsLoadingDynamicOptions] = useState(false);
   const [isLoadingOptions, _setIsLoadingOptions] = useState(false);
   const [_isLoadingCredits, _setIsLoadingCredits] = useState(false);
@@ -244,84 +216,6 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
     onProcessingStateChange?.(isProcessing);
   }, [isProcessing, onProcessingStateChange]);
 
-  // Initialize API info when context provides data
-  useEffect(() => {
-    if (contextTranscriptionInfo) {
-      setAvailableTranscriptionApis(contextTranscriptionInfo.apis);
-
-      // Set default transcription model and language
-      if (contextTranscriptionInfo.apis.length > 0) {
-        const defaultModel = contextTranscriptionInfo.apis[0];
-        logger.debug(2, 'MainScreen', `Setting default transcription model: ${defaultModel}`);
-        setTranscriptionOptions(prev => ({ ...prev, model: defaultModel }));
-
-        // Load languages for default model
-        loadTranscriptionLanguages(defaultModel);
-      }
-    }
-  }, [contextTranscriptionInfo]);
-
-  useEffect(() => {
-    if (translationInfo) {
-      setAvailableTranslationApis(translationInfo.apis);
-      
-      // Set default translation model and load languages
-      if (translationInfo.apis.length > 0) {
-        const defaultModel = translationInfo.apis[0];
-        logger.debug(2, 'MainScreen', `Setting default translation model: ${defaultModel}`);
-        setTranslationOptions(prev => ({ ...prev, model: defaultModel }));
-        
-        // Load languages for default model  
-        loadTranslationLanguages(defaultModel);
-      }
-    }
-  }, [translationInfo]);
-
-  // Language loading functions
-  const loadTranscriptionLanguages = async (model: string) => {
-    if (!contextTranscriptionInfo) return;
-    
-    try {
-      let languages: LanguageInfo[] = [];
-      
-      if (Array.isArray(contextTranscriptionInfo.languages)) {
-        // Simple array format - use all languages
-        languages = contextTranscriptionInfo.languages;
-      } else if (typeof contextTranscriptionInfo.languages === 'object' && contextTranscriptionInfo.languages[model]) {
-        // Grouped by API - get languages for specific model
-        languages = contextTranscriptionInfo.languages[model];
-      }
-      
-      setAvailableTranscriptionLanguages(languages);
-      
-      // Set default language - prioritize English or take first available
-      if (languages.length > 0) {
-        const defaultLang = languages.find(lang => lang.language_code === 'en') || languages[0];
-        logger.debug(2, 'MainScreen', `Setting default transcription language: ${defaultLang.language_code}`);
-        setTranscriptionOptions(prev => ({ ...prev, language: defaultLang.language_code }));
-      }
-    } catch (error) {
-      logger.error('MainScreen', 'Failed to load transcription languages:', error);
-    }
-  };
-
-  const loadTranslationLanguages = async (model: string) => {
-    if (!translationInfo) return;
-    
-    try {
-      let languages: LanguageInfo[] = [];
-      
-      if (typeof translationInfo.languages === 'object' && translationInfo.languages[model]) {
-        languages = translationInfo.languages[model];
-      }
-      
-      setAvailableTranslationLanguages(languages);
-      logger.debug(2, 'MainScreen', `Loaded ${languages.length} languages for translation model ${model}`);
-    } catch (error) {
-      logger.error('MainScreen', 'Failed to load translation languages:', error);
-    }
-  };
-
   // Handle external file from App.tsx (command line or file association)
   useEffect(() => {
     if (pendingExternalFile) {
@@ -340,10 +234,23 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
   // Initialize options when API info is available from context
   useEffect(() => {
     if (translationInfo) {
-      setAvailableTranslationApis(translationInfo.apis);
       if (translationInfo.apis.length > 0) {
-        const defaultModel = translationInfo.apis[0];
-        setTranslationOptions(prev => ({ ...prev, model: defaultModel }));
+        const preferredModel = config.preferredTranslationModel;
+        const defaultModel = preferredModel && translationInfo.apis.includes(preferredModel)
+          ? preferredModel
+          : translationInfo.apis[0];
+        setTranslationOptions(prev => {
+          const next = { ...prev, model: defaultModel };
+          if (defaultModel === preferredModel && config.preferredTranslationLanguage) {
+            const consolidated = consolidateLanguages(translationInfo.languages);
+            const lang = consolidated.find(l =>
+              l.id === config.preferredTranslationLanguage && l.id !== 'auto-detect'
+            );
+            const bestVariant = lang ? getBestVariantForApi(lang, defaultModel) : null;
+            if (bestVariant) next.destinationLanguage = bestVariant;
+          }
+          return next;
+        });
         loadLanguagesForTranslationModel(defaultModel, translationInfo);
       }
     }
@@ -351,8 +258,15 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
 
   useEffect(() => {
     if (contextTranscriptionInfo) {
-      if (contextTranscriptionInfo.apis.length > 0) {
-        setTranscriptionOptions(prev => ({ ...prev, model: contextTranscriptionInfo.apis[0] }));
+      // Preferred engine preselection (guarded against server list changes)
+      const preferredEngine = config.preferredTranscriptionEngine;
+      const defaultModel = contextTranscriptionInfo.apis.length > 0
+        ? (preferredEngine && contextTranscriptionInfo.apis.includes(preferredEngine)
+            ? preferredEngine
+            : contextTranscriptionInfo.apis[0])
+        : null;
+      if (defaultModel) {
+        setTranscriptionOptions(prev => ({ ...prev, model: defaultModel }));
       }
       // Set default language - handle both array and grouped structures
       let defaultLang = null;
@@ -360,14 +274,13 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         if (contextTranscriptionInfo.languages.length > 0) {
           defaultLang = contextTranscriptionInfo.languages.find(lang => lang.language_code === 'en') || contextTranscriptionInfo.languages[0];
         }
-      } else if (typeof contextTranscriptionInfo.languages === 'object') {
-        const defaultModel = contextTranscriptionInfo.apis[0];
+      } else if (typeof contextTranscriptionInfo.languages === 'object' && defaultModel) {
         const modelLanguages = contextTranscriptionInfo.languages[defaultModel];
         if (modelLanguages && Array.isArray(modelLanguages) && modelLanguages.length > 0) {
           defaultLang = modelLanguages.find(lang => lang.language_code === 'en') || modelLanguages[0];
         }
       }
-      
+
       if (defaultLang) {
         setTranscriptionOptions(prev => ({ ...prev, language: defaultLang.language_code }));
       } else {
@@ -799,6 +712,25 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
     
     setCompatibleModels(compatible);
     logger.debug(3, 'MainScreen', 'Compatible models found:', compatible);
+
+    // Preferred model/engine preselections that are incompatible with the detected
+    // language are demoted to the first compatible model; manual selections are untouched
+    if (isSubtitle && config.preferredTranslationModel
+      && translationOptions.model === config.preferredTranslationModel
+      && compatible.translation.length > 0
+      && !compatible.translation.includes(config.preferredTranslationModel)) {
+      const fallbackModel = compatible.translation[0];
+      setTranslationOptions(prev => ({ ...prev, model: fallbackModel, destinationLanguage: '' }));
+      loadLanguagesForTranslationModel(fallbackModel);
+    }
+
+    if (isAudioVideo && config.preferredTranscriptionEngine
+      && transcriptionOptions.model === config.preferredTranscriptionEngine
+      && compatible.transcription.length > 0
+      && !compatible.transcription.includes(config.preferredTranscriptionEngine)) {
+      const fallbackEngine = compatible.transcription[0];
+      setTranscriptionOptions(prev => ({ ...prev, model: fallbackEngine }));
+    }
   };
 
   const triggerCreditsAnimation = () => {
@@ -820,8 +752,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       if (dataToUse && dataToUse.languages && dataToUse.languages[modelId]) {
         const modelLanguages = dataToUse.languages[modelId];
         logger.debug(2, 'MainScreen', `Using cached languages for model ${modelId}: ${modelLanguages.length} languages`);
-        setAvailableTranslationLanguages(modelLanguages);
-        
+
         // Don't auto-select destination language - let user choose explicitly
         setIsLoadingDynamicOptions(false);
         return;
@@ -838,8 +769,6 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
         
         // Only update if we actually got languages, otherwise keep the current ones
         if (languagesArray.length > 0) {
-          setAvailableTranslationLanguages(languagesArray);
-          
           // Don't auto-select destination language - let user choose explicitly
         } else {
           logger.warn('MainScreen', `No languages returned for model ${modelId}, keeping current languages`);
@@ -862,7 +791,6 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
       const result = await getTranslationApisForLanguage(sourceLanguage, targetLanguage);
       if (result.success && result.data) {
         const models = result.data;
-        setAvailableTranslationApis(models);
 
         setTranslationOptions(prev =>
           !models.includes(prev.model) && models.length > 0

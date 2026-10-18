@@ -1,29 +1,9 @@
 import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
+import type { AppConfig } from '../shared/appConfig';
 
-export interface AppConfig {
-  username: string;
-  password: string;
-  apiKey?: string;
-  lastUsedLanguage?: string;
-  debugMode?: boolean;
-  debugLevel?: number;
-  checkUpdatesOnStart?: boolean;
-  autoRemoveCompletedFiles?: boolean;
-  cacheExpirationHours?: number;
-  betaTest?: boolean;
-  ffmpegPath?: string;
-  apiBaseUrl?: string;
-  userId?: number;
-  autoLanguageDetection?: boolean;
-  supportEmail?: string;
-  darkMode?: boolean;
-  credits?: {
-    used: number;
-    remaining: number;
-  };
-}
+export type { AppConfig };
 
 export class ConfigManager {
   private configPath: string;

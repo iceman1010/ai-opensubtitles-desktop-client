@@ -1,6 +1,5 @@
-import { logger } from '../../utils/errorLogger';
 import { apiRequestWithRetry } from '../../utils/networkUtils';
-import { rethrowIfAuthError, getUserAgent } from './helpers';
+import { rethrowIfAuthError } from './helpers';
 import { ApiState } from './types';
 
 export async function createSupportTicket(

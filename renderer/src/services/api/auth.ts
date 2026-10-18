@@ -125,7 +125,7 @@ async function performLoginRequest(
 
 export async function login(
   state: ApiState,
-  getAIUrl: (endpoint: string) => string,
+  _getAIUrl: (endpoint: string) => string,
   getLoginUrl: (endpoint: string) => string,
 ): Promise<{ success: boolean; token?: string; user_id?: number; error?: string }> {
   if (!state.username || !state.password) {

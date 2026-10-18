@@ -1,22 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import type { AppConfig } from '../../../shared/appConfig';
 import { LanguageInfo, ServiceModel, ServicesInfo } from '../services/api';
 import { useAPI } from '../contexts/APIContext';
 import { logger } from '../utils/errorLogger';
-
-interface AppConfig {
-  username: string;
-  password: string;
-  apiKey?: string;
-  lastUsedLanguage?: string;
-  debugMode?: boolean;
-  debugLevel?: number;
-  autoLanguageDetection?: boolean;
-  darkMode?: boolean;
-  credits?: {
-    used: number;
-    remaining: number;
-  };
-}
 
 interface InfoProps {
   config: AppConfig;
@@ -527,7 +513,6 @@ function Info({ config: _config, setAppProcessing }: InfoProps) {
           <tbody>
             {sorted.map((model, i) => {
               const expanded = expandedRows.has(rowKeyFor(section, model.name));
-              const descExpanded = expandedRows.has(descKeyFor(section, model.name));
               const count = model.languages_supported?.length ?? 0;
               const stripeBg = i % 2 ? 'var(--bg-tertiary)' : 'var(--bg-secondary)';
               return (

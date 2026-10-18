@@ -1,6 +1,6 @@
 import { logger } from '../../utils/errorLogger';
 import { apiRequestWithRetry, getUserFriendlyErrorMessage } from '../../utils/networkUtils';
-import { rethrowIfAuthError, getUserAgent, parseJsonResponse } from './helpers';
+import { rethrowIfAuthError, getUserAgent } from './helpers';
 import { ApiState } from './types';
 
 export async function downloadFile(

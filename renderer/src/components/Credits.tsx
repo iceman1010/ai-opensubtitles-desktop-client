@@ -1,25 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import type { AppConfig } from '../../../shared/appConfig';
 import { CreditPackage, RecentActivityItem, PaymentHistoryItem } from '../services/api';
 import { useAPI } from '../contexts/APIContext';
 import { usePower } from '../contexts/PowerContext';
 import { logger } from '../utils/errorLogger';
 import CacheManager from '../services/cache';
-
-interface AppConfig {
-  username: string;
-  password: string;
-  apiKey?: string;
-  lastUsedLanguage?: string;
-  debugMode?: boolean;
-  debugLevel?: number;
-  autoLanguageDetection?: boolean;
-  darkMode?: boolean;
-  userId?: number;
-  credits?: {
-    used: number;
-    remaining: number;
-  };
-}
 
 interface CreditsProps {
   config: AppConfig;

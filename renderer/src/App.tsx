@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import type { AppConfig } from '../../shared/appConfig';
 import Login from './components/Login';
 import MainScreen from './components/MainScreen';
 import BatchScreen from './components/BatchScreen';
@@ -20,33 +21,6 @@ import { logger } from './utils/errorLogger'; // Initialize global error handler
 import appConfig from './config/appConfig.json';
 import packageInfo from '../../package.json';
 import logoImage from './assets/logo.png';
-
-interface AppConfig {
-  username: string;
-  password: string;
-  apiKey?: string;
-  lastUsedLanguage?: string;
-  debugMode?: boolean;
-  debugLevel?: number;
-  checkUpdatesOnStart?: boolean;
-  autoRemoveCompletedFiles?: boolean;
-  cacheExpirationHours?: number;
-  betaTest?: boolean;
-  ffmpegPath?: string;
-  audio_language_detection_time?: number;
-  apiBaseUrl?: string;
-  apiUrlParameter?: string;
-  autoLanguageDetection?: boolean;
-  darkMode?: boolean;
-  userId?: number;
-  apiConnectivityTestIntervalMinutes?: number;
-  hideRecentMediaInfoPanel?: boolean;
-  defaultFilenameFormat?: string;
-  credits?: {
-    used: number;
-    remaining: number;
-  };
-}
 
 // Main App component wrapped with API context
 function App() {

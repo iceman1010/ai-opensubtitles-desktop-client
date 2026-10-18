@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import type { AppConfig } from '../../../shared/appConfig';
 import CacheManager from '../services/cache';
 import { logger } from '../utils/errorLogger';
+import { consolidateLanguages } from '../utils/languageMapper';
 import { useAPI } from '../contexts/APIContext';
 import FFmpegDownloadDialog from './FFmpegDownloadDialog';
 
@@ -9,34 +11,6 @@ interface FfmpegInfo {
   path: string | null;
   source: 'custom' | 'bundled' | 'system' | 'download' | null;
   platform: string;
-}
-
-interface AppConfig {
-  username: string;
-  password: string;
-  apiKey?: string;
-  lastUsedLanguage?: string;
-  debugMode?: boolean;
-  debugLevel?: number;
-  checkUpdatesOnStart?: boolean;
-  autoRemoveCompletedFiles?: boolean;
-  cacheExpirationHours?: number;
-  betaTest?: boolean;
-  ffmpegPath?: string;
-  audio_language_detection_time?: number;
-  apiBaseUrl?: string;
-  apiUrlParameter?: string;
-  autoLanguageDetection?: boolean;
-  darkMode?: boolean;
-  pollingIntervalSeconds?: number;
-  pollingTimeoutSeconds?: number;
-  defaultFilenameFormat?: string;
-  apiConnectivityTestIntervalMinutes?: number;
-  persistDownloadQueue?: boolean;
-  credits?: {
-    used: number;
-    remaining: number;
-  };
 }
 
 interface PreferencesProps {
@@ -82,8 +56,34 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
   const [ffmpegInfo, setFfmpegInfo] = useState<FfmpegInfo | null>(null);
   const [showFfmpegDownloadDialog, setShowFfmpegDownloadDialog] = useState(false);
 
-  // Get API context for refreshing model info
-  const { refreshModelInfo } = useAPI();
+  // Get API context for refreshing model info and current model lists
+  const { refreshModelInfo, translationInfo, transcriptionInfo } = useAPI();
+
+  // Languages supported by the preferred translation model (consolidated ids)
+  const preferredTranslationLanguageOptions = useMemo(() => {
+    const model = config.preferredTranslationModel;
+    if (!model) return [];
+    const languages = translationInfo?.languages?.[model];
+    if (!languages?.length) return [];
+    return consolidateLanguages({ [model]: languages }).filter(lang => lang.id !== 'auto-detect');
+  }, [config.preferredTranslationModel, translationInfo]);
+
+  const handlePreferredTranslationModelChange = async (model: string) => {
+    if (!model) {
+      await onSave({ preferredTranslationModel: undefined, preferredTranslationLanguage: undefined });
+      return;
+    }
+    // Reset the saved language when the new model does not support it
+    const languages = translationInfo?.languages?.[model];
+    const currentLanguage = config.preferredTranslationLanguage;
+    let languageToKeep: string | undefined;
+    if (currentLanguage && languages?.length) {
+      const supported = consolidateLanguages({ [model]: languages })
+        .some(lang => lang.id === currentLanguage);
+      languageToKeep = supported ? currentLanguage : undefined;
+    }
+    await onSave({ preferredTranslationModel: model, preferredTranslationLanguage: languageToKeep });
+  };
 
   const handleResetSettings = async () => {
     if (window.confirm('Are you sure you want to reset all settings? This will clear your login credentials and all preferences. This action cannot be undone.')) {
@@ -1767,6 +1767,203 @@ function Preferences({ config, onSave, setAppProcessing, onSimulateOffline, onSi
               }}>
                 Default: {'{filename}.{language_code}.{type}'} • Use dots as separators
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Translation & Transcription Section Divider */}
+        <div style={{
+          margin: '30px 0',
+          height: '1px',
+          background: 'linear-gradient(to right, transparent, var(--border-color) 20%, var(--border-color) 80%, transparent)',
+          position: 'relative'
+        }}>
+          <div style={{
+            position: 'absolute',
+            top: '-10px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: 'var(--bg-primary)',
+            padding: '0 15px',
+            fontSize: '12px',
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '1px'
+          }}>
+            <i className="fas fa-star" style={{marginRight: '6px'}}></i>
+            Translation &amp; Transcription
+          </div>
+        </div>
+
+        {/* Preferred Models Section */}
+        <div style={{
+          padding: '20px',
+          backgroundColor: 'var(--bg-tertiary)',
+          border: '2px solid var(--border-color)',
+          borderRadius: '6px',
+          marginBottom: '15px'
+        }}>
+          <div>
+            <div style={{
+              fontSize: '12px',
+              fontWeight: '600',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              color: 'var(--text-secondary)',
+              marginBottom: '8px'
+            }}>
+              Translation
+            </div>
+
+            <div style={{ marginBottom: '12px' }}>
+              <label
+                htmlFor="preferred-translation-model"
+                style={{
+                  margin: 0,
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  display: 'block',
+                  marginBottom: '4px'
+                }}
+              >
+                Preferred Translation Model
+              </label>
+              <div style={{
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                lineHeight: '1.4',
+                maxWidth: '400px',
+                marginBottom: '8px'
+              }}>
+                Preselected for new translation tasks when compatible with the detected language.
+              </div>
+              <select
+                id="preferred-translation-model"
+                value={config.preferredTranslationModel ?? ''}
+                onChange={(e) => handlePreferredTranslationModelChange(e.target.value)}
+                disabled={isLoading || !translationInfo}
+                style={{
+                  padding: '8px 12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  backgroundColor: 'var(--bg-secondary)',
+                  cursor: 'pointer',
+                  minWidth: '160px'
+                }}
+              >
+                <option value="">None (server default)</option>
+                {(translationInfo?.apis ?? []).map((model: string) => (
+                  <option key={model} value={model}>{model.toUpperCase()}</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '4px' }}>
+              <label
+                htmlFor="preferred-translation-language"
+                style={{
+                  margin: 0,
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  display: 'block',
+                  marginBottom: '4px'
+                }}
+              >
+                Preferred Translation Language
+              </label>
+              <div style={{
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                lineHeight: '1.4',
+                maxWidth: '400px',
+                marginBottom: '8px'
+              }}>
+                Target language for the preferred translation model.
+              </div>
+              <select
+                id="preferred-translation-language"
+                value={config.preferredTranslationLanguage ?? ''}
+                onChange={(e) => handleInstantSave('preferredTranslationLanguage', e.target.value || undefined)}
+                disabled={isLoading || !config.preferredTranslationModel || preferredTranslationLanguageOptions.length === 0}
+                style={{
+                  padding: '8px 12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  backgroundColor: 'var(--bg-secondary)',
+                  cursor: 'pointer',
+                  minWidth: '160px'
+                }}
+              >
+                <option value="">{config.preferredTranslationModel ? 'Not set' : 'Select a model first'}</option>
+                {preferredTranslationLanguageOptions.map((lang) => (
+                  <option key={lang.id} value={lang.id}>{lang.displayName}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div style={{
+            height: '1px',
+            background: 'var(--border-color)',
+            margin: '14px 0'
+          }} />
+
+          <div>
+            <div style={{
+              fontSize: '12px',
+              fontWeight: '600',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              color: 'var(--text-secondary)',
+              marginBottom: '8px'
+            }}>
+              Transcription
+            </div>
+
+            <div>
+              <label
+                htmlFor="preferred-transcription-engine"
+                style={{
+                  margin: 0,
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  display: 'block',
+                  marginBottom: '4px'
+                }}
+              >
+                Preferred Transcription Engine
+              </label>
+              <div style={{
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                lineHeight: '1.4',
+                maxWidth: '400px',
+                marginBottom: '8px'
+              }}>
+                Preselected for new transcription tasks when compatible with the detected language.
+              </div>
+              <select
+                id="preferred-transcription-engine"
+                value={config.preferredTranscriptionEngine ?? ''}
+                onChange={(e) => handleInstantSave('preferredTranscriptionEngine', e.target.value || undefined)}
+                disabled={isLoading || !transcriptionInfo}
+                style={{
+                  padding: '8px 12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  backgroundColor: 'var(--bg-secondary)',
+                  cursor: 'pointer',
+                  minWidth: '160px'
+                }}
+              >
+                <option value="">None (server default)</option>
+                {(transcriptionInfo?.apis ?? []).map((engine: string) => (
+                  <option key={engine} value={engine}>{engine.toUpperCase()}</option>
+                ))}
+              </select>
             </div>
           </div>
         </div>

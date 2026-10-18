@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import type { AppConfig } from '../../../shared/appConfig';
 import FileSelector from './FileSelector';
 import { LanguageInfo, TranscriptionInfo, TranslationInfo, DetectedLanguage, ServicesInfo, ServiceModel, QualityReport, ReadabilityReport } from '../services/api';
 import { logger } from '../utils/errorLogger';
@@ -89,24 +90,6 @@ interface BatchSettings {
   workflowMode: WorkflowMode;  // Replaces enableChaining for better UX
   abortOnError: boolean;
   keepIntermediateFiles: boolean;
-}
-
-interface AppConfig {
-  username: string;
-  password: string;
-  apiKey?: string;
-  apiUrlParameter?: string;
-  lastUsedLanguage?: string;
-  debugMode?: boolean;
-  debugLevel?: number;
-  checkUpdatesOnStart?: boolean;
-  autoRemoveCompletedFiles?: boolean;
-  audio_language_detection_time?: number;
-  autoLanguageDetection?: boolean;
-  darkMode?: boolean;
-  pollingIntervalSeconds?: number;
-  pollingTimeoutSeconds?: number;
-  defaultFilenameFormat?: string;
 }
 
 interface BatchScreenProps {
@@ -2124,7 +2107,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
 
                   {file.status === 'completed' && file.outputPath && (
                     <button
-                      onClick={() => handleDownloadFile(file.outputPath)}
+                      onClick={() => { if (file.outputPath) handleDownloadFile(file.outputPath); }}
                       title="Download subtitle file"
                       style={{
                         marginTop: '6px', padding: '4px 10px', fontSize: '11px',
