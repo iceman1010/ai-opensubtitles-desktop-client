@@ -7,15 +7,20 @@
  * Sources:
  *   - Windows / Linux: BtbN/FFmpeg-Builds (gpl-shared, dynamic linked, ships
  *     sibling DLLs/.so files that the binary needs at runtime).
- *   - macOS: evermeet.cx (static builds, no shared libs needed).
+ *   - macOS: eugeneware/ffmpeg-static GitHub release assets (static builds,
+ *     no shared libs needed). Same evermeet.cx lineage we always shipped,
+ *     re-hosted on GitHub's CDN — evermeet's getrelease API was removed
+ *     (HTTP 410) and its mirror rate-limits (HTTP 429), so we no longer
+ *     download from evermeet.cx or osxexperts.net directly.
  *
  * Idempotent: skips targets whose `ffmpeg` binary already exists on disk
  * unless --force is passed.
  *
  * Usage:
- *   node build-scripts/download-ffmpeg.js           # host platform only
- *   node build-scripts/download-ffmpeg.js --all     # every target we ship
- *   node build-scripts/download-ffmpeg.js --force   # re-download even if present
+ *   node build-scripts/download-ffmpeg.js                    # host platform only
+ *   node build-scripts/download-ffmpeg.js --all              # every target we ship
+ *   node build-scripts/download-ffmpeg.js --target darwin-x64 # one explicit target
+ *   node build-scripts/download-ffmpeg.js --force            # re-download even if present
  */
 
 'use strict';
@@ -62,39 +67,51 @@ const TARGETS = {
     binKeep: (entry) => BTB_BIN_KEEP.has(entry),
     libKeep: (entry) => /\.so(\.|$)/.test(entry),
   },
-  // macOS: static builds. ffmpeg AND ffprobe are both required — the app
-  // probes files with ffprobe via fluent-ffmpeg, which resolves ffprobe as a
-  // sibling of the resolved ffmpeg. evermeet.cx publishes both binaries as
-  // separate zips (stable getrelease API).
+  // macOS: static builds re-hosted on GitHub by the ffmpeg-static project.
+  // ffmpeg AND ffprobe are both required — the app probes files with ffprobe
+  // via fluent-ffmpeg, which resolves ffprobe as a sibling of the resolved
+  // ffmpeg. Assets are gzip-compressed single binaries; the release tag is
+  // immutable so the pinned SHA-256 values stay valid. When upgrading the
+  // tag, re-compute the hashes (see darwin-arm64 note below — same process).
   'darwin-x64': {
     sources: [
-      { url: 'https://evermeet.cx/ffmpeg/getrelease/zip', binaryName: 'ffmpeg', archiveName: 'ffmpeg.zip' },
-      { url: 'https://evermeet.cx/ffmpeg/getrelease/ffprobe/zip', binaryName: 'ffprobe', archiveName: 'ffprobe.zip' },
+      {
+        url: 'https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/ffmpeg-darwin-x64.gz',
+        binaryName: 'ffmpeg',
+        archiveName: 'ffmpeg.gz',
+        sha256: 'ebdddc936f61e14049a2d4b549a412b8a40deeff6540e58a9f2a2da9e6b18894',
+      },
+      {
+        url: 'https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/ffprobe-darwin-x64.gz',
+        binaryName: 'ffprobe',
+        archiveName: 'ffprobe.gz',
+        sha256: 'fa3add0ce901f7241abe0dfc0155d958fc834aca3f8ce61f87cc712ae669c1e0',
+      },
     ],
     binaryName: 'ffmpeg',
-    extract: 'zip',
-    innerRoot: '', // zip root
+    extract: 'gunzip',
+    innerRoot: '', // no archive structure — single binary per asset
   },
-  // macOS Apple Silicon: evermeet.cx refuses to publish arm64 builds, so we
-  // use osxexperts.net static builds (ffmpeg 9.0 + ffprobe 9.0). SHA-256
-  // values are published on their download page and pinned here; the
-  // extracted binaries are verified after download.
+  // macOS Apple Silicon: same ffmpeg-static source as darwin-x64 (previously
+  // osxexperts.net). One GitHub source for both Mac arches; SHA-256 pinned.
   'darwin-arm64': {
     sources: [
       {
-        url: 'https://www.osxexperts.net/ffmpeg9arm.zip',
+        url: 'https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/ffmpeg-darwin-arm64.gz',
         binaryName: 'ffmpeg',
-        sha256: '591260c945d0eef150e3bf82b0ef988bd36a9cecc18ff05d6679617159f0a95e',
+        archiveName: 'ffmpeg.gz',
+        sha256: 'a90e3db6a3fd35f6074b013f948b1aa45b31c6375489d39e572bea3f18336584',
       },
       {
-        url: 'https://www.osxexperts.net/ffprobe9arm.zip',
+        url: 'https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/ffprobe-darwin-arm64.gz',
         binaryName: 'ffprobe',
-        sha256: 'e11c17e8200b3ee4c4c186d245e2b4053f01d56957336c1817fca0b997469106',
+        archiveName: 'ffprobe.gz',
+        sha256: 'bb2db6f5d8cef919da12fbf592119a987202a8c060a886f3cab091f9cab90b64',
       },
     ],
     binaryName: 'ffmpeg',
-    extract: 'zip',
-    innerRoot: '', // zip root
+    extract: 'gunzip',
+    innerRoot: '', // no archive structure — single binary per asset
   },
 };
 
@@ -149,7 +166,7 @@ function flattenBtbExtract(destDir, spec) {
   // flat into destDir so the binary + sibling libs sit next to each other.
   // Then remove the now-empty extracted tree to keep the layout clean.
   if (!spec.innerRoot) {
-    // Static single-binary (evermeet.cx) — nothing to flatten.
+    // Static single-binary targets (macOS) — nothing to flatten.
     return;
   }
   const extracted = path.join(destDir, spec.innerRoot);
@@ -241,6 +258,20 @@ function extractTarXz(tarPath, destDir, spec) {
   flattenBtbExtract(destDir, spec);
 }
 
+function gunzipFile(gzPath, destPath) {
+  // macOS assets are gzip-compressed single binaries (ffmpeg-static).
+  return new Promise((resolve, reject) => {
+    const input = fs.createReadStream(gzPath);
+    const output = fs.createWriteStream(destPath);
+    const gunzip = createGunzip();
+    input.on('error', reject);
+    gunzip.on('error', reject);
+    output.on('error', reject);
+    output.on('finish', resolve);
+    input.pipe(gunzip).pipe(output);
+  });
+}
+
 function sha256OfFile(filePath) {
   return new Promise((resolve, reject) => {
     const hash = crypto.createHash('sha256');
@@ -295,6 +326,8 @@ async function fetchTarget(targetKey, force) {
         extractZip(archivePath, libDir, spec);
       } else if (spec.extract === 'tar') {
         extractTarXz(archivePath, libDir, spec);
+      } else if (spec.extract === 'gunzip') {
+        await gunzipFile(archivePath, path.join(libDir, source.binaryName));
       } else {
         throw new Error(`Unknown extract method for ${targetKey}: ${spec.extract}`);
       }
@@ -336,9 +369,12 @@ async function main() {
   const args = process.argv.slice(2);
   const force = args.includes('--force');
   const all = args.includes('--all');
+  const targetFlagIdx = args.indexOf('--target');
 
   let targets;
-  if (all) {
+  if (targetFlagIdx !== -1 && args[targetFlagIdx + 1]) {
+    targets = [args[targetFlagIdx + 1]];
+  } else if (all) {
     targets = Object.keys(TARGETS);
   } else {
     const host = hostTarget();
