@@ -4,6 +4,7 @@ import FileSelector from './FileSelector';
 import { LanguageInfo, TranscriptionInfo, TranslationInfo, DetectedLanguage, ServicesInfo, ServiceModel, QualityReport, ReadabilityReport } from '../services/api';
 import { logger } from '../utils/errorLogger';
 import { isFullyOnline } from '../utils/networkUtils';
+import { consolidateLanguages, getBestVariantForApi } from '../utils/languageMapper';
 import { useAPI } from '../contexts/APIContext';
 import { generateFilename } from '../utils/filenameGenerator';
 import * as fileFormatsConfig from '../../../shared/fileFormats.json';
@@ -293,7 +294,11 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
   // Initialize batch settings when API info is available from context and screen is visible
   useEffect(() => {
     if (isVisible && !languagesLoaded && contextTranscriptionInfo && contextTranscriptionInfo.apis.length > 0) {
-      const defaultModel = contextTranscriptionInfo.apis[0];
+      // Preferred engine preselection (guarded against server list changes)
+      const preferredEngine = config.preferredTranscriptionEngine;
+      const defaultModel = preferredEngine && contextTranscriptionInfo.apis.includes(preferredEngine)
+        ? preferredEngine
+        : contextTranscriptionInfo.apis[0];
       setBatchSettings(prev => ({ ...prev, transcriptionModel: defaultModel }));
       loadLanguagesForTranscriptionModel(defaultModel, contextTranscriptionInfo);
     }
@@ -301,7 +306,11 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
 
   useEffect(() => {
     if (isVisible && !languagesLoaded && contextTranslationInfo && contextTranslationInfo.apis.length > 0) {
-      const defaultModel = contextTranslationInfo.apis[0];
+      // Preferred model preselection (guarded against server list changes)
+      const preferredModel = config.preferredTranslationModel;
+      const defaultModel = preferredModel && contextTranslationInfo.apis.includes(preferredModel)
+        ? preferredModel
+        : contextTranslationInfo.apis[0];
       setBatchSettings(prev => ({ ...prev, translationModel: defaultModel }));
       loadLanguagesForTranslationModel(defaultModel, contextTranslationInfo);
     }
@@ -408,6 +417,21 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
     }
   };
 
+  // Resolve the preferred translation language (consolidated id from
+  // Preferences) to a concrete language_code for the given translation model.
+  // Returns null when the preference doesn't apply to this model or isn't
+  // present in the model's language list.
+  const resolvePreferredTargetLanguage = (modelId: string, modelLanguages: LanguageInfo[]): string | null => {
+    if (config.preferredTranslationModel !== modelId || !config.preferredTranslationLanguage) return null;
+    if (!Array.isArray(modelLanguages) || modelLanguages.length === 0) return null;
+    const consolidated = consolidateLanguages({ [modelId]: modelLanguages });
+    const lang = consolidated.find(l => l.id === config.preferredTranslationLanguage && l.id !== 'auto-detect');
+    if (!lang) return null;
+    const bestVariant = getBestVariantForApi(lang, modelId);
+    if (!bestVariant) return null;
+    return modelLanguages.some(l => l.language_code === bestVariant) ? bestVariant : null;
+  };
+
   const loadLanguagesForTranslationModel = async (modelId: string, translationData?: TranslationInfo) => {
     setIsLoadingLanguages(true);
     try {
@@ -428,8 +452,9 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
           modelLanguages.some(lang => lang.language_code === currentTargetLang);
         
         if (!isCurrentLangAvailable && Array.isArray(modelLanguages) && modelLanguages.length > 0) {
-          const defaultLang = modelLanguages.find(lang => lang.language_code === 'en') || modelLanguages[0];
-          setBatchSettings(prev => ({ ...prev, targetLanguage: defaultLang.language_code }));
+          const preferredLangCode = resolvePreferredTargetLanguage(modelId, modelLanguages);
+          const fallbackLang = modelLanguages.find(lang => lang.language_code === 'en') || modelLanguages[0];
+          setBatchSettings(prev => ({ ...prev, targetLanguage: preferredLangCode || fallbackLang.language_code }));
         }
       } else {
         // Fetch languages for this specific model
@@ -441,8 +466,9 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
           
           // Set default target language
           if (languagesArray.length > 0) {
-            const defaultLang = languagesArray.find(lang => lang.language_code === 'en') || languagesArray[0];
-            setBatchSettings(prev => ({ ...prev, targetLanguage: defaultLang.language_code }));
+            const preferredLangCode = resolvePreferredTargetLanguage(modelId, languagesArray);
+            const fallbackLang = languagesArray.find(lang => lang.language_code === 'en') || languagesArray[0];
+            setBatchSettings(prev => ({ ...prev, targetLanguage: preferredLangCode || fallbackLang.language_code }));
           }
         }
       }
