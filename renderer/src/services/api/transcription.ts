@@ -1,6 +1,6 @@
 import CacheManager from '../cache';
 import { logger } from '../../utils/errorLogger';
-import { apiRequestWithRetry, getUserFriendlyErrorMessage } from '../../utils/networkUtils';
+import { apiRequestWithRetry, getUserFriendlyErrorMessage, mayRequestHaveReachedServer, NO_AUTO_RETRY } from '../../utils/networkUtils';
 import { rethrowIfAuthError, getUserAgent, parseJsonResponse } from './helpers';
 import { ApiState, TranscriptionInfo, TranscriptionOptions, APIResponse, CompletedTaskData, LanguageInfo } from './types';
 
@@ -110,6 +110,9 @@ export async function initiateTranscription(
     CacheManager.removeByPrefix('recent_media');
     CacheManager.removeByPrefix('recent_activities');
 
+    // Never auto-retry task initiation: if the response was lost after the
+    // server accepted the upload, a task may already exist and be charged —
+    // a retry would submit a duplicate paid task.
     return await apiRequestWithRetry(async () => {
       const formData = new FormData();
 
@@ -173,7 +176,7 @@ export async function initiateTranscription(
       }
 
       return await parseJsonResponse(response);
-    }, 'Initiate Transcription', 3);
+    }, 'Initiate Transcription', NO_AUTO_RETRY);
   } catch (error: any) {
     rethrowIfAuthError(error);
     logger.error('API', 'Transcription initiation failed:', error);
@@ -198,6 +201,7 @@ export async function initiateTranscription(
     return {
       status: 'ERROR',
       errors: [errorMessage],
+      possiblySubmitted: mayRequestHaveReachedServer(error),
     };
   }
 }

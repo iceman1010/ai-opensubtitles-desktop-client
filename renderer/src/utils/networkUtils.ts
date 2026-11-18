@@ -256,6 +256,46 @@ export function getUserFriendlyErrorMessage(error: any): string {
   return categorized.message;
 }
 
+/**
+ * Advisory shown to users when a task-initiation request failed ambiguously:
+ * no definitive rejection was received, so the server may still have created
+ * (and charged) the task.
+ */
+export const POSSIBLY_SUBMITTED_WARNING =
+  'Note: the request may have reached the server and may still be processed and charged. Check Recent Media before retrying to avoid a duplicate charge.';
+
+/**
+ * Determines whether a failed request may nonetheless have been accepted and
+ * processed by the server. True for 5xx responses (the gateway/origin can
+ * fail after the request was already committed — e.g. 502/504 after origin
+ * acceptance, CloudFlare 524) and for failures where no HTTP response was
+ * received at all (connection reset, timeout, generic network failure — the
+ * request may have been delivered and only the response was lost). False for
+ * explicit 4xx rejections (the server refused the request, nothing was
+ * created) and for pre-flight gates thrown locally before sending anything.
+ */
+export function mayRequestHaveReachedServer(error: any): boolean {
+  if (!error) return false;
+
+  const status = error.status || error.originalError?.status || 0;
+
+  // Explicit 4xx rejection: the server refused the request, no task was created.
+  if (status >= 400 && status < 500) return false;
+
+  // 5xx responses can occur after the request was already accepted and processed.
+  if (status >= 500 && status < 600) return true;
+
+  const message = (error.message || '').toLowerCase();
+
+  // Pre-flight gates thrown locally in executeRequest() before anything was sent.
+  if (message.includes('device is offline') || message.includes('api server unreachable')) {
+    return false;
+  }
+
+  // No HTTP response received: the request may still have been delivered.
+  return true;
+}
+
 // Cache for API connectivity status to avoid excessive calls
 let apiConnectivityCache: {
   connected: boolean;
@@ -535,6 +575,19 @@ function calculateRetryDelay(errorType: NetworkErrorType, attempt: number, baseD
 }
 
 /**
+ * Retry count for non-idempotent task-initiation requests
+ * (POST /translate, POST /transcribe, POST /detect_language).
+ *
+ * The server can accept such a request and create (and charge) a task even
+ * when the response never reaches the client (gateway 502/504, CloudFlare
+ * 5xx, connection reset mid-response). Automatically re-sending the request
+ * would silently submit duplicate paid tasks, so these calls must never be
+ * retried at this layer. Retrying is only safe once the API supports
+ * idempotency keys.
+ */
+export const NO_AUTO_RETRY = 0;
+
+/**
  * Wrapper for API requests with automatic retries and error simulation
  */
 export async function apiRequestWithRetry<T>(
@@ -565,7 +618,7 @@ export async function apiRequestWithRetry<T>(
     const networkError = categorizeNetworkError(error);
     
     if (networkConfigManager.getConfig().logging.logErrors) {
-      logger.error('NetworkUtils', `${context} failed after ${effectiveMaxRetries + 1} attempts:`, {
+      logger.error('NetworkUtils', `${context} failed after ${effectiveMaxRetries + 1} attempt${effectiveMaxRetries ? 's' : ''}:`, {
         type: networkError.type,
         message: networkError.message,
         simulated: (error as any).simulated || false,

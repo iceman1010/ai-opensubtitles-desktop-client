@@ -8,7 +8,7 @@ import { parseProbeError } from '../utils/probeError';
 import { parseSubtitleFile, formatDuration, formatCharacterCount, ParsedSubtitle } from '../utils/subtitleParser';
 import ImprovedTranscriptionOptions from './ImprovedTranscriptionOptions';
 import ImprovedTranslationOptions from './ImprovedTranslationOptions';
-import { isOnline } from '../utils/networkUtils';
+import { isOnline, POSSIBLY_SUBMITTED_WARNING } from '../utils/networkUtils';
 import { useAPI } from '../contexts/APIContext';
 import { consolidateLanguages, getBestVariantForApi } from '../utils/languageMapper';
 import { generateFilename } from '../utils/filenameGenerator';
@@ -1077,7 +1077,13 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onNavigateT
           typeof error === 'string' ? error : error.message || error.toString()
         ).join(', ') || `${fileType} failed`;
 
-        throw new Error(errorMessages);
+        // Ambiguous failure (no rejection response): the task may still have
+        // been created and charged server-side — warn before the user retries.
+        const detail = result.possiblySubmitted
+          ? `${errorMessages}\n\n${POSSIBLY_SUBMITTED_WARNING}`
+          : errorMessages;
+
+        throw new Error(detail);
       }
       
       if (result.status === 'COMPLETED' && result.data) {

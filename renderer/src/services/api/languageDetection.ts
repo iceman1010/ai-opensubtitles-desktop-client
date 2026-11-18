@@ -1,5 +1,5 @@
 import { logger } from '../../utils/errorLogger';
-import { apiRequestWithRetry } from '../../utils/networkUtils';
+import { apiRequestWithRetry, NO_AUTO_RETRY } from '../../utils/networkUtils';
 import { rethrowIfAuthError, getUserAgent, parseJsonResponse, parseErrorResponse } from './helpers';
 import { ApiState, APIResponse, LanguageDetectionResult } from './types';
 
@@ -10,6 +10,9 @@ export async function detectLanguage(
   duration?: number,
 ): Promise<APIResponse<LanguageDetectionResult>> {
   try {
+    // Never auto-retry task initiation: if the response was lost after the
+    // server accepted the upload, a detection task may already exist —
+    // a retry would submit a duplicate task.
     return await apiRequestWithRetry(async () => {
       const formData = new FormData();
 
@@ -62,7 +65,7 @@ export async function detectLanguage(
       const data = await parseJsonResponse(response);
       logger.debug(3, 'API', 'Language detection response received', data);
       return data;
-    }, 'Detect Language', 3);
+    }, 'Detect Language', NO_AUTO_RETRY);
   } catch (error: any) {
     rethrowIfAuthError(error);
     logger.error('API', 'Language detection error after retries:', error);

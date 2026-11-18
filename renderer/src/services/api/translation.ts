@@ -1,6 +1,6 @@
 import CacheManager from '../cache';
 import { logger } from '../../utils/errorLogger';
-import { apiRequestWithRetry, getUserFriendlyErrorMessage } from '../../utils/networkUtils';
+import { apiRequestWithRetry, getUserFriendlyErrorMessage, mayRequestHaveReachedServer, NO_AUTO_RETRY } from '../../utils/networkUtils';
 import { rethrowIfAuthError, getUserAgent, parseJsonResponse } from './helpers';
 import { ApiState, TranslationInfo, TranslationOptions, APIResponse, CompletedTaskData, LanguageInfo } from './types';
 
@@ -111,6 +111,9 @@ export async function initiateTranslation(
     CacheManager.removeByPrefix('recent_media');
     CacheManager.removeByPrefix('recent_activities');
 
+    // Never auto-retry task initiation: if the response was lost after the
+    // server accepted the upload, a task may already exist and be charged —
+    // a retry would submit a duplicate paid task.
     return await apiRequestWithRetry(async () => {
       const formData = new FormData();
 
@@ -154,7 +157,7 @@ export async function initiateTranslation(
       }
 
       return await parseJsonResponse(response);
-    }, 'Initiate Translation', 3);
+    }, 'Initiate Translation', NO_AUTO_RETRY);
   } catch (error: any) {
     rethrowIfAuthError(error);
     logger.error('API', 'Translation initiation failed:', error);
@@ -179,6 +182,7 @@ export async function initiateTranslation(
     return {
       status: 'ERROR',
       errors: [errorMessage],
+      possiblySubmitted: mayRequestHaveReachedServer(error),
     };
   }
 }

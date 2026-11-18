@@ -3,7 +3,7 @@ import type { AppConfig } from '../../../shared/appConfig';
 import FileSelector from './FileSelector';
 import { LanguageInfo, TranscriptionInfo, TranslationInfo, DetectedLanguage, ServicesInfo, ServiceModel, QualityReport, ReadabilityReport } from '../services/api';
 import { logger } from '../utils/errorLogger';
-import { isFullyOnline } from '../utils/networkUtils';
+import { isFullyOnline, POSSIBLY_SUBMITTED_WARNING } from '../utils/networkUtils';
 import { consolidateLanguages, getBestVariantForApi } from '../utils/languageMapper';
 import { useAPI } from '../contexts/APIContext';
 import { generateFilename } from '../utils/filenameGenerator';
@@ -1317,6 +1317,14 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
 
   // Batch processing functions
   const startBatchProcessing = async () => {
+    // Re-entrancy guard: a rapid double-click before React re-renders the
+    // Start button into Stop could otherwise launch two concurrent driver
+    // loops and submit every file in the queue twice (duplicate charges).
+    if (processingRef.current) {
+      logger.warn('BatchScreen', 'Batch processing already running, ignoring duplicate start request');
+      return;
+    }
+
     if (queue.length === 0 || !isAuthenticated) return;
 
     // Validate language selection before starting
@@ -1459,12 +1467,19 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
 
     } catch (error) {
       logger.error('BatchScreen', `Failed to process file: ${file.name}`, error);
-      
+
+      // Ambiguous initiation failure: the task may still have been created
+      // and charged server-side — warn before the user retries the file.
+      let fileError = error instanceof Error ? error.message : 'Processing failed';
+      if ((error as any).possiblySubmitted) {
+        fileError += ` ${POSSIBLY_SUBMITTED_WARNING}`;
+      }
+
       setQueue(prev => prev.map(f => 
         f.id === file.id ? { 
           ...f, 
           status: 'error' as const, 
-          error: error instanceof Error ? error.message : 'Processing failed'
+          error: fileError
         } : f
       ));
 
@@ -1547,7 +1562,11 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
 
     if (transcriptionInitResult.status === 'ERROR') {
       setAppProcessing(true, `Transcription initiation failed for ${file.name}`);
-      throw new Error(transcriptionInitResult.errors?.join(', ') || 'Transcription initiation failed');
+      const initiationError = new Error(transcriptionInitResult.errors?.join(', ') || 'Transcription initiation failed');
+      if (transcriptionInitResult.possiblySubmitted) {
+        (initiationError as any).possiblySubmitted = true;
+      }
+      throw initiationError;
     }
 
     // Step 2: Poll for transcription completion
@@ -1602,7 +1621,11 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
 
       if (translationInitResult.status === 'ERROR') {
         setAppProcessing(true, `Translation initiation failed for ${file.name}`);
-        throw new Error(translationInitResult.errors?.join(', ') || 'Translation initiation failed');
+        const initiationError = new Error(translationInitResult.errors?.join(', ') || 'Translation initiation failed');
+        if (translationInitResult.possiblySubmitted) {
+          (initiationError as any).possiblySubmitted = true;
+        }
+        throw initiationError;
       }
 
       // Poll for translation completion
@@ -1699,7 +1722,11 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, sho
 
     if (translationInitResult.status === 'ERROR') {
       setAppProcessing(true, `Translation initiation failed for ${file.name}`);
-      throw new Error(translationInitResult.errors?.join(', ') || 'Translation initiation failed');
+      const initiationError = new Error(translationInitResult.errors?.join(', ') || 'Translation initiation failed');
+      if (translationInitResult.possiblySubmitted) {
+        (initiationError as any).possiblySubmitted = true;
+      }
+      throw initiationError;
     }
 
     // Step 2: Poll for completion or handle immediate result

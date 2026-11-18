@@ -17,6 +17,10 @@ export interface APIResponse<T = any> {
   data?: T;
   errors?: string[];
   translation?: string;
+  /** Set when a task-initiation request failed ambiguously (no rejection
+   * response received): a task may still have been created and charged
+   * server-side, so retrying could duplicate the charge. */
+  possiblySubmitted?: boolean;
 }
 
 export interface LanguageInfo {
